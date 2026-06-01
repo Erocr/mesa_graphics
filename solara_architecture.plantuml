@@ -1,0 +1,58 @@
+@startuml
+note "Les méthodes en bleu sont en bleu\nsi je n'ai pas à les changer\nEn rouge s'il est central de le changer" as N1
+
+abstract class AbstractRenderer
+
+class AltairBackend
+
+class MatplotlibBackend
+
+AltairBackend --|> AbstractRenderer
+MatplotlibBackend --|> AbstractRenderer
+
+class AgentPortrayalStyle
+class PropertyLayerStyle
+
+SpaceRenderer --> AgentPortrayalStyle
+SpaceRenderer --> PropertyLayerStyle
+
+abstract class BaseSpaceDrawer
+class HexSpaceDrawer
+class OrthogonalSpaceDrawer
+class NetworkSpaceDrawer
+class ContinuousSpaceDrawer
+class VoronoiSpaceDrawer
+
+HexSpaceDrawer : <color:red> draw_matplotlib()
+HexSpaceDrawer : <color:red> draw_altair()
+OrthogonalSpaceDrawer : <color:red> draw_matplotlib()
+OrthogonalSpaceDrawer : <color:red> draw_altair()
+NetworkSpaceDrawer : <color:red> draw_matplotlib()
+NetworkSpaceDrawer : <color:red> draw_altair()
+ContinuousSpaceDrawer : <color:red> draw_matplotlib()
+ContinuousSpaceDrawer : <color:red> draw_altair()
+VoronoiSpaceDrawer : <color:red> draw_matplotlib()
+VoronoiSpaceDrawer : <color:red> draw_altair()
+
+HexSpaceDrawer --|> BaseSpaceDrawer
+OrthogonalSpaceDrawer --|> BaseSpaceDrawer
+NetworkSpaceDrawer --|> BaseSpaceDrawer
+ContinuousSpaceDrawer --|> BaseSpaceDrawer
+VoronoiSpaceDrawer --|> BaseSpaceDrawer
+
+class SpaceRenderer
+
+SpaceRenderer : model
+SpaceRenderer : backend
+SpaceRenderer : <color:blue> setup_structure()
+SpaceRenderer : <color:blue> setup_agents()
+SpaceRenderer : <color:blue> setup_propertylayer()
+SpaceRenderer : <color:blue> draw_structure()
+SpaceRenderer : <color:blue> draw_agents()
+SpaceRenderer : <color:blue> draw_propertylayer()
+SpaceRenderer : render()
+SpaceRenderer : <color:blue> post_process
+
+SpaceRenderer -> AbstractRenderer
+SpaceRenderer --> BaseSpaceDrawer
+@enduml
