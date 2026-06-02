@@ -32,8 +32,10 @@ Solara est tourné sur un serveur. Mais en plus de cela, plusieurs points semble
 ### Les problèmes / améliorations potentielles
 
 Voici une liste de points peu ergonomiques :
-- Si on change les paramètres du modèle pendant l'exécution, tout plante (un message d'erreur moche apparaît)
-- Si on appuie beaucoup de fois sur le bouton step, il ne va plus prendre en compte les autres inputs
+- Si on change les paramètres du modèle pendant l'exécution, tout plante (un message d'erreur moche apparaît, n'arrive
+pas à chaque fois)
+- Si on appuie beaucoup de fois sur le bouton step, il ne va plus prendre en compte les autres inputs **(ce problème 
+n'est plus lorsque multithread est activé)**
 - Il n'y a pas de boutons "retour en arrière", alors que le datacollector rendrait cette modification assez simple
 - Cela semble intéressant d'afficher les informations des agents lorsqu'on passe la souris dessus
 - Les agents sont affichés superposés s'il y en a plusieurs sur la même case
