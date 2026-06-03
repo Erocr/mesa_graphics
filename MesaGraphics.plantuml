@@ -1,0 +1,79 @@
+@startuml
+note "bleu: pas à changer, déjà existant\nvert: pas pour tout de suie" as N1
+
+class MesaGraphics
+MesaGraphics : start_loop()
+
+class View
+View : areComponentsUpdated
+View : pygame_stuff
+View : draw()
+View : _draw_ui_element(UIElement)
+View : _draw_button(Button)
+View : _draw_slider(Slider)
+View : _draw_component(Component)
+
+class Controller
+Controller : update()
+Controller : update_ui_element(UIElement)
+Controller : <color:green>update_component(Component)
+Controller : _update_button(Button)
+Controller : _update_slider(Slider)
+
+
+class Model
+
+MesaGraphics --> View
+MesaGraphics --> Controller
+MesaGraphics --> Model
+
+/' ########## Controller part ########## '/
+
+class InputManager
+InputManager : update()
+InputManager : get_pressed(key)
+InputManager : get_holding(key)
+InputManager : get_released(key)
+
+Controller --> InputManager
+
+/' ########## Model part ########## '/
+
+class MesaModel
+MesaModel : <color:blue> Model de mesa
+
+Model --|> MesaModel
+
+/' ##########  View part ########## '/
+
+class Component
+Component : page
+Component : image
+Component : update_image()
+
+View --> Component
+
+class UIElement
+UIElement : position
+UIElement : size
+
+View --> UIElement
+
+class UIButton
+UIButton : text
+UIButton : hover
+UIElement --|> UIButton
+
+class Slider
+UIElement --|> Slider
+
+class MesaSlider
+MesaSlider : <color:blue>Slider de mesa
+MesaSlider : <color:blue>min_value
+MesaSlider : <color:blue>max_value
+MesaSlider : <color:blue>step
+MesaSlider : <color:blue>...
+Slider --|> MesaSlider
+
+
+@enduml

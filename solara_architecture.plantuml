@@ -1,5 +1,5 @@
 @startuml
-note "Les méthodes en bleu sont en bleu\nsi je n'ai pas à les changer\nEn rouge s'il est central de le changer" as N1
+note "bleu: pas à changer, déjà existant\nrouge: à changer" as N1
 
 abstract class AbstractRenderer
 AbstractRenderer : <color:blue> initialize_canvas()
@@ -37,8 +37,8 @@ PropertyLayerStyle : colorbar
 PropertyLayerStyle : vmin
 PropertyLayerStyle : vmax
 
-SpaceRenderer --> AgentPortrayalStyle
-SpaceRenderer --> PropertyLayerStyle
+AgentPortrayalStyle <-- SpaceRenderer
+PropertyLayerStyle <-- SpaceRenderer
 
 abstract class BaseSpaceDrawer
 BaseSpaceDrawer : <color:blue> get_viz_limits()
@@ -62,11 +62,11 @@ ContinuousSpaceDrawer : <color:blue> draw_altair()
 VoronoiSpaceDrawer : <color:blue> draw_matplotlib()
 VoronoiSpaceDrawer : <color:blue> draw_altair()
 
-HexSpaceDrawer --|> BaseSpaceDrawer
-OrthogonalSpaceDrawer --|> BaseSpaceDrawer
-NetworkSpaceDrawer --|> BaseSpaceDrawer
-ContinuousSpaceDrawer --|> BaseSpaceDrawer
-VoronoiSpaceDrawer --|> BaseSpaceDrawer
+BaseSpaceDrawer <|-- HexSpaceDrawer
+BaseSpaceDrawer <|-- OrthogonalSpaceDrawer
+BaseSpaceDrawer <|-- NetworkSpaceDrawer
+BaseSpaceDrawer <|-- ContinuousSpaceDrawer
+BaseSpaceDrawer <|-- VoronoiSpaceDrawer
 
 class SpaceRenderer
 SpaceRenderer : model
@@ -81,7 +81,7 @@ SpaceRenderer : <color:blue> render(agent_portrayal, propertylayer_portrayal)
 SpaceRenderer : <color:blue> post_process
 
 SpaceRenderer -> AbstractRenderer
-SpaceRenderer --> BaseSpaceDrawer
+BaseSpaceDrawer --> SpaceRenderer
 
 
 
@@ -92,6 +92,19 @@ JupyterVisualization : <color:blue> make_initial_grid_layout(num_components)
 JupyterVisualization : <color:blue> copy_renderer(SpaceRenderer, Model)
 
 
+class UserParam
+UserParam : maybeRaiseError()
+
+class Slider
+Slider : label
+Slider : value
+Slider : min
+Slider : max
+Slider : step
+
+Slider -|> UserParam
+
+
 class ComponentCreation
 ComponentCreation : <color:red> create_space_component(SpaceRenderer)
 ComponentCreation : <color:red> make_space_component(agent_portrayal, propertylayer_portrayal, post_process, backend)
@@ -99,6 +112,7 @@ ComponentCreation : <color:red> make_altair_space(agent_portrayal, propertylayer
 ComponentCreation : <color:red> make_mpl_space_component(agent_portrayal, propertylayer_portrayal, post_process)
 ComponentCreation : <color:red> make_plot_component(measure, post_process, backend, page)
 ComponentCreation : <color:red> make_mpl_plot_component(measure, post_process, page)
+
 
 class SolaraViz
 SolaraViz : <color:red> SolaraViz(model, renderer, components, play_interval, render_interval, simulator, model_params, name, use_threads)
