@@ -5,7 +5,6 @@ class MesaGraphics
 MesaGraphics : start_loop()
 
 class View
-View : areComponentsUpdated
 View : pygame_stuff
 View : draw()
 View : _draw_ui_element(UIElement)
@@ -29,13 +28,13 @@ MesaGraphics --> Model
 
 /' ########## Controller part ########## '/
 
-class InputManager
-InputManager : update()
-InputManager : get_pressed(key)
-InputManager : get_holding(key)
-InputManager : get_released(key)
+class InputHandler
+InputHandler : update()
+InputHandler : get_pressed(key)
+InputHandler : get_holding(key)
+InputHandler : get_released(key)
 
-Controller --> InputManager
+Controller --> InputHandler
 
 /' ########## Model part ########## '/
 
@@ -46,18 +45,23 @@ Model --|> MesaModel
 
 /' ##########  View part ########## '/
 
+class Card
+Card : position
+Card : size
+Card : scroll_position
+View --> Card
+
 class Component
+Component : <color:green>is_image_updated
 Component : page
 Component : image
 Component : update_image()
-
-View --> Component
+Card --> Component
 
 class UIElement
 UIElement : position
 UIElement : size
-
-View --> UIElement
+Card --> UIElement
 
 class UIButton
 UIButton : text
