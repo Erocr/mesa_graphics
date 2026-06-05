@@ -7,20 +7,14 @@ MesaGraphics : start_loop()
 class View
 View : pygame_stuff
 View : draw()
-View : _draw_ui_element(UIElement)
-View : _draw_button(Button)
-View : _draw_slider(Slider)
-View : _draw_component(Component)
 
 class Controller
 Controller : update()
-Controller : update_ui_element(UIElement)
-Controller : <color:green>update_component(Component)
-Controller : _update_button(Button)
-Controller : _update_slider(Slider)
+Controller : <color:green>boutons/sliders
 
-
-class Model
+Controller -> View
+Controller -> Model
+View --> Model
 
 MesaGraphics --> View
 MesaGraphics --> Controller
@@ -38,37 +32,34 @@ Controller --> InputHandler
 
 /' ########## Model part ########## '/
 
-class MesaModel
-MesaModel : <color:blue> Model de mesa
-
-Model --|> MesaModel
+class Model
+Model : <color:blue> Model de mesa
 
 /' ##########  View part ########## '/
 
-class Card
-Card : position
-Card : size
-Card : scroll_position
-View --> Card
-
 class Component
-Component : <color:green>is_image_updated
 Component : page
 Component : image
 Component : update_image()
-Card --> Component
+Component : draw()
+View --> Component
 
 class UIElement
 UIElement : position
 UIElement : size
-Card --> UIElement
+View --> UIElement
 
 class UIButton
-UIButton : text
-UIButton : hover
-UIElement --|> UIButton
+UIButton : <color:green>On verra pour l'action
+UIElement <|-- UIButton
+
+class Text
+Text : text
+UIButton --> Text
+UIElement <|-- Text
 
 class Slider
+Slider : <color:green>On verra pour l'action
 UIElement --|> Slider
 
 class MesaSlider
