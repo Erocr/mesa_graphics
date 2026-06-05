@@ -50,6 +50,7 @@ Card : position
 Card : size
 Card : scroll_position
 View --> Card
+Card --|> BoundingElement
 
 class Component
 Component : <color:green>is_image_updated
@@ -58,18 +59,32 @@ Component : image
 Component : update_image()
 Card --> Component
 
+class BoundingElement
+BoundingElement : get_size()
+BoundingElement : get_pos()
+
+class Screen
+Screen : pygame_screen
+BoundingElement <|-- Screen
+
 class UIElement
-UIElement : position
-UIElement : size
+UIElement : ratio_pos
+UIElement : ratio_size
+UIElement : boundaries: BoundingElement
 Card --> UIElement
+BoundingElement <|-- UIElement
+
+class Text
+Text : text
+UIElement <|-- Text
 
 class UIButton
-UIButton : text
+UIButton : text: Text
 UIButton : hover
-UIElement --|> UIButton
+UIElement <|-- UIButton
 
 class Slider
-UIElement --|> Slider
+UIElement <|-- Slider
 
 class MesaSlider
 MesaSlider : <color:blue>Slider de mesa
@@ -77,7 +92,7 @@ MesaSlider : <color:blue>min_value
 MesaSlider : <color:blue>max_value
 MesaSlider : <color:blue>step
 MesaSlider : <color:blue>...
-Slider --|> MesaSlider
+Slider <|-- MesaSlider
 
 
 @enduml

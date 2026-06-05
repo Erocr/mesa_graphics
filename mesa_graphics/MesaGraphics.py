@@ -10,5 +10,5 @@ class MesaGraphics:
 
     def loop(self):
         while not self.controller.is_terminated:
-            self.view.draw()
             self.controller.update()
+            self.view.draw()
