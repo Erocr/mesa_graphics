@@ -40,13 +40,26 @@ class View:
             Text(pg.Vector2(20, 80), "Controls")
         ]
         x = 20
-        texts = ("RESET", "▶", "STEP")
-        actions = (lambda: print("reset"),
-                   lambda: print("start or stop"),
-                   lambda: print("step"))
+        texts = ("RESET", "start", "STEP")
+
+        def reset_action():
+            print("reset")
+
+        def step_action():
+            self.model.mesa_model.step()
+
+        actions = (reset_action, None, step_action)
         for i in range(3):
             res.append(UIButton(pg.Vector2(x, 120), texts[i], actions[i], font_size=15))
             x += res[-1].text.image.get_width() + 30
+
+        start_stop_button = res[-2]
+
+        def start_or_stop_action():
+            self.model.is_playing = not self.model.is_playing
+            start_stop_button.modify_text(("start", "stop")[self.model.is_playing])
+
+        start_stop_button.set_action(start_or_stop_action)
         return res
 
     def draw(self):
@@ -61,7 +74,7 @@ class View:
         next_y = 80
         x = 300
         for component in self.components[self.page]:
-            image = component(self.model)
+            image = component(self.model.mesa_model)
             size = image.get_size()
             if size[0] + x > 1280:
                 y = next_y + 10
