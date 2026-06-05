@@ -40,8 +40,12 @@ class View:
             Text(pg.Vector2(20, 80), "Controls")
         ]
         x = 20
-        for text in ("RESET", "▶", "STEP"):
-            res.append(UIButton(pg.Vector2(x, 120), text, font_size=15))
+        texts = ("RESET", "▶", "STEP")
+        actions = (lambda: print("reset"),
+                   lambda: print("start or stop"),
+                   lambda: print("step"))
+        for i in range(3):
+            res.append(UIButton(pg.Vector2(x, 120), texts[i], actions[i], font_size=15))
             x += res[-1].text.image.get_width() + 30
         return res
 
@@ -53,7 +57,6 @@ class View:
         pg.display.flip()
 
     def draw_components(self):
-        i = 0
         y = 80
         next_y = 80
         x = 300

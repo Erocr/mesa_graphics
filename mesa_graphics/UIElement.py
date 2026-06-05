@@ -30,14 +30,15 @@ class Text(UIElement):
 
 
 class UIButton(UIElement):
-    def __init__(self, pos, text: str, font_size=32):
+    def __init__(self, pos, text: str, action, font_size=32):
         super().__init__(pos)
         self.text = Text(pos+pg.Vector2(10, 10), text, font_size)
         self.size = pg.Vector2(self.text.image.get_size()) + pg.Vector2(20, 20)
         self.hover = False
+        self.action = action
 
     def draw(self, screen):
-        bg_color = (220, 220, 220) if self.hover else (180, 180, 180)
+        bg_color = (200, 200, 200) if self.hover else (180, 180, 180)
         pg.draw.rect(screen, bg_color, pg.Rect(self.pos, self.size))
         self.text.draw(screen)
 
