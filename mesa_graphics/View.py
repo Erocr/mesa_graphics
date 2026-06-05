@@ -2,7 +2,7 @@ from mesa_graphics.UIElement import *
 
 
 class View:
-    def __init__(self, model, name=None):
+    def __init__(self, model, components=None, name=None):
         pg.font.init()
         self.screen = pg.display.set_mode((1280, 740), pg.RESIZABLE)
         self.model = model
@@ -11,6 +11,19 @@ class View:
             self.name = type(self.model).__name__
         self.ui_elements = []
         self.create_ui()
+        self.page = 0
+        if components is None:
+            self.components = {0: []}
+        else:
+            self.components = {}
+            self.store_components(components)
+
+    def store_components(self, components):
+        for comp_page in components:
+            comp, page = comp_page
+            if page not in self.components:
+                self.components[page] = []
+            self.components[page].append(comp)
 
     def create_ui(self):
         self.ui_elements += self._up_bar() + self._controls()
@@ -36,4 +49,22 @@ class View:
         self.screen.fill((255, 255, 255))
         for ui in self.ui_elements:
             ui.draw(self.screen)
+        self.draw_components()
         pg.display.flip()
+
+    def draw_components(self):
+        i = 0
+        y = 80
+        next_y = 80
+        x = 300
+        for component in self.components[self.page]:
+            image = component(self.model)
+            size = image.get_size()
+            if size[0] + x > 1280:
+                y = next_y + 10
+                next_y = y
+                x = 300
+            next_y = max(next_y, y + size[1])
+            self.screen.blit(image, (x, y))
+            x += size[0] + 10
+
