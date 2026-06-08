@@ -16,8 +16,16 @@ class View:
         else:
             self.components = {}
             self.store_components(components)
+        self.buttons = {}  # Provide fast and easy access to buttons
         self.ui_elements = []
         self.create_ui()
+
+    def add_UIElement(self, type, *args, **kwargs):
+        to_add = type(*args, **kwargs)
+        self.ui_elements.append(to_add)
+        if isinstance(to_add, UIButton):
+            self.buttons[to_add.name] = to_add
+        return to_add
 
     def store_components(self, components):
         for comp_page in components:
@@ -38,63 +46,34 @@ class View:
                 self.components[i] = []
 
     def create_ui(self):
-        self.ui_elements += self._create_up_bar() + self._create_controls() + self._create_switch_page_buttons()
+        self._create_up_bar()
+        self._create_controls()
+        self._create_switch_page_buttons()
 
     def _create_up_bar(self):
-        return [
-            Rectangle(pg.Vector2(0, 0), pg.Vector2(1280, 80), (0, 80, 255)),
-            Text(pg.Vector2(80, 0), self.name)
-        ]
+        self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 80), (0, 80, 255))
+        self.add_UIElement(Text, pg.Vector2(80, 0), self.name)
 
     def _create_controls(self):
-        res = [
-            Rectangle(pg.Vector2(0, 80), pg.Vector2(300, 660), (220, 220, 220)),
-            Text(pg.Vector2(20, 80), "Controls")
-        ]
+        self.add_UIElement(Rectangle, pg.Vector2(0, 80), pg.Vector2(300, 660), (220, 220, 220))
+        self.add_UIElement(Text, pg.Vector2(20, 80), "Controls")
         x = 20
         texts = ("RESET", "START", "STEP")
+        names = ("RESET", "START/STOP", "STEP")
 
-        buttons = []
         for i in range(3):
-            buttons.append(UIButton(pg.Vector2(x, 120), texts[i], None, font_size=15))
-            x += buttons[-1].text.image.get_width() + 30
-
-        reset_button = buttons[0]
-        start_stop_button = buttons[1]
-        step_button = buttons[2]
-
-        def step_action():
-            self.model.mesa_model.step()
-
-        def start_or_stop_action():
-            self.model.is_playing = not self.model.is_playing
-            start_stop_button.modify_text(("START", "STOP")[self.model.is_playing])
-
-        def reset_action():
-            model = type(self.model.mesa_model)()
-            self.model.mesa_model = model
-            if self.model.is_playing:
-                start_or_stop_action()
-
-        step_button.set_action(step_action)
-        start_stop_button.set_action(start_or_stop_action)
-        reset_button.set_action(reset_action)
-        return res + buttons
+            button = self.add_UIElement(UIButton, pg.Vector2(x, 120), texts[i], font_size=15, name=names[i])
+            x += button.text.image.get_width() + 30
 
     def _create_switch_page_buttons(self):
         buttons = []
         for i in range(self.min_page, self.max_page+1):
-            def switch_page(i):
-                def res():
-                    self.page = i
-                return res
-            buttons.append(UIButton(pg.Vector2(0, 0), f"PAGE {i}", switch_page(i), font_size=15))
+            buttons.append(self.add_UIElement(UIButton, pg.Vector2(0, 0), f"PAGE {i}", font_size=15))
         size_x = sum([button.size.x for button in buttons]) + 10 * (len(buttons) - 1)
         x = (1280 + 300) // 2 - size_x // 2
         for button in buttons:
             button.set_pos(pg.Vector2(x, 90))
             x += button.size.x + 10
-        return buttons
 
     def draw(self):
         self.screen.fill((255, 255, 255))

@@ -33,13 +33,30 @@ class Text(UIElement):
 
 
 class UIButton(UIElement):
-    def __init__(self, pos, text: str, action, font_size=32):
+    alreadyUsed = set()
+
+    def __init__(self, pos, text: str, font_size=32, name=None):
+        """
+        :param pos:
+        :param text:
+        :param font_size:
+        :param name: Un identifiant pour le reconnaître
+        """
         super().__init__(pos)
         self.font_size = font_size
         self.text = Text(pos+pg.Vector2(10, 10), text, font_size)
         self.size = pg.Vector2(self.text.image.get_size()) + pg.Vector2(20, 20)
         self.hover = False
-        self.action = action
+        if name is None:
+            name = text
+        if name in self.alreadyUsed:
+            i = 0
+            new_name = f"{name}{i}"
+            while new_name is self.alreadyUsed:
+                i += 1
+                new_name = f"{name}{i}"
+            name = new_name
+        self.name = name
 
     def draw(self, screen):
         bg_color = (200, 200, 200) if self.hover else (180, 180, 180)
@@ -51,9 +68,6 @@ class UIButton(UIElement):
             font_size = self.font_size
         self.text = Text(self.pos + pg.Vector2(10, 10), new_text, font_size)
         self.size = pg.Vector2(self.text.image.get_size()) + pg.Vector2(20, 20)
-
-    def set_action(self, action):
-        self.action = action
 
     def set_pos(self, pos):
         self.pos = pos
