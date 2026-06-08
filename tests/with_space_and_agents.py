@@ -1,11 +1,13 @@
 import mesa
+from mesa.discrete_space import CellAgent
+from mesa.visualization.components import AgentPortrayalStyle
 from mesa.visualization.space_renderer import SpaceRenderer
 
 from mesa_graphics.MesaGraphics import MesaGraphics
 from mesa_graphics.matplotlib_components import make_mpl_plot_component
 
 
-class MoneyAgent(mesa.Agent):
+class MoneyAgent(CellAgent):
     """An agent with fixed initial wealth."""
 
     def __init__(self, model, cell):
@@ -14,6 +16,8 @@ class MoneyAgent(mesa.Agent):
         self.wealth = 10
 
     def step(self):
+        cell = self.random.choice(self.cell.neighborhood.cells)
+        self.move_to(cell)
         agent = self.random.choice(self.model.agents)
         exchange = self.wealth // 2
         agent.wealth += exchange
@@ -37,6 +41,7 @@ class MoneyModel(mesa.Model):
         self.grid = mesa.discrete_space.HexGrid((6, 6), torus=True, random=self.random)
         choices = self.random.choices(self.grid.all_cells.cells, k=self.num_agents)
         MoneyAgent.create_agents(self, n, choices)
+        self.datacollector.collect(self)
 
     def step(self):
         self.datacollector.collect(self)
@@ -45,7 +50,13 @@ class MoneyModel(mesa.Model):
 
 money_model = MoneyModel()
 
+
+def agent_portrayal(agent):
+    return AgentPortrayalStyle(color="tab:orange", size=50)
+
+
 renderer = SpaceRenderer(model=money_model, backend="matplotlib")
+renderer.setup_agents(agent_portrayal)
 renderer.render()
 
 GiniPlot = make_mpl_plot_component("Gini", page=0)
