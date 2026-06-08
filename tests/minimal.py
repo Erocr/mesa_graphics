@@ -16,7 +16,7 @@ class MoneyModel(mesa.Model):
         super().__init__(seed=seed)
         MoneyAgent.create_agents(model=self, n=5)
 
-        self.datacollector = mesa.DataCollector(model_reporters={}, agent_reporters={"Wealth": "wealth"})
+        self.datacollector = mesa.DataCollector(model_reporters={}, agent_reporters={})
 
     def step(self):
         self.datacollector.collect(self)
