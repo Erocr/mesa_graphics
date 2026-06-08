@@ -46,5 +46,5 @@ GiniPlotPage1 = make_mpl_plot_component("Gini", page=1)
 
 page = MesaGraphics(
     money_model,
-    components=[GiniPlotPage0, GiniPlotPage1],
+    components=[GiniPlotPage0, GiniPlotPage1, GiniPlotPage1],
 )

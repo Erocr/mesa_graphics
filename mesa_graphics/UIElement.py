@@ -28,6 +28,9 @@ class Text(UIElement):
     def draw(self, screen):
         screen.blit(self.image, self.pos)
 
+    def set_pos(self, pos):
+        self.pos = pos
+
 
 class UIButton(UIElement):
     def __init__(self, pos, text: str, action, font_size=32):
@@ -51,4 +54,8 @@ class UIButton(UIElement):
 
     def set_action(self, action):
         self.action = action
+
+    def set_pos(self, pos):
+        self.pos = pos
+        self.text.set_pos(pos+pg.Vector2(10, 10))
 

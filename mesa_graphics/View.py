@@ -9,14 +9,15 @@ class View:
         self.name = name
         if name is None:
             self.name = type(self.model).__name__
-        self.ui_elements = []
-        self.create_ui()
         self.page = 0
+        self.min_page = self.max_page = 0
         if components is None:
             self.components = {0: []}
         else:
             self.components = {}
             self.store_components(components)
+        self.ui_elements = []
+        self.create_ui()
 
     def store_components(self, components):
         for comp_page in components:
@@ -24,23 +25,34 @@ class View:
             if page not in self.components:
                 self.components[page] = []
             self.components[page].append(comp)
+        self.add_unuseful_pages()
+
+    def add_unuseful_pages(self):
+        self.min_page = 0
+        self.max_page = 0
+        for page in self.components:
+            if page < self.min_page: self.min_page = page
+            if page > self.max_page: self.max_page = page
+        for i in range(self.min_page+1, self.max_page):
+            if i not in self.components:
+                self.components[i] = []
 
     def create_ui(self):
-        self.ui_elements += self._up_bar() + self._controls()
+        self.ui_elements += self._create_up_bar() + self._create_controls() + self._create_switch_page_buttons()
 
-    def _up_bar(self):
+    def _create_up_bar(self):
         return [
             Rectangle(pg.Vector2(0, 0), pg.Vector2(1280, 80), (0, 80, 255)),
             Text(pg.Vector2(80, 0), self.name)
         ]
 
-    def _controls(self):
+    def _create_controls(self):
         res = [
             Rectangle(pg.Vector2(0, 80), pg.Vector2(300, 660), (220, 220, 220)),
             Text(pg.Vector2(20, 80), "Controls")
         ]
         x = 20
-        texts = ("RESET", "start", "STEP")
+        texts = ("RESET", "START", "STEP")
 
         def reset_action():
             print("reset")
@@ -57,10 +69,25 @@ class View:
 
         def start_or_stop_action():
             self.model.is_playing = not self.model.is_playing
-            start_stop_button.modify_text(("start", "stop")[self.model.is_playing])
+            start_stop_button.modify_text(("START", "STOP")[self.model.is_playing])
 
         start_stop_button.set_action(start_or_stop_action)
         return res
+
+    def _create_switch_page_buttons(self):
+        buttons = []
+        for i in range(self.min_page, self.max_page+1):
+            def switch_page(i):
+                def res():
+                    self.page = i
+                return res
+            buttons.append(UIButton(pg.Vector2(0, 0), f"PAGE {i}", switch_page(i), font_size=15))
+        size_x = sum([button.size.x for button in buttons]) + 10 * (len(buttons) - 1)
+        x = (1280 + 300) // 2 - size_x // 2
+        for button in buttons:
+            button.set_pos(pg.Vector2(x, 90))
+            x += button.size.x + 10
+        return buttons
 
     def draw(self):
         self.screen.fill((255, 255, 255))
@@ -70,7 +97,7 @@ class View:
         pg.display.flip()
 
     def draw_components(self):
-        y = 80
+        y = 135
         next_y = 80
         x = 300
         for component in self.components[self.page]:
