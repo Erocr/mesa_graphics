@@ -1,8 +1,9 @@
 from mesa_graphics.UIElement import *
+from mesa_graphics.matplotlib_components import create_space_component
 
 
 class View:
-    def __init__(self, model, components=None, name=None):
+    def __init__(self, model, renderer=None, components=None, name=None):
         pg.font.init()
         self.screen = pg.display.set_mode((1280, 740), pg.RESIZABLE)
         self.model = model
@@ -16,6 +17,8 @@ class View:
         else:
             self.components = {}
             self.store_components(components)
+        if renderer is not None:
+            self.components[0].insert(0, create_space_component(renderer))
         self.buttons = {}  # Provide fast and easy access to buttons
         self.ui_elements = []
         self.create_ui()
