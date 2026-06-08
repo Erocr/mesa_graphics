@@ -56,13 +56,12 @@ class View:
 
     def _create_controls(self):
         self.add_UIElement(Rectangle, pg.Vector2(0, 80), pg.Vector2(300, 660), (220, 220, 220))
-        self.add_UIElement(Text, pg.Vector2(20, 80), "Controls")
-        x = 20
+        x = 1050
         texts = ("RESET", "START", "STEP")
         names = ("RESET", "START/STOP", "STEP")
 
         for i in range(3):
-            button = self.add_UIElement(UIButton, pg.Vector2(x, 120), texts[i], font_size=15, name=names[i])
+            button = self.add_UIElement(UIButton, pg.Vector2(x, 22), texts[i], font_size=15, name=names[i])
             x += button.text.image.get_width() + 30
 
     def _create_switch_page_buttons(self):
