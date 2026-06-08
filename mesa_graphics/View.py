@@ -54,25 +54,32 @@ class View:
         x = 20
         texts = ("RESET", "START", "STEP")
 
-        def reset_action():
-            print("reset")
+        buttons = []
+        for i in range(3):
+            buttons.append(UIButton(pg.Vector2(x, 120), texts[i], None, font_size=15))
+            x += buttons[-1].text.image.get_width() + 30
+
+        reset_button = buttons[0]
+        start_stop_button = buttons[1]
+        step_button = buttons[2]
 
         def step_action():
             self.model.mesa_model.step()
-
-        actions = (reset_action, None, step_action)
-        for i in range(3):
-            res.append(UIButton(pg.Vector2(x, 120), texts[i], actions[i], font_size=15))
-            x += res[-1].text.image.get_width() + 30
-
-        start_stop_button = res[-2]
 
         def start_or_stop_action():
             self.model.is_playing = not self.model.is_playing
             start_stop_button.modify_text(("START", "STOP")[self.model.is_playing])
 
+        def reset_action():
+            model = type(self.model.mesa_model)()
+            self.model.mesa_model = model
+            if self.model.is_playing:
+                start_or_stop_action()
+
+        step_button.set_action(step_action)
         start_stop_button.set_action(start_or_stop_action)
-        return res
+        reset_button.set_action(reset_action)
+        return res + buttons
 
     def _create_switch_page_buttons(self):
         buttons = []
