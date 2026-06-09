@@ -74,21 +74,41 @@ class UIButton(UIElement):
         self.text.set_pos(pos+pg.Vector2(10, 10))
 
 
-class SliderInt(UIElement):
-    def __init__(self, pos, length, value=None, min=0, max=10, step=1):
+class UISlider(UIElement):
+    CIRCLE_RADIUS = 5
+    BAR_HEIGHT = 2
+
+    def __init__(self, t, pos, length, value=None, min=0, max=10, step=1):
         assert min <= max, "min shall be less than max"
+        assert t in ("SliderInt", "SliderFloat"), f"type {t} is unknown"
         super().__init__(pos)
         self.length = length
         self.selectedPosX = 0
         self.min = min
         self.max = max
+        self.value = None
+        if value is None: value = (min + max) / 2
         self.set_value(value)
         self.step = step
         self.hover = False
+        self.type = t
 
     def draw(self, screen):
-        pg.draw.rect(screen, (0, 50, 255), pg.Rect(self.pos-pg.Vector2(0, 1), pg.Vector2(self.length, 2)))
-        pg.draw.circle(screen, (0, 50, 255), pg.Vector2(self.selectedPosX, self.pos.y), 5)
+        pg.draw.rect(screen, (0, 50, 255), pg.Rect(self.pos - pg.Vector2(0, self.BAR_HEIGHT//2),
+                                                   pg.Vector2(self.length, self.BAR_HEIGHT)))
+        circle_color = (0, 150, 255) if self.hover else (0, 50, 255)
+        pg.draw.circle(screen, circle_color, pg.Vector2(self.selectedPosX, self.pos.y), self.CIRCLE_RADIUS)
+        if self.hover:
+            font = pg.font.Font('freesansbold.ttf', 15)
+            if self.type == "SliderInt":
+                text = str(self.value)
+            else:
+                text = f"{self.value:.2f}"
+            image = font.render(text, False, (255, 255, 255), (0, 0, 0, 125))
+            screen.blit(image, pg.Vector2(self.selectedPosX-image.get_width()/2, self.pos.y+self.CIRCLE_RADIUS))
 
     def set_value(self, value):
+        value = min(max(value, self.min), self.max)
         self.selectedPosX = (value - self.min) / (self.max - self.min) * self.length + self.pos.x
+        self.value = value
+

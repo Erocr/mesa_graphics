@@ -93,10 +93,9 @@ class View:
                 x = 10
                 y += lastUiElement.image.get_height()
             t = param.pop("type")
-            if t == "SliderInt":
-                slider = self.add_UIElement(SliderInt, pg.Vector2(x, y), 290-x, **param)
-                self.sliders[param_name] = slider
-                y += 30
+            slider = self.add_UIElement(UISlider, t, pg.Vector2(x, y), 290-x, **param)
+            self.sliders[param_name] = slider
+            y += 30
 
     def _add_model_param_label(self, label, y):
         text = self.add_UIElement(Text, pg.Vector2(10, y), label, font_size=20)

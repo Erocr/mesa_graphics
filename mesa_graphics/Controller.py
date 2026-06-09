@@ -1,13 +1,14 @@
 from mesa_graphics.InputHandler import InputHandler
-from mesa_graphics.UIElement import UIButton
+from mesa_graphics.UIElement import UIButton, UISlider
 
 
 class Controller:
-    def __init__(self, model, view, model_params=None):
+    def __init__(self, model, view):
         self.inputHandler = InputHandler()
         self.model = model
         self.view = view
-        self.buttonsController = ButtonsController(model, view, self.inputHandler)
+        self.sliderController = SliderController(model, view, self.inputHandler)
+        self.buttonsController = ButtonsController(model, view, self.inputHandler, self.sliderController)
 
     def update(self):
         self.inputHandler.update()
@@ -17,7 +18,8 @@ class Controller:
         for ui in self.view.ui_elements:
             if isinstance(ui, UIButton):
                 self.buttonsController.update(ui)
-
+            if isinstance(ui, UISlider):
+                self.sliderController.update(ui)
 
     @property
     def is_terminated(self):
@@ -25,10 +27,11 @@ class Controller:
 
 
 class ButtonsController:
-    def __init__(self, model, view, inputHandler):
+    def __init__(self, model, view, inputHandler, sliderController):
         self.model = model
         self.view = view
         self.inputHandler = inputHandler
+        self.sliderController = sliderController
         self.button_actions = {}
         self.initialize_button_actions()
 
@@ -45,7 +48,8 @@ class ButtonsController:
             self.view.buttons["START/STOP"].modify_text(("START", "STOP")[self.model.is_playing])
 
         def reset_action():
-            model = type(self.model.mesa_model)()
+            params = self.sliderController.get_model_params()
+            model = type(self.model.mesa_model)(**params)
             self.model.mesa_model = model
             if self.model.is_playing:
                 start_or_stop_action()
@@ -73,4 +77,26 @@ class ButtonsController:
                 print(f"button {button.name} action has not been implemented")
 
 
+class SliderController:
+    def __init__(self, model, view, inputHandler):
+        self.model = model
+        self.view = view
+        self.inputHandler = inputHandler
+
+    def update(self, slider):
+        mousePos = self.inputHandler.mouse_pos
+        slider.hover = (slider.pos.x <= mousePos.x <= slider.pos.x + slider.length and
+                        slider.pos.y - 5 <= mousePos.y <= slider.pos.y + 5)
+        if slider.hover and self.inputHandler.holding("mouse_left"):
+            pos = (mousePos.x - slider.pos.x) / slider.length
+            value = slider.min + pos * (slider.max - slider.min)
+            if slider.type == "SliderInt":
+                value = round(value)
+            slider.set_value(value)
+
+    def get_model_params(self):
+        res = {}
+        for param in self.view.sliders:
+            res[param] = self.view.sliders[param].value
+        return res
 
