@@ -1,16 +1,16 @@
 @startuml
-note "bleu: pas à changer, déjà existant\nvert: pas pour tout de suie" as N1
 
 class MesaGraphics
-MesaGraphics : start_loop()
+MesaGraphics : start()
 
 class View
-View : pygame_stuff
+View : screen
+View : components: Callables
+View : add_UIElement(Type, args)
 View : draw()
 
 class Controller
 Controller : update()
-Controller : <color:green>boutons/sliders
 
 Controller -> View
 Controller -> Model
@@ -30,6 +30,22 @@ InputHandler : get_released(key)
 
 Controller --> InputHandler
 
+class ButtonsController
+ButtonsController : actions
+ButtonsController : update(UIButton)
+Controller --> ButtonsController
+View <-- ButtonsController
+Model <-- ButtonsController
+ButtonsController --> InputHandler
+
+
+class SliderController
+SliderController : update(UISlider)
+Controller --> SliderController
+View <-- SliderController
+Model <-- SliderController
+SliderController --> InputHandler
+
 /' ########## Model part ########## '/
 
 class Model
@@ -37,38 +53,46 @@ Model : <color:blue> Model de mesa
 
 /' ##########  View part ########## '/
 
-class Component
-Component : page
-Component : image
-Component : update_image()
-Component : draw()
-View --> Component
 
 class UIElement
 UIElement : position
-UIElement : size
+UIElement : draw(screen)
 View --> UIElement
 
-class UIButton
-UIButton : <color:green>On verra pour l'action
-UIElement <|-- UIButton
+class Rectangle
+UIElement <|-- Rectangle
+Rectangle : size
+Rectangle : color
 
 class Text
-Text : text
-UIButton --> Text
+Text : image
+Text : set_pos(position)
 UIElement <|-- Text
 
+class Button
+Button : font
+Button : size
+Button : hover
+Button : name
+Button : modify_text(new_text)
+Button : set_pos(new_pos)
+UIElement <|-- Button
+Button --> Text
+
 class Slider
-Slider : <color:green>On verra pour l'action
-UIElement --|> Slider
+Slider : length
+Slider : selectedPosX
+Slider : min/max
+Slider : value
+Slider : step
+Slider : hover
+Slider : type
+Slider : set_value(value)
+UIElement <|-- Slider
 
-class MesaSlider
-MesaSlider : <color:blue>Slider de mesa
-MesaSlider : <color:blue>min_value
-MesaSlider : <color:blue>max_value
-MesaSlider : <color:blue>step
-MesaSlider : <color:blue>...
-Slider --|> MesaSlider
 
+class matplotlib_components
+matplotlib_components : create_space_component(Renderer, page)
+matplotlib_components : make_mpl_plot_component(measure, post_process, page)
 
 @enduml
