@@ -28,7 +28,7 @@ class View:
     def add_UIElement(self, type, *args, **kwargs):
         to_add = type(*args, **kwargs)
         self.ui_elements.append(to_add)
-        if isinstance(to_add, UIButton):
+        if isinstance(to_add, Button):
             self.buttons[to_add.name] = to_add
         return to_add
 
@@ -68,13 +68,13 @@ class View:
         names = ("RESET", "START/STOP", "STEP")
 
         for i in range(3):
-            button = self.add_UIElement(UIButton, pg.Vector2(x, 22), texts[i], font_size=15, name=names[i])
+            button = self.add_UIElement(Button, pg.Vector2(x, 22), texts[i], font_size=15, name=names[i])
             x += button.text.image.get_width() + 30
 
     def _create_switch_page_buttons(self):
         buttons = []
         for i in range(self.min_page, self.max_page+1):
-            buttons.append(self.add_UIElement(UIButton, pg.Vector2(0, 0), f"PAGE {i}", font_size=15))
+            buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", font_size=15))
         size_x = sum([button.size.x for button in buttons]) + 10 * (len(buttons) - 1)
         x = (1280 + 300) // 2 - size_x // 2
         for button in buttons:
@@ -94,7 +94,7 @@ class View:
                 x = 10
                 y += lastUiElement.image.get_height()
             t = param.pop("type")
-            slider = self.add_UIElement(UISlider, t, pg.Vector2(x, y), 290-x, **param)
+            slider = self.add_UIElement(Slider, t, pg.Vector2(x, y), 290 - x, **param)
             self.sliders[param_name] = slider
             y += 30
 

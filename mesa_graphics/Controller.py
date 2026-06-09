@@ -1,5 +1,5 @@
 from mesa_graphics.InputHandler import InputHandler
-from mesa_graphics.UIElement import UIButton, UISlider
+from mesa_graphics.UIElement import Button, Slider
 from pygame import K_d
 
 
@@ -19,9 +19,9 @@ class Controller:
 
     def update_ui(self):
         for ui in self.view.ui_elements:
-            if isinstance(ui, UIButton):
+            if isinstance(ui, Button):
                 self.buttonsController.update(ui)
-            if isinstance(ui, UISlider):
+            if isinstance(ui, Slider):
                 self.sliderController.update(ui)
 
     @property

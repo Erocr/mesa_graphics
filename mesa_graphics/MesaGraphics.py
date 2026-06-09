@@ -9,9 +9,9 @@ class MesaGraphics:
         self.model = Model(model)
         self.view = View(self.model, renderer=renderer, components=components, model_params=model_params, name=name)
         self.controller = Controller(self.model, self.view)
-        self.loop()
+        self.start()
 
-    def loop(self):
+    def start(self):
         while not self.controller.is_terminated:
             start = time()
             self.controller.update()

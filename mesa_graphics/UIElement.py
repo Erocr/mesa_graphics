@@ -32,7 +32,7 @@ class Text(UIElement):
         self.pos = pos
 
 
-class UIButton(UIElement):
+class Button(UIElement):
     alreadyUsed = set()
 
     def __init__(self, pos, text: str, font_size=32, name=None):
@@ -74,7 +74,7 @@ class UIButton(UIElement):
         self.text.set_pos(pos+pg.Vector2(10, 10))
 
 
-class UISlider(UIElement):
+class Slider(UIElement):
     CIRCLE_RADIUS = 5
     BAR_HEIGHT = 2
 

@@ -11,8 +11,7 @@ from mesa_graphics.backend_integration import FigureMatplotlib
 def make_mpl_plot_component(
     measure: str | dict[str, str] | list[str] | tuple[str],
     post_process: Callable | None = None,
-    page: int = 0,
-    save_format="png",
+    page: int = 0
 ):
     """Create a plotting function for a specified measure.
 
