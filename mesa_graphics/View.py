@@ -3,7 +3,7 @@ from mesa_graphics.matplotlib_components import create_space_component
 
 
 class View:
-    def __init__(self, model, renderer=None, components=None, name=None):
+    def __init__(self, model, renderer=None, components=None, model_params=None, name=None):
         pg.font.init()
         self.screen = pg.display.set_mode((1280, 740), pg.RESIZABLE)
         self.model = model
@@ -20,8 +20,9 @@ class View:
         if renderer is not None:
             self.components[0].insert(0, create_space_component(renderer))
         self.buttons = {}  # Provide fast and easy access to buttons
+        self.sliders = {}  # Provide fast and easy access to sliders
         self.ui_elements = []
-        self.create_ui()
+        self.create_ui(model_params)
 
     def add_UIElement(self, type, *args, **kwargs):
         to_add = type(*args, **kwargs)
@@ -48,10 +49,12 @@ class View:
             if i not in self.components:
                 self.components[i] = []
 
-    def create_ui(self):
+    def create_ui(self, model_params):
         self._create_up_bar()
-        self._create_controls()
         self._create_switch_page_buttons()
+        self._create_controls()
+        if model_params is not None:
+            self._create_model_params_entries(model_params)
 
     def _create_up_bar(self):
         self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 80), (0, 80, 255))
@@ -76,6 +79,28 @@ class View:
         for button in buttons:
             button.set_pos(pg.Vector2(x, 90))
             x += button.size.x + 10
+
+    def _create_model_params_entries(self, model_params):
+        y = 90
+        for param_name in model_params:
+            param = model_params[param_name]
+            label = param_name
+            if "label" in param:
+                label = param.pop("label")
+
+            x, y, lastUiElement = self._add_model_param_label(label, y)
+            if x > 250:
+                x = 10
+                y += lastUiElement.image.get_height()
+            t = param.pop("type")
+            if t == "SliderInt":
+                slider = self.add_UIElement(SliderInt, pg.Vector2(x, y), 290-x, **param)
+                self.sliders[param_name] = slider
+                y += 30
+
+    def _add_model_param_label(self, label, y):
+        text = self.add_UIElement(Text, pg.Vector2(10, y), label, font_size=20)
+        return text.image.get_width() + 20, y+text.image.get_height()/2, text
 
     def draw(self):
         self.screen.fill((255, 255, 255))

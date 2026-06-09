@@ -4,10 +4,10 @@ from mesa_graphics.Model import Model
 
 
 class MesaGraphics:
-    def __init__(self, model, renderer, components=None, name=None):
+    def __init__(self, model, renderer=None, components=None, model_params=None, name=None):
         self.model = Model(model)
-        self.view = View(self.model, renderer=renderer, components=components, name=name)
-        self.controller = Controller(self.model, self.view)
+        self.view = View(self.model, renderer=renderer, components=components, model_params=model_params, name=name)
+        self.controller = Controller(self.model, self.view, model_params=model_params)
         self.loop()
 
     def loop(self):

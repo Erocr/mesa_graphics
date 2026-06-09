@@ -73,3 +73,22 @@ class UIButton(UIElement):
         self.pos = pos
         self.text.set_pos(pos+pg.Vector2(10, 10))
 
+
+class SliderInt(UIElement):
+    def __init__(self, pos, length, value=None, min=0, max=10, step=1):
+        assert min <= max, "min shall be less than max"
+        super().__init__(pos)
+        self.length = length
+        self.selectedPosX = 0
+        self.min = min
+        self.max = max
+        self.set_value(value)
+        self.step = step
+        self.hover = False
+
+    def draw(self, screen):
+        pg.draw.rect(screen, (0, 50, 255), pg.Rect(self.pos-pg.Vector2(0, 1), pg.Vector2(self.length, 2)))
+        pg.draw.circle(screen, (0, 50, 255), pg.Vector2(self.selectedPosX, self.pos.y), 5)
+
+    def set_value(self, value):
+        self.selectedPosX = (value - self.min) / (self.max - self.min) * self.length + self.pos.x

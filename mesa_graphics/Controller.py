@@ -3,7 +3,7 @@ from mesa_graphics.UIElement import UIButton
 
 
 class Controller:
-    def __init__(self, model, view):
+    def __init__(self, model, view, model_params=None):
         self.inputHandler = InputHandler()
         self.model = model
         self.view = view
@@ -17,6 +17,7 @@ class Controller:
         for ui in self.view.ui_elements:
             if isinstance(ui, UIButton):
                 self.buttonsController.update(ui)
+
 
     @property
     def is_terminated(self):
@@ -70,5 +71,6 @@ class ButtonsController:
                 self.button_actions[button.name]()
             else:
                 print(f"button {button.name} action has not been implemented")
+
 
 
