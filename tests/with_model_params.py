@@ -76,7 +76,7 @@ model_params = {
         "value": 1,
         "min": 0,
         "max": 100,
-        "step": 1,
+        "step": 0.1
     }
 }
 

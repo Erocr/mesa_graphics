@@ -62,6 +62,11 @@ class InputHandler:
                 self.events.pop(-evt.button)
 
     def key_id(self, key):
+        """
+        This function generalizes the pygame keys. Moreover, it gives a better error if it doesn't exist.
+        :param key: the pygame key or the string describing the key.
+        :return: the pygame key associated.
+        """
         if isinstance(key, int):
             return key
         elif key in self.keys:
@@ -72,17 +77,21 @@ class InputHandler:
             raise Exception(f"key {key} does not exist")
 
     def pressed(self, key):
+        """ Returns True only during the frame in which the user presse the key. """
         key = self.key_id(key)
         return key in self.events and self.events[key].pressed
 
     def holding(self, key):
+        """ Returns True while the user is pressing the key. """
         key = self.key_id(key)
         return key in self.events and self.events[key].holding
 
     def released(self, key):
+        """ Returns True only during the frame in which the user release the key. """
         key = self.key_id(key)
         return key in self.events and self.events[key].released
 
     @property
     def mouse_pos(self):
+        """ Get the mouse position. """
         return self._mouse_pos

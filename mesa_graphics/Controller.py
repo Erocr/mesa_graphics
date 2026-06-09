@@ -5,6 +5,16 @@ from pygame import K_d
 
 class Controller:
     def __init__(self, model, view):
+        """ Controller class
+        /!\\ The user must not use this class, use MesaGraphics instead /!\\
+
+        This class contains all the logic on how to handle the user inputs. It handles all the logic behind
+        buttons and behind sliders.
+
+        :param model: A Model instance that will be visualized. It is the MesaGraphic's Model, and not
+        the user's on.
+        :param view: The View class.
+        """
         self.inputHandler = InputHandler()
         self.model = model
         self.view = view
@@ -12,12 +22,17 @@ class Controller:
         self.buttonsController = ButtonsController(model, view, self.inputHandler, self.sliderController)
 
     def update(self):
+        """
+        This is the main function. It is called once per frame. It watches the new user inputs, and
+        act responding to them.
+        """
         self.inputHandler.update()
-        self.update_ui()
+        self._update_ui()
         if self.inputHandler.pressed(K_d):
             self.model.debug = not self.model.debug
 
-    def update_ui(self):
+    def _update_ui(self):
+        """ It updates all the UI, reacting to user's inputs: buttons and sliders. """
         for ui in self.view.ui_elements:
             if isinstance(ui, Button):
                 self.buttonsController.update(ui)
@@ -26,23 +41,62 @@ class Controller:
 
     @property
     def is_terminated(self):
+        """ Get if user asked to close the window, and so, to end the visualization. """
         return self.inputHandler.quit
+
+
+class SliderController:
+    def __init__(self, model, view, inputHandler):
+        self.model = model
+        self.view = view
+        self.inputHandler = inputHandler
+
+    def update(self, slider):
+        mousePos = self.inputHandler.mouse_pos
+        slider.hover = (slider.pos.x <= mousePos.x <= slider.pos.x + slider.length and
+                        slider.pos.y - 5 <= mousePos.y <= slider.pos.y + 5)
+        if slider.hover and self.inputHandler.holding("mouse_left"):
+            pos = (mousePos.x - slider.pos.x) / slider.length
+            value = slider.min + pos * (slider.max - slider.min)
+            d, m = divmod(value, slider.step)
+            value = slider.step * (d + (m > slider.step * 0.5))
+            if slider.type == "SliderInt":
+                value = round(value)
+
+            slider.set_value(value)
+
+    def get_model_params(self):
+        res = {}
+        for param in self.view.sliders:
+            res[param] = self.view.sliders[param].value
+        return res
 
 
 class ButtonsController:
     def __init__(self, model, view, inputHandler, sliderController):
+        """
+        This class handles the logic behind the buttons.
+
+        :param model: A Model instance that will be visualized. It is the MesaGraphic's Model, and not
+        the user's on.
+        :param view: The View class.
+        :param inputHandler: The Controller's inputHandler, to access more easily the user's inputs.
+        :param sliderController: The Controller's sliderController.
+        """
         self.model = model
         self.view = view
         self.inputHandler = inputHandler
         self.sliderController = sliderController
         self.button_actions = {}
-        self.initialize_button_actions()
+        self._initialize_button_actions()
 
-    def initialize_button_actions(self):
+    def _initialize_button_actions(self):
+        """ Initialize the actions to apply when the user click on the buttons. """
         self._initialize_control_buttons()
         self._initialize_switch_page_buttons()
 
     def _initialize_control_buttons(self):
+        """ Initialize the actions of the 3 buttons: RESET, START/STOP, STEP """
         def step_action():
             self.model.mesa_model.step()
 
@@ -62,6 +116,7 @@ class ButtonsController:
         self.button_actions["RESET"] = reset_action
 
     def _initialize_switch_page_buttons(self):
+        """ Initialize the actions of the switching page buttons """
         def switch_page(i):
             def res():
                 self.view.page = i
@@ -70,6 +125,10 @@ class ButtonsController:
             self.button_actions[f"PAGE {i}"] = switch_page(i)
 
     def update(self, button):
+        """
+        This is the main function. It is called once per frame. It watches if the mouse hover a button,
+        and apply the action associated to the button if user clicks on it.
+        """
         mouse_pos = self.inputHandler.mouse_pos
         button.hover = (button.pos.x <= mouse_pos.x <= button.pos.x + button.size.x and
                         button.pos.y <= mouse_pos.y <= button.pos.y + button.size.y)
@@ -78,28 +137,4 @@ class ButtonsController:
                 self.button_actions[button.name]()
             else:
                 print(f"button {button.name} action has not been implemented")
-
-
-class SliderController:
-    def __init__(self, model, view, inputHandler):
-        self.model = model
-        self.view = view
-        self.inputHandler = inputHandler
-
-    def update(self, slider):
-        mousePos = self.inputHandler.mouse_pos
-        slider.hover = (slider.pos.x <= mousePos.x <= slider.pos.x + slider.length and
-                        slider.pos.y - 5 <= mousePos.y <= slider.pos.y + 5)
-        if slider.hover and self.inputHandler.holding("mouse_left"):
-            pos = (mousePos.x - slider.pos.x) / slider.length
-            value = slider.min + pos * (slider.max - slider.min)
-            if slider.type == "SliderInt":
-                value = round(value)
-            slider.set_value(value)
-
-    def get_model_params(self):
-        res = {}
-        for param in self.view.sliders:
-            res[param] = self.view.sliders[param].value
-        return res
 

@@ -3,14 +3,21 @@ import pygame as pg
 
 class UIElement:
     def __init__(self, pos):
+        """ It is an abstract class describing an element of UI. """
         self.pos = pos
 
     def draw(self, screen):
+        """ This function draws the UIElement onto the screen. """
         assert False, "this is an abstract method"
 
 
 class Rectangle(UIElement):
-    def __init__(self, pos, size, color):
+    def __init__(self, pos, size, color=(255, 255, 255)):
+        """
+        :param pos: The top-left corner position. It must be a pg.Vector2.
+        :param size: The size of the rectangle. It must be a pg.Vector2.
+        :param color: The filling color. It is a tuple (r, g, b).
+        """
         super().__init__(pos)
         self.size = size
         self.color = color
@@ -21,6 +28,11 @@ class Rectangle(UIElement):
 
 class Text(UIElement):
     def __init__(self, pos, text, font_size=32):
+        """
+        :param pos: The top-left corner position. It must be a pg.Vector2
+        :param text: The string shown
+        :param font_size: The font size
+        """
         super().__init__(pos)
         font = pg.font.Font('freesansbold.ttf', font_size)
         self.image = font.render(text, False, (0, 0, 0))
@@ -37,10 +49,14 @@ class Button(UIElement):
 
     def __init__(self, pos, text: str, font_size=32, name=None):
         """
-        :param pos:
-        :param text:
-        :param font_size:
-        :param name: Un identifiant pour le reconnaître
+        The logic for drawing a clickable button.
+
+        :param pos: The top-left corner position. It must be a pg.Vector2.
+        :param text: The string shown in the button.
+        :param font_size: The font size of the text in the button.
+        :param name: An identification. It is used to associate actions in the Controller.
+        If no name is given, the name is the text. If the text is already used, it will put a number
+        right after the text.
         """
         super().__init__(pos)
         self.font_size = font_size
@@ -64,12 +80,19 @@ class Button(UIElement):
         self.text.draw(screen)
 
     def modify_text(self, new_text, font_size=None):
+        """
+        Modifies the text written in the button.
+        :param new_text: the new string to show.
+        :param font_size: The new font_size. If you don't put the font size, it will put the font_size
+        given at the creation of the instance.
+        """
         if font_size is None:
             font_size = self.font_size
         self.text = Text(self.pos + pg.Vector2(10, 10), new_text, font_size)
         self.size = pg.Vector2(self.text.image.get_size()) + pg.Vector2(20, 20)
 
     def set_pos(self, pos):
+        """ Change the position of the button. """
         self.pos = pos
         self.text.set_pos(pos+pg.Vector2(10, 10))
 
@@ -78,7 +101,18 @@ class Slider(UIElement):
     CIRCLE_RADIUS = 5
     BAR_HEIGHT = 2
 
-    def __init__(self, t, pos, length, value=None, min=0, max=10, step=1):
+    def __init__(self, t, pos, length, value=None, min=0, max=10, step=0.01):
+        """
+        This class handle the logic for drawing a slider.
+
+        :param t: The type of the slider, it can be "SliderInt" or "SliderFloat"
+        :param pos: A pg.Vector2 describing the left position of the slider.
+        :param length: The length of the bar of the slider.
+        :param value: The initial value. If None, value is initialized with the middle value.
+        :param min: The minimum value it can take.
+        :param max: The maximum value it can take.
+        :param step: The step between two possible values.
+        """
         assert min <= max, "min shall be less than max"
         assert t in ("SliderInt", "SliderFloat"), f"type {t} is unknown"
         super().__init__(pos)

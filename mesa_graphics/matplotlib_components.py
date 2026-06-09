@@ -88,6 +88,8 @@ def SpaceRendererComponent(
 ):
     """Render the space of a model using a SpaceRenderer.
 
+    /!\\ For now, it uses only the matplotlib backend /!\\
+
     Args:
         model (Model): The model whose space is to be rendered.
         renderer: A SpaceRenderer instance to render the model's space.
