@@ -1,5 +1,6 @@
 from mesa_graphics.InputHandler import InputHandler
 from mesa_graphics.UIElement import UIButton, UISlider
+from pygame import K_d
 
 
 class Controller:
@@ -13,6 +14,8 @@ class Controller:
     def update(self):
         self.inputHandler.update()
         self.update_ui()
+        if self.inputHandler.pressed(K_d):
+            self.model.debug = not self.model.debug
 
     def update_ui(self):
         for ui in self.view.ui_elements:

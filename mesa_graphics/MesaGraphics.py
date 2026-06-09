@@ -1,6 +1,7 @@
 from mesa_graphics.View import View
 from mesa_graphics.Controller import Controller
 from mesa_graphics.Model import Model
+from time import time
 
 
 class MesaGraphics:
@@ -12,6 +13,8 @@ class MesaGraphics:
 
     def loop(self):
         while not self.controller.is_terminated:
+            start = time()
             self.controller.update()
             self.model.update()
             self.view.draw()
+            self.model.debug_infos["fps"] = 1/(time() - start)

@@ -59,7 +59,7 @@ renderer = SpaceRenderer(model=money_model, backend="matplotlib")
 renderer.setup_agents(agent_portrayal)
 renderer.render()
 
-GiniPlot = make_mpl_plot_component("Gini", page=0)
+GiniPlot = make_mpl_plot_component("Gini", page=1)
 
 
 model_params = {

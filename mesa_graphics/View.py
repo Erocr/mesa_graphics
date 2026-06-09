@@ -1,5 +1,6 @@
 from mesa_graphics.UIElement import *
 from mesa_graphics.matplotlib_components import create_space_component
+from time import time
 
 
 class View:
@@ -15,7 +16,7 @@ class View:
         if components is None:
             self.components = {0: []}
         else:
-            self.components = {}
+            self.components = {0: []}
             self.store_components(components)
         if renderer is not None:
             self.components[0].insert(0, create_space_component(renderer))
@@ -102,11 +103,14 @@ class View:
         return text.image.get_width() + 20, y+text.image.get_height()/2, text
 
     def draw(self):
+        start = time()
         self.screen.fill((255, 255, 255))
         for ui in self.ui_elements:
             ui.draw(self.screen)
         self.draw_components()
+        if self.model.debug: self.draw_debug()
         pg.display.flip()
+        self.model.debug_infos["viewer_time"] = time() - start
 
     def draw_components(self):
         y = 135
@@ -122,4 +126,15 @@ class View:
             next_y = max(next_y, y + size[1])
             self.screen.blit(image, (x, y))
             x += size[0] + 10
+
+    def draw_debug(self):
+        texts = []
+        for info in self.model.debug_infos:
+            texts.append(info + ": " + str(self.model.debug_infos[info]))
+        font = pg.font.Font('freesansbold.ttf', 15)
+        y = 0
+        for text in texts:
+            image = font.render(text, False, (255, 255, 255), (0, 0, 0, 125))
+            self.screen.blit(image, pg.Vector2(0, y))
+            y += image.get_height()
 
