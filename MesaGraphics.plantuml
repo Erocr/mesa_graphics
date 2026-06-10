@@ -79,16 +79,22 @@ Button : set_pos(new_pos)
 UIElement <|-- Button
 Button --> Text
 
+class UserParam
+UserParam : value
+UIElement <|-- UserParam
+
 class Slider
 Slider : length
 Slider : selectedPosX
 Slider : min/max
-Slider : value
 Slider : step
 Slider : hover
 Slider : type
 Slider : set_value(value)
-UIElement <|-- Slider
+UserParam <|-- Slider
+
+class Checkbox
+UserParam <|-- Checkbox
 
 
 class matplotlib_components
