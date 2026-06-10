@@ -159,8 +159,6 @@ class Checkbox(UserParam):
     WIDTH = 2
 
     def __init__(self, pos, param_name, value=None, *args, **kwargs):
-        if value is not None:
-            assert isinstance(value, bool), "A checkbox can only have boolean values"
         super().__init__(pos, param_name, value)
 
     def draw(self, screen):

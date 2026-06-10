@@ -2,6 +2,7 @@ import mesa
 from mesa.discrete_space import CellAgent
 from mesa.visualization.components import AgentPortrayalStyle
 from mesa.visualization.space_renderer import SpaceRenderer
+import mesa.visualization.user_param as mesa_user_param
 
 from mesa_graphics.MesaGraphics import MesaGraphics
 from mesa_graphics.matplotlib_components import make_mpl_plot_component
@@ -72,13 +73,7 @@ model_params = {
         "max": 40,
         "step": 1,
     },
-    "seed": {
-        "type": "SliderFloat",
-        "value": 1,
-        "min": 0,
-        "max": 100,
-        "step": 0.1
-    },
+    "seed": mesa_user_param.Slider("seed:", 1, 0, 100, 0.1),
     "capacity": 5,
     "boolean": {"type": "Checkbox"}
 }

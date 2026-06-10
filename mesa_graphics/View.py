@@ -1,6 +1,7 @@
 from mesa_graphics.UIElement import *
 from mesa_graphics.matplotlib_components import create_space_component
 from time import time
+import mesa.visualization.user_param as mesa_user_param
 
 
 class View:
@@ -127,7 +128,7 @@ class View:
 
     def _create_model_params_entries(self, model_params):
         """
-        Create the sliders in the left column, which describe how to re-instantiate the model using the
+        Create the tweakable user parameters in the left column, which describe how to re-instantiate the model using the
         RESET button
         ."""
         y = 90
@@ -157,8 +158,17 @@ class View:
                 return Slider, param
             elif t == "Checkbox":
                 return Checkbox, param
-        else:
-            return None
+        elif isinstance(param, mesa_user_param.Slider):
+            res = {
+                "param_name": param_name,
+                "label": param.label,
+                "min": param.min,
+                "max": param.max,
+                "step": param.step,
+                "value": param.value,
+                "t": ("SliderInt", "SliderFloat")[param.is_float_slider]
+            }
+            return Slider, res
 
     def _compute_args_for_user_params_creation(self, type, x, y):
         if type == Slider:
