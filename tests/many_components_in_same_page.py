@@ -45,5 +45,5 @@ GiniPlot = make_mpl_plot_component("Gini", page=0)
 
 page = MesaGraphics(
     money_model,
-    components=[GiniPlot, GiniPlot, GiniPlot],
+    components=[GiniPlot]*15,
 )

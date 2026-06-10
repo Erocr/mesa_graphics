@@ -11,7 +11,7 @@ class Key:
 
     @property
     def pressed(self):
-        return self.duration == 0
+        return self.duration == 0 or self.duration == -1
 
     @property
     def released(self):
@@ -47,13 +47,16 @@ class InputHandler:
         self._mouse_pos = pg.Vector2(*pg.mouse.get_pos())
         keys = list(self.events.keys())
         for evt in keys:
-            self.events[evt].duration += 1
+            if self.events[evt].duration < 0:
+                self.events.pop(evt)
+            else:
+                self.events[evt].duration += 1
 
         for evt in pg.event.get():
             if evt.type == pg.KEYDOWN:
                 self.events[evt.key] = Key()
             elif evt.type == pg.KEYUP:
-                self.events.pop(evt.key)
+                self.events[evt.key].duration = -1 - (self.events[evt.key].duration > 0)
             elif evt.type == pg.QUIT:
                 self.quit = True
             elif evt.type == pg.MOUSEBUTTONDOWN:
