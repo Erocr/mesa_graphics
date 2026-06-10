@@ -5,7 +5,15 @@ from time import time
 
 
 class MesaGraphics:
-    def __init__(self, model, renderer=None, components=None, model_params=None, name=None):
+    def __init__(self, model: Model,
+                 renderer=None,
+                 components=None,
+                 play_interval: int = 100,
+                 render_interval: int = 1,
+                 simulator=None,
+                 model_params=None,
+                 name: str | None = None,
+                 use_threads: bool = False):
         """Mesa Graphics component.
 
         This component provides a visualization interface for a given model using pygame.
@@ -23,6 +31,11 @@ class MesaGraphics:
             Can include user-adjustable parameters and fixed parameters. Defaults to None.
         :param name: Name of the visualization. Defaults to the model's class name.
         """
+        if play_interval != 100: print("Warning: the play_interval selected is not taken into account")
+        if render_interval != 1: print("Warning: the render_interval selected is not taken into account")
+        if simulator is not None: print("Warning: the simulator selected is not taken into account")
+        if use_threads: print("Warning: the use_threads selected is not taken into account")
+
         self.model = Model(model)
         self.view = View(self.model, renderer=renderer, components=components, model_params=model_params, name=name)
         self.controller = Controller(self.model, self.view)
@@ -35,4 +48,4 @@ class MesaGraphics:
             self.controller.update()
             self.model.update()
             self.view.draw()
-            self.model.debug_infos["fps"] = 1/(time() - start)
+            self.model.debug_infos["fps"] = 1 / max(time() - start, 0.0001)

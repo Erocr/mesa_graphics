@@ -33,12 +33,13 @@ def compute_gini(model):
 
 
 class MoneyModel(mesa.Model):
-    def __init__(self, n=10, seed=None):
+    def __init__(self, n=10, capacity=5, boolean=True, selection="none", text="none", seed=None):
+        print(f"arguments are:\n n={n}\n capacity={capacity}\n boolean={boolean}\n seed={seed}\n selection={selection}\n text={text}")
         super().__init__(seed=seed)
         self.num_agents = n
         self.datacollector = mesa.DataCollector(model_reporters={"Gini": compute_gini},
                                                 agent_reporters={"Wealth": "wealth"})
-        self.grid = mesa.discrete_space.HexGrid((6, 6), torus=True, random=self.random)
+        self.grid = mesa.discrete_space.HexGrid((6, 6), torus=True, random=self.random, capacity=capacity)
         choices = self.random.choices(self.grid.all_cells.cells, k=self.num_agents)
         MoneyAgent.create_agents(self, n, choices)
         self.datacollector.collect(self)
@@ -77,7 +78,9 @@ model_params = {
         "min": 0,
         "max": 100,
         "step": 0.1
-    }
+    },
+    "capacity": 5,
+    "boolean": {"type": "Checkbox"}
 }
 
 page = MesaGraphics(

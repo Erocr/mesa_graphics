@@ -97,11 +97,18 @@ class Button(UIElement):
         self.text.set_pos(pos+pg.Vector2(10, 10))
 
 
-class Slider(UIElement):
+class UserParam(UIElement):
+    def __init__(self, pos, param_name, value=None):
+        super().__init__(pos)
+        self.name = param_name
+        self.value = value
+
+
+class Slider(UserParam):
     CIRCLE_RADIUS = 5
     BAR_HEIGHT = 2
 
-    def __init__(self, t, pos, length, value=None, min=0, max=10, step=0.01):
+    def __init__(self, pos, length, t, param_name, value=None, min=0, max=10, step=0.01):
         """
         This class handle the logic for drawing a slider.
 
@@ -115,15 +122,14 @@ class Slider(UIElement):
         """
         assert min <= max, "min shall be less than max"
         assert t in ("SliderInt", "SliderFloat"), f"type {t} is unknown"
-        super().__init__(pos)
-        self.length = length
+        if value is None: value = (min + max) / 2
+        super().__init__(pos, param_name, value)
         self.selectedPosX = 0
+        self.step = step
         self.min = min
         self.max = max
-        self.value = None
-        if value is None: value = (min + max) / 2
+        self.length = length
         self.set_value(value)
-        self.step = step
         self.hover = False
         self.type = t
 
@@ -139,10 +145,32 @@ class Slider(UIElement):
             else:
                 text = f"{self.value:.2f}"
             image = font.render(text, False, (255, 255, 255), (0, 0, 0, 125))
-            screen.blit(image, pg.Vector2(self.selectedPosX-image.get_width()/2, self.pos.y+self.CIRCLE_RADIUS))
+            screen.blit(image, pg.Vector2(self.selectedPosX-image.get_width()/2,
+                                          self.pos.y-self.CIRCLE_RADIUS-image.get_height()))
 
     def set_value(self, value):
         value = min(max(value, self.min), self.max)
         self.selectedPosX = (value - self.min) / (self.max - self.min) * self.length + self.pos.x
         self.value = value
 
+
+class Checkbox(UserParam):
+    SIZE = pg.Vector2(20, 20)
+    WIDTH = 2
+
+    def __init__(self, pos, param_name, value=None, *args, **kwargs):
+        if value is not None:
+            assert isinstance(value, bool), "A checkbox can only have boolean values"
+        super().__init__(pos, param_name, value)
+
+    def draw(self, screen):
+        pg.draw.rect(screen, (0, 0, 0), pg.Rect(self.pos, self.SIZE), width=self.WIDTH)
+        if self.value:
+            size = pg.Vector2(self.SIZE.x-self.WIDTH, self.SIZE.y-self.WIDTH)
+            pg.draw.line(screen, (0, 0, 0), self.pos, self.pos + size, Checkbox.WIDTH)
+            pg.draw.line(screen, (0, 0, 0),
+                         self.pos+pg.Vector2(size.x, 0),
+                         self.pos + pg.Vector2(0, size.y), Checkbox.WIDTH)
+
+    def switch(self):
+        self.value = not self.value

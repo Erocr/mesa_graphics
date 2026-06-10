@@ -169,3 +169,6 @@ def SpaceRendererComponent(
 
         solara.FigureAltair(final_chart, on_click=None, on_hover=None)
         return None
+
+
+make_plot_component = make_mpl_plot_component

@@ -35,7 +35,7 @@ class View:
         if renderer is not None:
             self.components[0].insert(0, create_space_component(renderer))
         self.buttons = {}  # Provide fast and easy access to buttons
-        self.sliders = {}  # Provide fast and easy access to sliders
+        self.userParams = {}  # Provide fast and easy access to user parameters
         self.ui_elements = []
         if name is None:
             name = type(self.model).__name__
@@ -55,6 +55,8 @@ class View:
         self.ui_elements.append(to_add)
         if isinstance(to_add, Button):
             self.buttons[to_add.name] = to_add
+        if isinstance(to_add, UserParam):
+            self.userParams[to_add.name] = to_add
         return to_add
 
     def _store_components(self, components):
@@ -87,11 +89,11 @@ class View:
         self._create_switch_page_buttons()
         self._create_controls(model_params)
 
-
     def _create_up_bar(self, name):
         """ Creates the blue bar on top of the screen, and write the name into it. """
         self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 80), (0, 80, 255))
-        self.add_UIElement(Text, pg.Vector2(80, 0), name)
+        text = self.add_UIElement(Text, pg.Vector2(80, 0), name)
+        text.set_pos(text.pos + pg.Vector2(0, 40 - text.image.get_height()/2))
 
     def _create_controls(self, model_params):
         """
@@ -130,19 +132,41 @@ class View:
         ."""
         y = 90
         for param_name in model_params:
-            param = model_params[param_name]
-            label = param_name
-            if "label" in param:
-                label = param.pop("label")
+            p = self._user_input_params_extraction(model_params[param_name], param_name)
+            if p is not None:
+                type, param = p
+                label = param_name
+                if "label" in param:
+                    label = param.pop("label")
 
-            x, y, lastUiElement = self._add_model_param_label(label, y)
-            if x > 250:
-                x = 10
-                y += lastUiElement.image.get_height()
-            t = param.pop("type")
-            slider = self.add_UIElement(Slider, t, pg.Vector2(x, y), 290 - x, **param)
-            self.sliders[param_name] = slider
+                x, y, lastUiElement = self._add_model_param_label(label, y)
+                if x > 250:
+                    x = 10
+                    y += lastUiElement.image.get_height()
+                args = self._compute_args_for_user_params_creation(type, x, y)
+                self.add_UIElement(type, *args, **param)
+
             y += 30
+
+    def _user_input_params_extraction(self, param, param_name):
+        if isinstance(param, dict):
+            param["param_name"] = param_name
+            t = param.pop("type")
+            param["t"] = t
+            if t in ("SliderInt", "SliderFloat"):
+                return Slider, param
+            elif t == "Checkbox":
+                return Checkbox, param
+        else:
+            return None
+
+    def _compute_args_for_user_params_creation(self, type, x, y):
+        if type == Slider:
+            return pg.Vector2(x, y), 290 - x
+        elif type == Checkbox:
+            return (pg.Vector2(x, y-Checkbox.SIZE.y/2),)
+
+
 
     def _add_model_param_label(self, label, y):
         """

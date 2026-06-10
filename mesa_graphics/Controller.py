@@ -1,5 +1,5 @@
 from mesa_graphics.InputHandler import InputHandler
-from mesa_graphics.UIElement import Button, Slider
+from mesa_graphics.UIElement import Button, Slider, UserParam, Checkbox
 from pygame import K_d
 
 
@@ -18,7 +18,7 @@ class Controller:
         self.inputHandler = InputHandler()
         self.model = model
         self.view = view
-        self.sliderController = SliderController(model, view, self.inputHandler)
+        self.sliderController = UserParamController(model, view, self.inputHandler)
         self.buttonsController = ButtonsController(model, view, self.inputHandler, self.sliderController)
 
     def update(self):
@@ -37,7 +37,7 @@ class Controller:
         for ui in self.view.ui_elements:
             if isinstance(ui, Button):
                 self.buttonsController.update(ui)
-            if isinstance(ui, Slider):
+            if isinstance(ui, UserParam):
                 self.sliderController.update(ui)
 
     @property
@@ -54,31 +54,36 @@ class Controller:
             self.buttonsController.button_actions["RESET"]()
 
 
-
-class SliderController:
+class UserParamController:
     def __init__(self, model, view, inputHandler):
         self.model = model
         self.view = view
         self.inputHandler = inputHandler
 
-    def update(self, slider):
+    def update(self, userParam):
         mousePos = self.inputHandler.mouse_pos
-        slider.hover = (slider.pos.x <= mousePos.x <= slider.pos.x + slider.length and
-                        slider.pos.y - 5 <= mousePos.y <= slider.pos.y + 5)
-        if slider.hover and self.inputHandler.holding("mouse_left"):
-            pos = (mousePos.x - slider.pos.x) / slider.length
-            value = slider.min + pos * (slider.max - slider.min)
-            d, m = divmod(value, slider.step)
-            value = slider.step * (d + (m > slider.step * 0.5))
-            if slider.type == "SliderInt":
-                value = round(value)
+        if isinstance(userParam, Slider):
+            userParam.hover = (userParam.pos.x <= mousePos.x <= userParam.pos.x + userParam.length and
+                               userParam.pos.y - 5 <= mousePos.y <= userParam.pos.y + 5)
+            if userParam.hover and self.inputHandler.holding("mouse_left"):
+                pos = (mousePos.x - userParam.pos.x) / userParam.length
+                value = userParam.min + pos * (userParam.max - userParam.min)
+                d, m = divmod(value, userParam.step)
+                value = userParam.step * (d + (m > userParam.step * 0.5))
+                if userParam.type == "SliderInt":
+                    value = round(value)
 
-            slider.set_value(value)
+                userParam.set_value(value)
+        elif isinstance(userParam, Checkbox):
+            hover = (userParam.pos.x <= mousePos.x <= userParam.pos.x + Checkbox.SIZE.x and
+                     userParam.pos.y - 5 <= mousePos.y <= userParam.pos.y + Checkbox.SIZE.y)
+            if hover and self.inputHandler.pressed("mouse_left"):
+                userParam.switch()
 
     def get_model_params(self):
         res = {}
-        for param in self.view.sliders:
-            res[param] = self.view.sliders[param].value
+        for param in self.view.userParams:
+            res[param] = self.view.userParams[param].value
         return res
 
 
