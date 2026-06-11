@@ -1,9 +1,11 @@
 import itertools
+import warnings
 from collections.abc import Callable
 from typing import Any
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
+from mesa.visualization.mpl_space_drawing import draw_space
 
 from mesa_graphics.backend_integration import FigureMatplotlib
 
@@ -172,3 +174,86 @@ def SpaceRendererComponent(
 
 
 make_plot_component = make_mpl_plot_component
+
+
+
+
+
+
+def make_space_matplotlib(*args, **kwargs):  # noqa: D103
+    warnings.warn(
+        "make_space_matplotlib has been renamed to make_mpl_space_component",
+        FutureWarning,
+        stacklevel=2,
+    )
+    return make_mpl_space_component(*args, **kwargs)
+
+
+def make_mpl_space_component(
+    agent_portrayal: Callable | None = None,
+    propertylayer_portrayal: dict | None = None,
+    post_process: Callable | None = None,
+    **space_drawing_kwargs):
+    """Create a Matplotlib-based space visualization component.
+
+    Args:
+        agent_portrayal: Function to portray agents.
+        propertylayer_portrayal: Dictionary of PropertyLayer portrayal specifications
+        post_process : a callable that will be called with the Axes instance. Allows for fine tuning plots (e.g., control ticks)
+        space_drawing_kwargs : additional keyword arguments to be passed on to the underlying space drawer function. See
+                               the functions for drawing the various spaces for further details.
+
+    ``agent_portrayal`` is called with an agent and should return a dict. Valid fields in this dict are "color",
+    "size", "marker", "zorder", alpha, linewidths, and edgecolors. Other field are ignored and will result in a user warning.
+
+    Returns:
+        function: A function that creates a SpaceMatplotlib component
+    """
+    if agent_portrayal is None:
+
+        def agent_portrayal(a):
+            return {}
+
+    def MakeSpaceMatplotlib(model):
+        return SpaceMatplotlib(
+            model,
+            agent_portrayal,
+            propertylayer_portrayal,
+            post_process=post_process,
+            **space_drawing_kwargs,
+        )
+
+    return MakeSpaceMatplotlib
+
+
+def SpaceMatplotlib(
+    model,
+    agent_portrayal,
+    propertylayer_portrayal,
+    post_process: Callable | None = None,
+    **space_drawing_kwargs,
+):
+    """Create a Matplotlib-based space visualization component."""
+
+    space = getattr(model, "grid", None)
+    if space is None:
+        space = getattr(model, "space", None)
+
+    fig = Figure()
+    ax = fig.add_subplot()
+
+    draw_space(
+        space,
+        agent_portrayal,
+        propertylayer_portrayal=propertylayer_portrayal,
+        ax=ax,
+        **space_drawing_kwargs,
+    )
+
+    if post_process is not None:
+        post_process(ax)
+
+    return FigureMatplotlib(fig)
+
+
+make_space_component = make_mpl_space_component

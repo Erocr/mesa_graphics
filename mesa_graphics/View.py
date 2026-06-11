@@ -63,7 +63,10 @@ class View:
     def _store_components(self, components):
         """ Store the components in a more suitable way, so it will be easier to access. """
         for comp_page in components:
-            comp, page = comp_page
+            if isinstance(comp_page, tuple):
+                comp, page = comp_page
+            else:
+                comp, page = comp_page, 0
             if page not in self.components:
                 self.components[page] = []
             self.components[page].append(comp)
