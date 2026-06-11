@@ -1,6 +1,9 @@
 from forest_fire.model import ForestFire
+from mesa_graphics.matplotlib_components import (
+    make_plot_component,
+    make_space_component,
+)
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import make_space_component, make_plot_component
 from mesa.visualization.user_param import (
     Slider,
 )
