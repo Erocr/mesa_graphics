@@ -212,6 +212,9 @@ class View:
         x = 300
         for component in self.components[self.page]:
             image = component(self.model.mesa_model)
+            if image is None:
+                raise RuntimeError("The component didn't return anything. "
+                                   "Hint: maybe you forgot to to put the return keyword at the end of the function.")
             size = image.get_size()
             if size[0] + x > 1280:
                 y = next_y + 10

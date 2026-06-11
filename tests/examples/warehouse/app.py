@@ -103,7 +103,7 @@ def plot_warehouse(model):
     ax.axis("off")
 
     # Render the plot in Solara
-    FigureMatplotlib(fig)
+    return FigureMatplotlib(fig)
 
 
 # Create initial model instance
