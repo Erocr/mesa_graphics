@@ -6,6 +6,8 @@ import mesa.visualization.user_param as mesa_user_param
 
 
 class View:
+    SCROLL_SENSIBILITY = 10
+
     def __init__(self, model, renderer=None, components=None, play_interval=100, render_interval=1, model_params=None,
                  name=None):
         """ View class.
@@ -27,6 +29,8 @@ class View:
         pg.font.init()
         self.screen = pg.display.set_mode((1280, 740), pg.RESIZABLE)
         self.model = model
+        self.max_page_scrolling_y = 0
+        self.page_scrolling_y = 0
         self.page = 0
         self.min_page = self.max_page = 0
         if components is None:
@@ -235,9 +239,10 @@ class View:
         """
         start = time()
         self.screen.fill((255, 255, 255))
+        self.draw_components()
+        self._page_scroll_clamp()
         for ui in self.ui_elements:
             ui.draw(self.screen)
-        self.draw_components()
         if self.model.debug: self.draw_debug()
         self.model.debug_infos["viewer_time"] = time() - start
         pg.display.flip()
@@ -246,8 +251,8 @@ class View:
         """
         This function draws all the components in the current page.
         """
-        y = 135
-        next_y = 80
+        y = 135 - self.page_scrolling_y
+        next_y = y - 55
         x = 300
         for component in self.components[self.page]:
             image = component.image
@@ -261,6 +266,7 @@ class View:
             next_y = max(next_y, y + size[1])
             self.screen.blit(image, (x, y))
             x += size[0] + 10
+        self.max_page_scrolling_y = max(next_y - 700 + self.page_scrolling_y, 0)
 
     def draw_debug(self):
         """
@@ -276,4 +282,18 @@ class View:
             image = font.render(text, False, (255, 255, 255), (0, 0, 0, 125))
             self.screen.blit(image, pg.Vector2(0, y))
             y += image.get_height()
+
+    def switch_page(self, new_page):
+        self.page = new_page
+        self.page_scrolling_y = 0
+
+    def scroll(self, amount):
+        self.page_scrolling_y += amount * self.SCROLL_SENSIBILITY
+        self._page_scroll_clamp()
+
+    def _page_scroll_clamp(self):
+        if self.page_scrolling_y <= 0:
+            self.page_scrolling_y = 0
+        elif self.page_scrolling_y >= self.max_page_scrolling_y:
+            self.page_scrolling_y = self.max_page_scrolling_y
 

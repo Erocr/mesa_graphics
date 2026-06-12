@@ -34,6 +34,7 @@ class Controller:
         self._update_ui()
         if self.inputHandler.pressed(K_d):
             self.model.debug = not self.model.debug
+        self.view.scroll(-self.inputHandler.scroll_direction.y)
 
     def _update_ui(self):
         """ It updates all the UI, reacting to user's inputs: buttons and sliders. """
@@ -133,7 +134,7 @@ class ButtonsController:
         """ Initialize the actions of the switching page buttons """
         def switch_page(i):
             def res():
-                self.view.page = i
+                self.view.switch_page(i)
             return res
         for i in range(self.view.min_page, self.view.max_page+1):
             self.button_actions[f"PAGE {i}"] = switch_page(i)
