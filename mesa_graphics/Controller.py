@@ -21,6 +21,9 @@ class Controller:
         self.sliderController = UserParamController(model, view, self.inputHandler)
         self.buttonsController = ButtonsController(model, view, self.inputHandler, self.sliderController)
 
+    def update_counters(self):
+        self.inputHandler.update_counters()
+
     def update(self):
         """
         This is the main function. It is called once per frame. It watches the new user inputs, and

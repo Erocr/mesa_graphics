@@ -46,8 +46,10 @@ class MesaGraphics:
         """ This function start the visualization loop """
         while not self.controller.is_terminated:
             start = time()
+            self.controller.update_counters()
             self.controller.update()
             self.model.update()
+            self.view.render()
             self.view.draw()
             self.model.debug_infos["fps"] = 1 / max(time() - start, 0.0001)
             #print(time() - start, self.model.play_interval*0.001)

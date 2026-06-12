@@ -1,3 +1,4 @@
+from mesa_graphics.Component import Component
 from mesa_graphics.UIElement import *
 from mesa_graphics.matplotlib_components import create_space_component
 from time import time
@@ -34,7 +35,7 @@ class View:
             self.components = {0: []}
             self._store_components(components)
         if renderer is not None:
-            self.components[0].insert(0, create_space_component(renderer))
+            self.components[0].insert(0, Component(self.model.mesa_model, create_space_component(renderer)))
         self.buttons = {}  # Provide fast and easy access to buttons
         self.userTweakableModelParams = {}  # Provide fast and easy access to user parameters
         self.userEntries = {}
@@ -76,7 +77,7 @@ class View:
                 comp, page = comp_page, 0
             if page not in self.components:
                 self.components[page] = []
-            self.components[page].append(comp)
+            self.components[page].append(Component(self.model.mesa_model, comp))
         self._add_unuseful_pages()
 
     def _add_unuseful_pages(self):
@@ -216,7 +217,6 @@ class View:
         elif type == Checkbox:
             return (pg.Vector2(x, y-Checkbox.SIZE.y/2),)
 
-
     def _add_model_param_label(self, label, y):
         """
         Helper function that creates the label for a model parameter.
@@ -224,6 +224,10 @@ class View:
         """
         text = self.add_UIElement(Text, pg.Vector2(10, y), label, font_size=20)
         return text.image.get_width() + 20, y+text.image.get_height()/2, text
+
+    def render(self):
+        for component in self.components[self.page]:
+            component.render()
 
     def draw(self):
         """
@@ -241,16 +245,14 @@ class View:
     def draw_components(self):
         """
         This function draws all the components in the current page.
-        TODO: compute the images only if it is necessary, don't re-compute them if the model doesn't change.
         """
         y = 135
         next_y = 80
         x = 300
         for component in self.components[self.page]:
-            image = component(self.model.mesa_model)
+            image = component.image
             if image is None:
-                raise RuntimeError("The component didn't return anything. "
-                                   "Hint: maybe you forgot to to put the return keyword at the end of the function.")
+                continue
             size = image.get_size()
             if size[0] + x > 1280:
                 y = next_y + 10
