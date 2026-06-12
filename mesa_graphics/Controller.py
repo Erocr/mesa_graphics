@@ -29,6 +29,7 @@ class Controller:
         This is the main function. It is called once per frame. It watches the new user inputs, and
         act responding to them.
         """
+        self.update_counters()
         self.inputHandler.update()
         self._update_ui()
         if self.inputHandler.pressed(K_d):
@@ -100,7 +101,7 @@ class ButtonsController:
         self.model = model
         self.view = view
         self.inputHandler = inputHandler
-        self.sliderController = sliderController
+        self.userParamController = sliderController
         self.button_actions = {}
         self._initialize_button_actions()
 
@@ -119,9 +120,8 @@ class ButtonsController:
             self.view.buttons["START/STOP"].modify_text(("START", "STOP")[self.model.is_playing])
 
         def reset_action():
-            params = self.sliderController.get_model_params()
-            model = type(self.model.mesa_model)(**params)
-            self.model.mesa_model = model
+            self.model.reset = True
+            self.model.set_model_params(self.userParamController.get_model_params())
             if self.model.is_playing:
                 start_or_stop_action()
 
@@ -140,7 +140,7 @@ class ButtonsController:
 
     def update(self, button):
         """
-        This is the main function. It is called once per frame. It watches if the mouse hover a button,
+        This is the main function. It is called once per frame. It watches if the mouse hovers a button,
         and apply the action associated to the button if user clicks on it.
         """
         mouse_pos = self.inputHandler.mouse_pos

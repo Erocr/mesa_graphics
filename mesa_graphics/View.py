@@ -35,7 +35,7 @@ class View:
             self.components = {0: []}
             self._store_components(components)
         if renderer is not None:
-            self.components[0].insert(0, Component(self.model.mesa_model, create_space_component(renderer)))
+            self.components[0].insert(0, Component(self.model, create_space_component(renderer)))
         self.buttons = {}  # Provide fast and easy access to buttons
         self.userTweakableModelParams = {}  # Provide fast and easy access to user parameters
         self.userEntries = {}
@@ -77,7 +77,7 @@ class View:
                 comp, page = comp_page, 0
             if page not in self.components:
                 self.components[page] = []
-            self.components[page].append(Component(self.model.mesa_model, comp))
+            self.components[page].append(Component(self.model, comp))
         self._add_unuseful_pages()
 
     def _add_unuseful_pages(self):
