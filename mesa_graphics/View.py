@@ -33,6 +33,7 @@ class View:
         self.page_scrolling_y = 0
         self.page = 0
         self.min_page = self.max_page = 0
+        self.min_visible_page = 0
         if components is None:
             self.components = {0: []}
         else:
@@ -141,6 +142,42 @@ class View:
         for button in buttons:
             button.set_pos(pg.Vector2(x, 90))
             x += button.size.x + 10
+
+        page_left = self.add_UIElement(Button, pg.Vector2(0, 0), "<", font_size=15, name="PAGE LEFT")
+        page_right = self.add_UIElement(Button, pg.Vector2(0, 0), ">", font_size=15, name="PAGE RIGHT")
+        page_right.visible = False
+        page_left.visible = False
+        page_right.lock()
+        page_left.lock()
+
+        if self.max_page+1 - self.min_page > 9:
+            min_visible_page = min(max(self.min_page, -4), self.max_page-8)
+            self.set_min_visible_page(min_visible_page)
+        self.buttons[f"PAGE {self.page}"].lock()
+
+    def page_right(self):
+        self.set_min_visible_page(min(self.max_page - 8, self.min_visible_page + 6))
+
+    def page_left(self):
+        self.set_min_visible_page(max(self.min_page, self.min_visible_page - 6))
+
+    def set_min_visible_page(self, min_visible_page):
+        self.min_visible_page = min_visible_page
+        for button in self.buttons.values():
+            if button.name[:4] == "PAGE":
+                button.visible = False
+                button.lock()
+        visible_buttons = [self.buttons["PAGE LEFT"]] + \
+                          [self.buttons[f"PAGE {i}"] for i in range(self.min_visible_page, self.min_visible_page+9)] + \
+                          [self.buttons["PAGE RIGHT"]]
+        size_x = sum([button.size.x for button in visible_buttons]) + 10 * (len(visible_buttons) - 1)
+        x = (1280 + 300) // 2 - size_x // 2
+        for button in visible_buttons:
+            button.set_pos(pg.Vector2(x, 90))
+            x += button.size.x + 10
+            button.visible = True
+            button.unlock()
+        self.buttons[f"PAGE {self.page}"].lock()
 
     def _create_flow_control_entries(self, play_interval, render_interval):
         y = 90
@@ -284,7 +321,9 @@ class View:
             y += image.get_height()
 
     def switch_page(self, new_page):
+        self.buttons[f"PAGE {self.page}"].unlock()
         self.page = new_page
+        self.buttons[f"PAGE {self.page}"].lock()
         self.page_scrolling_y = 0
 
     def scroll(self, amount):

@@ -73,11 +73,16 @@ class Button(UIElement):
                 new_name = f"{name}{i}"
             name = new_name
         self.name = name
+        self.locked = False
+        self.visible = True
 
     def draw(self, screen):
-        bg_color = (200, 200, 200) if self.hover else (180, 180, 180)
-        pg.draw.rect(screen, bg_color, pg.Rect(self.pos, self.size))
-        self.text.draw(screen)
+        if self.visible:
+            bg_color = (200, 200, 200) if self.hover else (180, 180, 180)
+            if self.locked:
+                bg_color = (0, 80, 255)
+            pg.draw.rect(screen, bg_color, pg.Rect(self.pos, self.size))
+            self.text.draw(screen)
 
     def modify_text(self, new_text, font_size=None):
         """
@@ -95,6 +100,12 @@ class Button(UIElement):
         """ Change the position of the button. """
         self.pos = pos
         self.text.set_pos(pos+pg.Vector2(10, 10))
+
+    def lock(self):
+        self.locked = True
+
+    def unlock(self):
+        self.locked = False
 
 
 class UserParam(UIElement):

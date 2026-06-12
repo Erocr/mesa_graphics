@@ -139,6 +139,9 @@ class ButtonsController:
         for i in range(self.view.min_page, self.view.max_page+1):
             self.button_actions[f"PAGE {i}"] = switch_page(i)
 
+        self.button_actions["PAGE RIGHT"] = lambda: self.view.page_right()
+        self.button_actions["PAGE LEFT"] = lambda: self.view.page_left()
+
     def update(self, button):
         """
         This is the main function. It is called once per frame. It watches if the mouse hovers a button,
@@ -147,7 +150,7 @@ class ButtonsController:
         mouse_pos = self.inputHandler.mouse_pos
         button.hover = (button.pos.x <= mouse_pos.x <= button.pos.x + button.size.x and
                         button.pos.y <= mouse_pos.y <= button.pos.y + button.size.y)
-        if button.hover and self.inputHandler.pressed("mouse_left"):
+        if button.hover and self.inputHandler.pressed("mouse_left") and not button.locked:
             if button.name in self.button_actions:
                 self.button_actions[button.name]()
             else:
