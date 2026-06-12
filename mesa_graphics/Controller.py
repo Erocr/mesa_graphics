@@ -30,7 +30,6 @@ class Controller:
         self._update_ui()
         if self.inputHandler.pressed(K_d):
             self.model.debug = not self.model.debug
-        self._keyboard_shortcuts()
 
     def _update_ui(self):
         """ It updates all the UI, reacting to user's inputs: buttons and sliders. """
@@ -44,14 +43,6 @@ class Controller:
     def is_terminated(self):
         """ Get if user asked to close the window, and so, to end the visualization. """
         return self.inputHandler.quit
-
-    def _keyboard_shortcuts(self):
-        if self.inputHandler.pressed("SPACE"):
-            self.buttonsController.button_actions["START/STOP"]()
-        if self.inputHandler.pressed("RIGHT"):
-            self.buttonsController.button_actions["STEP"]()
-        if self.inputHandler.pressed("r"):
-            self.buttonsController.button_actions["RESET"]()
 
 
 class UserParamController:
@@ -79,11 +70,16 @@ class UserParamController:
                      userParam.pos.y - 5 <= mousePos.y <= userParam.pos.y + Checkbox.SIZE.y)
             if hover and self.inputHandler.pressed("mouse_left"):
                 userParam.switch()
+            value = userParam.value
+        else:
+            raise NotImplementedError()
+        if not userParam.model_param:
+            self.model.notify_user_entries_change(userParam.name, userParam.value)
 
     def get_model_params(self):
         res = {}
-        for param in self.view.userParams:
-            res[param] = self.view.userParams[param].value
+        for param in self.view.userTweakableModelParams:
+            res[param] = self.view.userTweakableModelParams[param].value
         return res
 
 

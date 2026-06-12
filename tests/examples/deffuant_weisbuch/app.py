@@ -53,8 +53,6 @@ renderer = None
 
 def AgentTrajectoriesPlot(model):
     # Trigger rerender whenever model advances
-    update_counter.get()
-
     df = model.datacollector.get_agent_vars_dataframe()
 
     # Handle case where no data has been collected yet
@@ -66,7 +64,8 @@ def AgentTrajectoriesPlot(model):
     # Reshape data: rows = time, columns = agents
     opinions = df["opinion"].unstack("AgentID")
 
-    fig, ax = plt.subplots(figsize=(7, 6))
+    fig = plt.Figure((7, 6))
+    ax = fig.add_subplot()
     for agent_id in opinions.columns:
         ax.plot(
             opinions.index,

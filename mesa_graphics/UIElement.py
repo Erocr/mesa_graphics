@@ -98,17 +98,18 @@ class Button(UIElement):
 
 
 class UserParam(UIElement):
-    def __init__(self, pos, param_name, value=None):
+    def __init__(self, pos, param_name, model_param=True, value=None):
         super().__init__(pos)
         self.name = param_name
         self.value = value
+        self.model_param = model_param
 
 
 class Slider(UserParam):
     CIRCLE_RADIUS = 5
     BAR_HEIGHT = 2
 
-    def __init__(self, pos, length, t, param_name, value=None, min=0, max=10, step=0.01):
+    def __init__(self, pos, length, t, param_name, model_param=True, value=None, min=0, max=10, step=0.01):
         """
         This class handle the logic for drawing a slider.
 
@@ -123,7 +124,7 @@ class Slider(UserParam):
         assert min <= max, "min shall be less than max"
         assert t in ("SliderInt", "SliderFloat"), f"type {t} is unknown"
         if value is None: value = (min + max) / 2
-        super().__init__(pos, param_name, value)
+        super().__init__(pos, param_name, model_param, value)
         self.selectedPosX = 0
         self.step = step
         self.min = min
@@ -158,8 +159,9 @@ class Checkbox(UserParam):
     SIZE = pg.Vector2(20, 20)
     WIDTH = 2
 
-    def __init__(self, pos, param_name, value=None, *args, **kwargs):
-        super().__init__(pos, param_name, value)
+    def __init__(self, pos, param_name, model_param=True, value=None, *args, **kwargs):
+        if len(args) != 0 or len(kwargs) != 0: print(f"Warning: some the arguments have been ignored")
+        super().__init__(pos, param_name, model_param, value)
 
     def draw(self, screen):
         pg.draw.rect(screen, (0, 0, 0), pg.Rect(self.pos, self.SIZE), width=self.WIDTH)

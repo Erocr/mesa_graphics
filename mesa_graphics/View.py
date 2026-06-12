@@ -5,7 +5,8 @@ import mesa.visualization.user_param as mesa_user_param
 
 
 class View:
-    def __init__(self, model, renderer=None, components=None, model_params=None, name=None):
+    def __init__(self, model, renderer=None, components=None, play_interval=100, render_interval=1, model_params=None,
+                 name=None):
         """ View class.
         /!\\ The user must not use this class, use MesaGraphics instead /!\\
 
@@ -28,19 +29,22 @@ class View:
         self.page = 0
         self.min_page = self.max_page = 0
         if components is None:
-            pass
-        else:
             self.components = {0: []}
+        else:
             self.components = {0: []}
             self._store_components(components)
         if renderer is not None:
             self.components[0].insert(0, create_space_component(renderer))
         self.buttons = {}  # Provide fast and easy access to buttons
-        self.userParams = {}  # Provide fast and easy access to user parameters
+        self.userTweakableModelParams = {}  # Provide fast and easy access to user parameters
+        self.userEntries = {}
         self.ui_elements = []
         if name is None:
             name = type(self.model).__name__
-        self._create_ui(name, model_params)
+        self._create_ui(name, model_params, play_interval, render_interval)
+
+    def quit(self):
+        pg.quit()
 
     def add_UIElement(self, type, *args, **kwargs):
         """ This function instantiates a new UIElement.
@@ -57,7 +61,10 @@ class View:
         if isinstance(to_add, Button):
             self.buttons[to_add.name] = to_add
         if isinstance(to_add, UserParam):
-            self.userParams[to_add.name] = to_add
+            if to_add.model_param:
+                self.userTweakableModelParams[to_add.name] = to_add
+            else:
+                self.userEntries[to_add.name] = to_add
         return to_add
 
     def _store_components(self, components):
@@ -87,11 +94,11 @@ class View:
             if i not in self.components:
                 self.components[i] = []
 
-    def _create_ui(self, name, model_params):
+    def _create_ui(self, name, model_params, play_interval, render_interval):
         """ Instantiate the UI. """
         self._create_up_bar(name)
         self._create_switch_page_buttons()
-        self._create_controls(model_params)
+        self._create_controls(model_params, play_interval, render_interval)
 
     def _create_up_bar(self, name):
         """ Creates the blue bar on top of the screen, and write the name into it. """
@@ -99,7 +106,7 @@ class View:
         text = self.add_UIElement(Text, pg.Vector2(80, 0), name)
         text.set_pos(text.pos + pg.Vector2(0, 40 - text.image.get_height()/2))
 
-    def _create_controls(self, model_params):
+    def _create_controls(self, model_params, play_interval, render_interval):
         """
         This function creates the grey column in the left part of the screen, and fills it.
         It creates also the 3 buttons RESET, START/STOP, and STEP
@@ -112,6 +119,7 @@ class View:
         for i in range(3):
             button = self.add_UIElement(Button, pg.Vector2(x, 22), texts[i], font_size=15, name=names[i])
             x += button.text.image.get_width() + 30
+        self._create_flow_control_entries(play_interval, render_interval)
         if model_params is not None:
             self._create_model_params_entries(model_params)
 
@@ -129,28 +137,57 @@ class View:
             button.set_pos(pg.Vector2(x, 90))
             x += button.size.x + 10
 
+    def _create_flow_control_entries(self, play_interval, render_interval):
+        y = 90
+        play_interval_params = {
+            "type": "SliderInt",
+            "min": 0,
+            "max": 2000,
+            "step": 10,
+            "value": play_interval,
+            "param_name": "play_interval",
+            "label": "play interval (ms):",
+            "model_param": False
+        }
+        y = self._create_user_param("play_interval", play_interval_params, y)
+
+        render_interval_params = {
+            "type": "SliderInt",
+            "min": 1,
+            "max": 50,
+            "step": 1,
+            "value": render_interval,
+            "param_name": "render_interval",
+            "label": "render interval (steps): ",
+            "model_param": False
+        }
+        y = self._create_user_param("render_interval", render_interval_params, y)
+
     def _create_model_params_entries(self, model_params):
         """
         Create the tweakable user parameters in the left column, which describe how to re-instantiate the model using the
         RESET button
         ."""
-        y = 90
+        y = 250
         for param_name in model_params:
-            p = self._user_input_params_extraction(model_params[param_name], param_name)
-            if p is not None:
-                type, param = p
-                label = param_name
-                if "label" in param:
-                    label = param.pop("label")
+            y = self._create_user_param(param_name, model_params[param_name], y)
 
-                x, y, lastUiElement = self._add_model_param_label(label, y)
-                if x > 250:
-                    x = 10
-                    y += lastUiElement.image.get_height()
-                args = self._compute_args_for_user_params_creation(type, x, y)
-                self.add_UIElement(type, *args, **param)
+    def _create_user_param(self, param_name, model_param, y):
+        p = self._user_input_params_extraction(model_param, param_name)
+        if p is not None:
+            type, param = p
+            label = param_name
+            if "label" in param:
+                label = param.pop("label")
 
-            y += 30
+            x, y, lastUiElement = self._add_model_param_label(label, y)
+            if x > 250:
+                x = 10
+                y += lastUiElement.image.get_height()
+            args = self._compute_args_for_user_params_creation(type, x, y)
+            self.add_UIElement(type, *args, **param)
+
+        return y + 30
 
     def _user_input_params_extraction(self, param, param_name):
         if isinstance(param, dict):
@@ -178,7 +215,6 @@ class View:
             return pg.Vector2(x, y), 290 - x
         elif type == Checkbox:
             return (pg.Vector2(x, y-Checkbox.SIZE.y/2),)
-
 
 
     def _add_model_param_label(self, label, y):

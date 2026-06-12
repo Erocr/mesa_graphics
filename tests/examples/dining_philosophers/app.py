@@ -1,5 +1,7 @@
 import matplotlib.ticker as ticker
 import networkx as nx
+import solara
+
 from dining_philosophers.agent import ForkAgent, PhilosopherAgent, State
 from dining_philosophers.model import DiningPhilosophersModel
 from matplotlib.figure import Figure

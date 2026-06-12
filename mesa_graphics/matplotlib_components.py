@@ -1,7 +1,6 @@
 import itertools
 import warnings
 from collections.abc import Callable
-from typing import Any
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure

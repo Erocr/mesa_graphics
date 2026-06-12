@@ -40,7 +40,7 @@ class MoneyModel(mesa.Model):
         self.num_agents = n
         self.datacollector = mesa.DataCollector(model_reporters={"Gini": compute_gini},
                                                 agent_reporters={"Wealth": "wealth"})
-        self.grid = mesa.discrete_space.HexGrid((6, 6), torus=True, random=self.random, capacity=capacity)
+        self.grid = mesa.discrete_space.OrthogonalVonNeumannGrid((6, 6), torus=True, random=self.random, capacity=capacity)
         choices = self.random.choices(self.grid.all_cells.cells, k=self.num_agents)
         MoneyAgent.create_agents(self, n, choices)
         self.datacollector.collect(self)

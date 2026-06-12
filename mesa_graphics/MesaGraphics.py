@@ -1,7 +1,7 @@
 from mesa_graphics.View import View
 from mesa_graphics.Controller import Controller
 from mesa_graphics.Model import Model
-from time import time
+from time import time, sleep
 
 
 class MesaGraphics:
@@ -36,8 +36,9 @@ class MesaGraphics:
         if simulator is not None: print("Warning: the simulator selected is not taken into account")
         if use_threads: print("Warning: the use_threads selected is not taken into account")
 
-        self.model = Model(model)
-        self.view = View(self.model, renderer=renderer, components=components, model_params=model_params, name=name)
+        self.model = Model(model, play_interval, render_interval)
+        self.view = View(self.model, renderer=renderer, components=components, play_interval=play_interval,
+                         render_interval=render_interval, model_params=model_params, name=name)
         self.controller = Controller(self.model, self.view)
         self._start()
 
@@ -49,3 +50,6 @@ class MesaGraphics:
             self.model.update()
             self.view.draw()
             self.model.debug_infos["fps"] = 1 / max(time() - start, 0.0001)
+            #print(time() - start, self.model.play_interval*0.001)
+            if time() - start < self.model.play_interval*0.001:
+                sleep(self.model.play_interval*0.001 - time() + start)
