@@ -11,11 +11,16 @@ Objectifs:
 
 Je dois commencer à avoir une bonne idée de comment coder, et quoi coder à la fin de cette semaine.
 
+Durant cette semaine, j'ai créé une première architecture. La grande erreur de cette architecture était dans la 
+complexité de celle-ci. J'avais créé un système pour le resize des images qui modifiait beaucoup l'architecture. Ils 
+voulaient plutôt que je suive le modèle agile. Mon but est donc à présent d'avoir pour mercredi une architecture 
+minimale, et une implémentation minimale, avec toutes les features de base. 
+
 ### Deuxième semaine (8 juin - 12 juin)
 
 Objectifs:
 - Corriger l'architecture choisie
-- Commencer à coder les fonctions utilitaires qui seront utiles pour n'importe quelle architecture
+- Avoir une première version minimale (seulement backend matplotlib, pas de resize, ...)
 
 À la fin de cette semaine, je dois être sûr de mon architecture, modulo quelques changements mineurs en cours de route.
 
