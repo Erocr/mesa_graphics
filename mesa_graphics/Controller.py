@@ -21,15 +21,20 @@ class Controller:
         self.sliderController = UserParamController(model, view, self.inputHandler)
         self.buttonsController = ButtonsController(model, view, self.inputHandler, self.sliderController)
 
+    def update_counters(self):
+        self.inputHandler.update_counters()
+
     def update(self):
         """
         This is the main function. It is called once per frame. It watches the new user inputs, and
         act responding to them.
         """
+        self.update_counters()
         self.inputHandler.update()
         self._update_ui()
         if self.inputHandler.pressed(K_d):
             self.model.debug = not self.model.debug
+        self.view.scroll(-self.inputHandler.scroll_direction.y)
 
     def _update_ui(self):
         """ It updates all the UI, reacting to user's inputs: buttons and sliders. """
@@ -97,7 +102,7 @@ class ButtonsController:
         self.model = model
         self.view = view
         self.inputHandler = inputHandler
-        self.sliderController = sliderController
+        self.userParamController = sliderController
         self.button_actions = {}
         self._initialize_button_actions()
 
@@ -116,9 +121,8 @@ class ButtonsController:
             self.view.buttons["START/STOP"].modify_text(("START", "STOP")[self.model.is_playing])
 
         def reset_action():
-            params = self.sliderController.get_model_params()
-            model = type(self.model.mesa_model)(**params)
-            self.model.mesa_model = model
+            self.model.reset = True
+            self.model.set_model_params(self.userParamController.get_model_params())
             if self.model.is_playing:
                 start_or_stop_action()
 
@@ -130,20 +134,23 @@ class ButtonsController:
         """ Initialize the actions of the switching page buttons """
         def switch_page(i):
             def res():
-                self.view.page = i
+                self.view.switch_page(i)
             return res
         for i in range(self.view.min_page, self.view.max_page+1):
             self.button_actions[f"PAGE {i}"] = switch_page(i)
 
+        self.button_actions["PAGE RIGHT"] = lambda: self.view.page_right()
+        self.button_actions["PAGE LEFT"] = lambda: self.view.page_left()
+
     def update(self, button):
         """
-        This is the main function. It is called once per frame. It watches if the mouse hover a button,
+        This is the main function. It is called once per frame. It watches if the mouse hovers a button,
         and apply the action associated to the button if user clicks on it.
         """
         mouse_pos = self.inputHandler.mouse_pos
         button.hover = (button.pos.x <= mouse_pos.x <= button.pos.x + button.size.x and
                         button.pos.y <= mouse_pos.y <= button.pos.y + button.size.y)
-        if button.hover and self.inputHandler.pressed("mouse_left"):
+        if button.hover and self.inputHandler.pressed("mouse_left") and not button.locked:
             if button.name in self.button_actions:
                 self.button_actions[button.name]()
             else:

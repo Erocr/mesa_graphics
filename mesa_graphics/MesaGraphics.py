@@ -2,6 +2,7 @@ from mesa_graphics.View import View
 from mesa_graphics.Controller import Controller
 from mesa_graphics.Model import Model
 from time import time, sleep
+import threading
 
 
 class MesaGraphics:
@@ -40,16 +41,24 @@ class MesaGraphics:
         self.view = View(self.model, renderer=renderer, components=components, play_interval=play_interval,
                          render_interval=render_interval, model_params=model_params, name=name)
         self.controller = Controller(self.model, self.view)
-        self._start()
+        self.update_thread = threading.Thread(target=self._start_update)
+        self.update_thread.start()
+        self._start_view()
 
-    def _start(self):
+    def _start_view(self):
         """ This function start the visualization loop """
         while not self.controller.is_terminated:
-            start = time()
             self.controller.update()
-            self.model.update()
             self.view.draw()
-            self.model.debug_infos["fps"] = 1 / max(time() - start, 0.0001)
-            #print(time() - start, self.model.play_interval*0.001)
-            if time() - start < self.model.play_interval*0.001:
-                sleep(self.model.play_interval*0.001 - time() + start)
+            sleep(0.001)
+        threading.Barrier(0)
+
+    def _start_update(self):
+        while not self.controller.is_terminated:
+            start = time()
+            self.model.update()
+            self.view.render()
+            d = time() - start
+            if d < self.model.play_interval * 0.001:
+                sleep(self.model.play_interval * 0.001 - d)
+        threading.Barrier(0)

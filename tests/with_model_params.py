@@ -34,7 +34,7 @@ def compute_gini(model):
 
 
 class MoneyModel(mesa.Model):
-    def __init__(self, n=10, capacity=5, boolean=True, selection="none", text="none", seed=None):
+    def __init__(self, n=10, capacity=50, boolean=True, selection="none", text="none", seed=None):
         print(f"arguments are:\n n={n}\n capacity={capacity}\n boolean={boolean}\n seed={seed}\n selection={selection}\n text={text}")
         super().__init__(seed=seed)
         self.num_agents = n
@@ -68,13 +68,13 @@ model_params = {
     "n": {
         "type": "SliderInt",
         "value": 5,
-        "label": "Number of agents:",
+        "label": "number of agents",
         "min": 1,
         "max": 40,
         "step": 1,
     },
     "seed": mesa_user_param.Slider("seed:", 1, 0, 100, 0.1),
-    "capacity": 5,
+    "capacity": 50,
     "boolean": {"type": "Checkbox"}
 }
 

@@ -29,6 +29,7 @@ class InputHandler:
         self.events = {}
         self.quit = False
         self._mouse_pos = pg.Vector2(0, 0)
+        self._scroll_direction = pg.Vector2(0, 0)
 
     def _pg_events(self):
         """ Associate in `self.keys` the pygame keys constants to a string describing the key """
@@ -39,18 +40,21 @@ class InputHandler:
         self.keys["mouse_left"] = -1
         self.keys["mouse_right"] = -3
 
-    def update(self):
-        """
-        Analyse the new events sent by pygame, and write them in a more understandable way
-        This method shall be called once per frame
-        """
-        self._mouse_pos = pg.Vector2(*pg.mouse.get_pos())
+    def update_counters(self):
         keys = list(self.events.keys())
         for evt in keys:
             if self.events[evt].duration < 0:
                 self.events.pop(evt)
             else:
                 self.events[evt].duration += 1
+
+    def update(self):
+        """
+        Analyse the new events sent by pygame, and write them in a more understandable way
+        This method shall be called once per frame
+        """
+        self._mouse_pos = pg.Vector2(*pg.mouse.get_pos())
+        self._scroll_direction = pg.Vector2(0, 0)
 
         for evt in pg.event.get():
             if evt.type == pg.KEYDOWN:
@@ -63,6 +67,8 @@ class InputHandler:
                 self.events[-evt.button] = Key()
             elif evt.type == pg.MOUSEBUTTONUP:
                 self.events.pop(-evt.button)
+            if evt.type == pg.MOUSEWHEEL:
+                self._scroll_direction = pg.Vector2(evt.x, evt.y)
 
     def key_id(self, key):
         """
@@ -98,3 +104,7 @@ class InputHandler:
     def mouse_pos(self):
         """ Get the mouse position. """
         return self._mouse_pos
+
+    @property
+    def scroll_direction(self):
+        return self._scroll_direction

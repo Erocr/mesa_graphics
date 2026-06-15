@@ -1,3 +1,4 @@
+from mesa_graphics.Component import Component
 from mesa_graphics.UIElement import *
 from mesa_graphics.matplotlib_components import create_space_component
 from time import time
@@ -5,6 +6,8 @@ import mesa.visualization.user_param as mesa_user_param
 
 
 class View:
+    SCROLL_SENSIBILITY = 10
+
     def __init__(self, model, renderer=None, components=None, play_interval=100, render_interval=1, model_params=None,
                  name=None):
         """ View class.
@@ -26,15 +29,18 @@ class View:
         pg.font.init()
         self.screen = pg.display.set_mode((1280, 740), pg.RESIZABLE)
         self.model = model
+        self.max_page_scrolling_y = 0
+        self.page_scrolling_y = 0
         self.page = 0
         self.min_page = self.max_page = 0
+        self.min_visible_page = 0
         if components is None:
             self.components = {0: []}
         else:
             self.components = {0: []}
             self._store_components(components)
         if renderer is not None:
-            self.components[0].insert(0, create_space_component(renderer))
+            self.components[0].insert(0, Component(self.model, create_space_component(renderer)))
         self.buttons = {}  # Provide fast and easy access to buttons
         self.userTweakableModelParams = {}  # Provide fast and easy access to user parameters
         self.userEntries = {}
@@ -76,7 +82,7 @@ class View:
                 comp, page = comp_page, 0
             if page not in self.components:
                 self.components[page] = []
-            self.components[page].append(comp)
+            self.components[page].append(Component(self.model, comp))
         self._add_unuseful_pages()
 
     def _add_unuseful_pages(self):
@@ -136,6 +142,42 @@ class View:
         for button in buttons:
             button.set_pos(pg.Vector2(x, 90))
             x += button.size.x + 10
+
+        page_left = self.add_UIElement(Button, pg.Vector2(0, 0), "<", font_size=15, name="PAGE LEFT")
+        page_right = self.add_UIElement(Button, pg.Vector2(0, 0), ">", font_size=15, name="PAGE RIGHT")
+        page_right.visible = False
+        page_left.visible = False
+        page_right.lock()
+        page_left.lock()
+
+        if self.max_page+1 - self.min_page > 9:
+            min_visible_page = min(max(self.min_page, -4), self.max_page-8)
+            self.set_min_visible_page(min_visible_page)
+        self.buttons[f"PAGE {self.page}"].lock()
+
+    def page_right(self):
+        self.set_min_visible_page(min(self.max_page - 8, self.min_visible_page + 6))
+
+    def page_left(self):
+        self.set_min_visible_page(max(self.min_page, self.min_visible_page - 6))
+
+    def set_min_visible_page(self, min_visible_page):
+        self.min_visible_page = min_visible_page
+        for button in self.buttons.values():
+            if button.name[:4] == "PAGE":
+                button.visible = False
+                button.lock()
+        visible_buttons = [self.buttons["PAGE LEFT"]] + \
+                          [self.buttons[f"PAGE {i}"] for i in range(self.min_visible_page, self.min_visible_page+9)] + \
+                          [self.buttons["PAGE RIGHT"]]
+        size_x = sum([button.size.x for button in visible_buttons]) + 10 * (len(visible_buttons) - 1)
+        x = (1280 + 300) // 2 - size_x // 2
+        for button in visible_buttons:
+            button.set_pos(pg.Vector2(x, 90))
+            x += button.size.x + 10
+            button.visible = True
+            button.unlock()
+        self.buttons[f"PAGE {self.page}"].lock()
 
     def _create_flow_control_entries(self, play_interval, render_interval):
         y = 90
@@ -216,14 +258,51 @@ class View:
         elif type == Checkbox:
             return (pg.Vector2(x, y-Checkbox.SIZE.y/2),)
 
-
     def _add_model_param_label(self, label, y):
         """
         Helper function that creates the label for a model parameter.
-        TODO: put it on multiple lines if label is to long
         """
-        text = self.add_UIElement(Text, pg.Vector2(10, y), label, font_size=20)
+        labels = self._split_label(label)
+        if len(labels) == 0: labels = [label]
+        text = None
+        for label in labels:
+            if text is not None: y += text.image.get_height()
+            text = self.add_UIElement(Text, pg.Vector2(10, y), label, font_size=20)
         return text.image.get_width() + 20, y+text.image.get_height()/2, text
+
+    def _split_label(self, label: str):
+        max_number_chars = 24
+        res = []
+        words = label.split(" ")
+        i = -1
+        last_chosen_i = 0
+        current_size = 0
+        while i+1 < len(words):
+            i += 1
+            current_size += len(words[i]) + 1
+            if current_size > max_number_chars:
+                if i > last_chosen_i:
+                    r = ""
+                    for j in range(last_chosen_i, i):
+                        r += words[j] + " "
+                    res.append(r[:-1])
+                    last_chosen_i = i
+                    i -= 1
+                else:
+                    while len(words[i]) >= max_number_chars:
+                        res.append(words[i][:max_number_chars])
+                        words[i] = words[i][max_number_chars:]
+                    current_size = len(words[i])
+                    last_chosen_i = i
+        r = ""
+        for j in range(last_chosen_i, i+1):
+            r += words[j] + " "
+        res.append(r[:-1])
+        return res
+
+    def render(self):
+        for component in self.components[self.page]:
+            component.render()
 
     def draw(self):
         """
@@ -231,9 +310,10 @@ class View:
         """
         start = time()
         self.screen.fill((255, 255, 255))
+        self.draw_components()
+        self._page_scroll_clamp()
         for ui in self.ui_elements:
             ui.draw(self.screen)
-        self.draw_components()
         if self.model.debug: self.draw_debug()
         self.model.debug_infos["viewer_time"] = time() - start
         pg.display.flip()
@@ -241,16 +321,14 @@ class View:
     def draw_components(self):
         """
         This function draws all the components in the current page.
-        TODO: compute the images only if it is necessary, don't re-compute them if the model doesn't change.
         """
-        y = 135
-        next_y = 80
+        y = 135 - self.page_scrolling_y
+        next_y = y - 55
         x = 300
         for component in self.components[self.page]:
-            image = component(self.model.mesa_model)
+            image = component.image
             if image is None:
-                raise RuntimeError("The component didn't return anything. "
-                                   "Hint: maybe you forgot to to put the return keyword at the end of the function.")
+                continue
             size = image.get_size()
             if size[0] + x > 1280:
                 y = next_y + 10
@@ -259,6 +337,7 @@ class View:
             next_y = max(next_y, y + size[1])
             self.screen.blit(image, (x, y))
             x += size[0] + 10
+        self.max_page_scrolling_y = max(next_y - 700 + self.page_scrolling_y, 0)
 
     def draw_debug(self):
         """
@@ -274,4 +353,20 @@ class View:
             image = font.render(text, False, (255, 255, 255), (0, 0, 0, 125))
             self.screen.blit(image, pg.Vector2(0, y))
             y += image.get_height()
+
+    def switch_page(self, new_page):
+        self.buttons[f"PAGE {self.page}"].unlock()
+        self.page = new_page
+        self.buttons[f"PAGE {self.page}"].lock()
+        self.page_scrolling_y = 0
+
+    def scroll(self, amount):
+        self.page_scrolling_y += amount * self.SCROLL_SENSIBILITY
+        self._page_scroll_clamp()
+
+    def _page_scroll_clamp(self):
+        if self.page_scrolling_y <= 0:
+            self.page_scrolling_y = 0
+        elif self.page_scrolling_y >= self.max_page_scrolling_y:
+            self.page_scrolling_y = self.max_page_scrolling_y
 
