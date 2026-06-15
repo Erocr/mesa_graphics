@@ -68,7 +68,7 @@ model_params = {
     "n": {
         "type": "SliderInt",
         "value": 5,
-        "label": "Number of agents:",
+        "label": "number of agents",
         "min": 1,
         "max": 40,
         "step": 1,

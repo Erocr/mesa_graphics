@@ -261,10 +261,44 @@ class View:
     def _add_model_param_label(self, label, y):
         """
         Helper function that creates the label for a model parameter.
-        TODO: put it on multiple lines if label is to long
         """
-        text = self.add_UIElement(Text, pg.Vector2(10, y), label, font_size=20)
+        labels = self._split_label(label)
+        if len(labels) == 0: labels = [label]
+        text = None
+        for label in labels:
+            if text is not None: y += text.image.get_height()
+            text = self.add_UIElement(Text, pg.Vector2(10, y), label, font_size=20)
         return text.image.get_width() + 20, y+text.image.get_height()/2, text
+
+    def _split_label(self, label: str):
+        max_number_chars = 24
+        res = []
+        words = label.split(" ")
+        i = -1
+        last_chosen_i = 0
+        current_size = 0
+        while i+1 < len(words):
+            i += 1
+            current_size += len(words[i]) + 1
+            if current_size > max_number_chars:
+                if i > last_chosen_i:
+                    r = ""
+                    for j in range(last_chosen_i, i):
+                        r += words[j] + " "
+                    res.append(r[:-1])
+                    last_chosen_i = i
+                    i -= 1
+                else:
+                    while len(words[i]) >= max_number_chars:
+                        res.append(words[i][:max_number_chars])
+                        words[i] = words[i][max_number_chars:]
+                    current_size = len(words[i])
+                    last_chosen_i = i
+        r = ""
+        for j in range(last_chosen_i, i+1):
+            r += words[j] + " "
+        res.append(r[:-1])
+        return res
 
     def render(self):
         for component in self.components[self.page]:

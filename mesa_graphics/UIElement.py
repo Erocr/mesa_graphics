@@ -34,7 +34,7 @@ class Text(UIElement):
         :param font_size: The font size
         """
         super().__init__(pos)
-        font = pg.font.Font('freesansbold.ttf', font_size)
+        font = pg.font.Font(pg.font.match_font("liberationmono"), font_size)
         self.image = font.render(text, False, (0, 0, 0))
 
     def draw(self, screen):
