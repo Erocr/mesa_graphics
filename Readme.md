@@ -4,6 +4,8 @@ MesaGraphics is a visualization add-on for Mesa: https://Mesa.readthedocs.io/sta
 Solara-based visualization. The API closely mirrors Mesa's Solara-based visualization API, but runs entirely locally 
 through Pygame.
 
+![screenshot](doc/screenshot.png)
+
 **The project is a work in progress, so everything could change.**
 
 ## Using MesaGraphics
