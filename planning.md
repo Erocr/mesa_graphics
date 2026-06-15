@@ -24,16 +24,22 @@ Objectifs:
 
 À la fin de cette semaine, je dois être sûr de mon architecture, modulo quelques changements mineurs en cours de route.
 
+Durant cette semaine, j'ai codé intensément. J'ai une première version qui marche, avec à peu près toutes les features
+demandées. La documentation, elle est très rudimentale. Le prochain but est de créer une excellente documentation, et 
+de peaufiner les visuels, pour avoir quelque chose de plus beau, et plus moderne.
+
 ### Troisième semaine (15 juin - 19 juin)
 
 Objectifs:
-- Coder intensément : Première version minimale qui marche
-- écrire la documentation
-- commencer à écrire des tests
-- Avant la réunion de la semaine, tester l'application pour faire un retour des bugs
+- écrire la documentation (utilisateur + dév)
+- Finir d'écrire les dernières features.
+- Améliorer les graphismes, avoir quelque chose de plus beau.
 
 **Remarque** : Ce sera une application avec une interface graphique, donc il est assez dur de la tester. Il faudra 
 avoir une manière de coder très propre, et il faudra tester très régulièrement des cas limites à la main.
+
+À la fin de cette semaine, il faut avoir envoyé aux tuteurs de stage une version avec documentation, et toutes les 
+fonctionnalités.
 
 ### Quatrième semaine (22 juin - 26 juin)
 
