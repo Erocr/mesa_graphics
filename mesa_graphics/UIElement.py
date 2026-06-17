@@ -171,6 +171,16 @@ class Checkbox(UserParam):
     WIDTH = 2
 
     def __init__(self, pos, param_name, model_param=True, value=None, *args, **kwargs):
+        """
+        The class handle the logic for drawing a check box.
+
+        :param pos: The top left corner position
+        :param param_name: The name (an identification to recognize it)
+        :param model_param: Set to True if it is used a parameter to put for the re-instantiation of the user's Model.
+        :param value: The default value.
+        :param args: They will be ignored
+        :param kwargs: Thy will be ignored
+        """
         if len(args) != 0 or len(kwargs) != 0: print(f"Warning: some the arguments have been ignored")
         super().__init__(pos, param_name, model_param, value)
 

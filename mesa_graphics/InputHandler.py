@@ -107,4 +107,5 @@ class InputHandler:
 
     @property
     def scroll_direction(self):
+        """ Get the vector representing how much the user is scrolling """
         return self._scroll_direction

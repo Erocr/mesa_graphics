@@ -1,5 +1,12 @@
 class Component:
     def __init__(self, model, component_func):
+        """
+        Remembers the image associated to the component, so that the worker thread update this image, while the
+        main thread draws it.
+
+        :param model: The Model of MesaGraphics
+        :param component_func: The function component-function. This function returns a pg.Surface.
+        """
         self.model = model
         self.component_func = component_func
         self.image = None

@@ -12,7 +12,7 @@ class Controller:
         buttons and behind sliders.
 
         :param model: A Model instance that will be visualized. It is the MesaGraphic's Model, and not
-        the user's on.
+        the user's one.
         :param view: The View class.
         """
         self.inputHandler = InputHandler()
@@ -20,9 +20,6 @@ class Controller:
         self.view = view
         self.sliderController = UserParamController(model, view, self.inputHandler)
         self.buttonsController = ButtonsController(model, view, self.inputHandler, self.sliderController)
-
-    def update_counters(self):
-        self.inputHandler.update_counters()
 
     def update(self):
         """
@@ -35,6 +32,12 @@ class Controller:
         if self.inputHandler.pressed(K_d):
             self.model.debug = not self.model.debug
         self.view.scroll(-self.inputHandler.scroll_direction.y)
+
+    def update_counters(self):
+        """
+        Every key has a counter, counting how many frame was the last modification. This function update this counters.
+        """
+        self.inputHandler.update_counters()
 
     def _update_ui(self):
         """ It updates all the UI, reacting to user's inputs: buttons and sliders. """
@@ -52,11 +55,21 @@ class Controller:
 
 class UserParamController:
     def __init__(self, model, view, inputHandler):
+        """
+        This class is responsible to update the user's params, according to the user's inputs.
+        The user's params are the sliders, and buttons in the column, in the left part of the screen.
+        """
         self.model = model
         self.view = view
         self.inputHandler = inputHandler
 
     def update(self, userParam):
+        """
+        Updates a userParameter. Check if it must be changed, and if so, it calls the method in the userParam to make
+        the change.
+        :param userParam: The userParam to update
+        :return:
+        """
         mousePos = self.inputHandler.mouse_pos
         if isinstance(userParam, Slider):
             userParam.hover = (userParam.pos.x <= mousePos.x <= userParam.pos.x + userParam.length and
@@ -82,6 +95,9 @@ class UserParamController:
             self.model.notify_user_entries_change(userParam.name, userParam.value)
 
     def get_model_params(self):
+        """
+        Get the parameters to put in the user's Model we want to re-instantiate.
+        """
         res = {}
         for param in self.view.userTweakableModelParams:
             res[param] = self.view.userTweakableModelParams[param].value
