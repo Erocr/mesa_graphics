@@ -40,9 +40,9 @@ class MesaGraphics:
         self.view = View(self.model, renderer=renderer, components=components, play_interval=play_interval,
                          render_interval=render_interval, model_params=model_params, name=name)
         self.controller = Controller(self.model, self.view)
+        self.barrier = threading.Barrier(2)
         self.update_thread = threading.Thread(target=self._update_thread_loop)
         self.update_thread.start()
-        self.barrier = threading.Barrier(0)
         self._view_thread_loop()
 
     def _view_thread_loop(self):
@@ -60,6 +60,7 @@ class MesaGraphics:
             self.controller.update()
             self.view.draw()
             sleep(0.001)
+        self.view.quit()
         self.barrier.wait()
 
     def _update_thread_loop(self):

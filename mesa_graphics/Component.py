@@ -1,5 +1,5 @@
 from typing import Callable
-from Model import Model
+from mesa_graphics.Model import Model
 
 
 class Component:

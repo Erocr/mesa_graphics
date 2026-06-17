@@ -55,17 +55,17 @@ class View:
         """ End the visualization """
         pg.quit()
 
-    def add_UIElement(self, t: type, *args, **kwargs):
+    def add_UIElement(self, typ: type, *args, **kwargs):
         """ This function instantiates a new UIElement.
 
-        :param t: The type of the object we want to create.
+        :param typ: The type of the object we want to create.
         :param args: The parameters to pass in the class that we want to instantiate.
         :param kwargs: The parameters to pass in the class that we want to instantiate.
         :return: the object instantiated
 
         For example, if you want to instantiate a Button, call add_UIElement(Button, ...).
         """
-        to_add = t(*args, **kwargs)
+        to_add = typ(*args, **kwargs)
         self.ui_elements.append(to_add)
         if isinstance(to_add, Button):
             self.buttons[to_add.name] = to_add
@@ -242,7 +242,7 @@ class View:
         Create the tweakable user parameters in the left column, which describe how to re-instantiate the model using
         the RESET button.
         """
-        y = 250
+        y = 300
         for param_name in model_params:
             y = self._create_user_param(param_name, model_params[param_name], y)
 
@@ -265,9 +265,8 @@ class View:
                 label = param.pop("label")
 
             x, y, lastUiElement = self._add_model_param_label(label, y)
-            if x > 250:
-                x = 10
-                y += lastUiElement.image.get_height()
+            x = 10
+            y += lastUiElement.image.get_height()
             args = self._compute_args_for_user_params_creation(type, x, y)
             self.add_UIElement(type, *args, **param)
 
