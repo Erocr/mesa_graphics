@@ -1,5 +1,9 @@
+from typing import Callable
+from Model import Model
+
+
 class Component:
-    def __init__(self, model, component_func):
+    def __init__(self, model: Model, component_func: Callable):
         """
         Remembers the image associated to the component, so that the worker thread update this image, while the
         main thread draws it.

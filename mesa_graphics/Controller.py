@@ -1,10 +1,12 @@
 from mesa_graphics.InputHandler import InputHandler
 from mesa_graphics.UIElement import Button, Slider, UserParam, Checkbox
 from pygame import K_d
+from Model import Model
+from View import View
 
 
 class Controller:
-    def __init__(self, model, view):
+    def __init__(self, model: Model, view: View):
         """ Controller class
         /!\\ The user must not use this class, use MesaGraphics instead /!\\
 
@@ -54,7 +56,7 @@ class Controller:
 
 
 class UserParamController:
-    def __init__(self, model, view, inputHandler):
+    def __init__(self, model: Model, view: View, inputHandler: InputHandler):
         """
         This class is responsible to update the user's params, according to the user's inputs.
         The user's params are the sliders, and buttons in the column, in the left part of the screen.
@@ -63,7 +65,7 @@ class UserParamController:
         self.view = view
         self.inputHandler = inputHandler
 
-    def update(self, userParam):
+    def update(self, userParam: UserParam):
         """
         Updates a userParameter. Check if it must be changed, and if so, it calls the method in the userParam to make
         the change.
@@ -105,7 +107,7 @@ class UserParamController:
 
 
 class ButtonsController:
-    def __init__(self, model, view, inputHandler, sliderController):
+    def __init__(self, model: Model, view: View, inputHandler: InputHandler, sliderController: UserParamController):
         """
         This class handles the logic behind the buttons.
 
@@ -158,7 +160,7 @@ class ButtonsController:
         self.button_actions["PAGE RIGHT"] = lambda: self.view.page_right()
         self.button_actions["PAGE LEFT"] = lambda: self.view.page_left()
 
-    def update(self, button):
+    def update(self, button: Button):
         """
         This is the main function. It is called once per frame. It watches if the mouse hovers a button,
         and apply the action associated to the button if user clicks on it.

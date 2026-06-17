@@ -1,8 +1,11 @@
 from time import time
+from typing import Any
+
+from mesa import Model as MesaModel
 
 
 class Model:
-    def __init__(self, mesa_model, play_interval, render_interval):
+    def __init__(self, mesa_model: MesaModel, play_interval: int, render_interval: int):
         """
         This is the MesaGraphics Model. It has the user's Model, and add some stuff, useful for viewing, and
         interacting with the user's Model.
@@ -33,7 +36,7 @@ class Model:
                 self.mesa_model = next_mesa_model
         self.debug_infos["model_time"] = time() - start
 
-    def notify_user_entries_change(self, entry_name, new_value):
+    def notify_user_entries_change(self, entry_name: str, new_value: Any):
         """
         This function is called by the UserParamController. It is used to notify to the Model that the user has
         modified an option.
