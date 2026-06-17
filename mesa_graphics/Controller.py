@@ -144,9 +144,14 @@ class ButtonsController:
             if self.model.is_playing:
                 start_or_stop_action()
 
+        def toggle_or_untoggle_control_bar():
+            self.view.toggle_untoggle_control_bar()
+            self.view.buttons["remove control bar"].modify_text(("SHOW", "HIDE")[self.view.show_control_bar])
+
         self.button_actions["STEP"] = step_action
         self.button_actions["START/STOP"] = start_or_stop_action
         self.button_actions["RESET"] = reset_action
+        self.button_actions["remove control bar"] = toggle_or_untoggle_control_bar
 
     def _initialize_switch_page_buttons(self):
         """ Initialize the actions of the switching page buttons """

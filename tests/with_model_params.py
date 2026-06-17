@@ -72,7 +72,7 @@ model_params = {
         "max": 40,
         "step": 1,
     },
-    "seed": mesa_user_param.Slider("seed:", 1, 0, 100, 0.1),
+    "seed": mesa_user_param.Slider("seed:", 1, 0, 1, 0.01),
     "capacity": 50,
     "boolean": {"type": "Checkbox"}
 }

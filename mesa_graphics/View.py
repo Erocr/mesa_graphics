@@ -47,9 +47,11 @@ class View:
         self.userTweakableModelParams = {}  # Provide fast and easy access to user parameters
         self.userEntries = {}
         self.ui_elements = []
+        self.control_bar_ui_elements = []
         if name is None:
             name = type(self.model).__name__
         self._create_ui(name, model_params, play_interval, render_interval)
+        self.show_control_bar = True
 
     def quit(self):
         """ End the visualization """
@@ -123,13 +125,19 @@ class View:
         self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 80), (0, 80, 255))
         text = self.add_UIElement(Text, pg.Vector2(80, 0), name)
         text.set_pos(text.pos + pg.Vector2(0, 40 - text.image.get_height()/2))
+        self._create_remove_controls_button()
+
+    def _create_remove_controls_button(self) -> None:
+        button = self.add_UIElement(Button, pg.Vector2(0, 0), "HIDE", font_size=20, name="remove control bar")
+        button.set_pos(pg.Vector2(40, 40) - pg.Vector2(*button.get_size()) * 0.5)
 
     def _create_controls(self, model_params, play_interval: int, render_interval: int) -> None:
         """
         This function creates the grey column in the left part of the screen, and fills it with the user parameters.
         It creates also the 3 buttons RESET, START/STOP, and STEP
         """
-        self.add_UIElement(Rectangle, pg.Vector2(0, 80), pg.Vector2(300, 660), (220, 220, 220))
+        rect = self.add_UIElement(Rectangle, pg.Vector2(0, 80), pg.Vector2(300, 660), (220, 220, 220))
+        self.control_bar_ui_elements.append(rect)
         x = 1050
         texts = ("RESET", "START", "STEP")
         names = ("RESET", "START/STOP", "STEP")
@@ -268,7 +276,8 @@ class View:
             x = 10
             y += lastUiElement.image.get_height()
             args = self._compute_args_for_user_params_creation(type, x, y)
-            self.add_UIElement(type, *args, **param)
+            elem = self.add_UIElement(type, *args, **param)
+            self.control_bar_ui_elements.append(elem)
 
         return y + 30
 
@@ -325,6 +334,7 @@ class View:
         for label in labels:
             if text is not None: y += text.image.get_height()
             text = self.add_UIElement(Text, pg.Vector2(10, y), label, font_size=20)
+            self.control_bar_ui_elements.append(text)
         return text.image.get_width() + 20, y+text.image.get_height()/2, text  # noqa
 
     def _split_label(self, label: str):
@@ -386,7 +396,8 @@ class View:
         """
         y = 135 - self.page_scrolling_y
         next_y = y - 55
-        x = 300
+        default_x = (0, 300)[self.show_control_bar]
+        x = default_x
         for component in self.components[self.page]:
             image = component.image
             if image is None:
@@ -395,7 +406,7 @@ class View:
             if size[0] + x > 1280:
                 y = next_y + 10
                 next_y = y
-                x = 300
+                x = default_x
             next_y = max(next_y, y + size[1])
             self.screen.blit(image, (x, y))
             x += size[0] + 10
@@ -426,6 +437,11 @@ class View:
         self.page = new_page
         self.buttons[f"PAGE {self.page}"].lock()
         self.page_scrolling_y = 0
+
+    def toggle_untoggle_control_bar(self):
+        self.show_control_bar = not self.show_control_bar
+        for elt in self.control_bar_ui_elements:
+            elt.visible = self.show_control_bar
 
     def scroll(self, amount: int):
         """

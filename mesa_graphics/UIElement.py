@@ -1,10 +1,21 @@
+from math import log10
+
 import pygame as pg
 
 
 class UIElement:
-    def __init__(self, pos: pg.Vector2):
+    def __init__(self, pos: pg.Vector2, visible=True):
         """ It is an abstract class describing an element of UI. """
         self.pos = pos
+        self._visible = True
+
+    @property
+    def visible(self):
+        return self._visible
+
+    @visible.setter
+    def visible(self, vis):
+        self._visible = vis
 
     def draw(self, screen: pg.Surface):
         """ This function draws the UIElement onto the screen. """
@@ -23,7 +34,8 @@ class Rectangle(UIElement):
         self.color = color
 
     def draw(self, screen: pg.Surface):
-        pg.draw.rect(screen, self.color, pg.Rect(self.pos, self.size))
+        if self.visible:
+            pg.draw.rect(screen, self.color, pg.Rect(self.pos, self.size))
 
 
 class Text(UIElement):
@@ -38,7 +50,8 @@ class Text(UIElement):
         self.image = font.render(text, False, (0, 0, 0))
 
     def draw(self, screen: pg.Surface):
-        screen.blit(self.image, self.pos)
+        if self.visible:
+            screen.blit(self.image, self.pos)
 
     def set_pos(self, pos: pg.Vector2):
         self.pos = pos
@@ -55,8 +68,8 @@ class Button(UIElement):
         :param text: The string shown in the button.
         :param font_size: The font size of the text in the button.
         :param name: An identification. It is used to associate actions in the Controller.
-        If no name is given, the name is the text. If the text is already used, it will put a number
-        right after the text.
+        If no name is given, the name is the text. If the name is already used, it will put a number
+        right after it.
         """
         super().__init__(pos)
         self.font_size = font_size
@@ -74,7 +87,6 @@ class Button(UIElement):
             name = new_name
         self.name = name
         self.locked = False
-        self.visible = True
 
     def draw(self, screen: pg.Surface):
         if self.visible:
@@ -106,6 +118,9 @@ class Button(UIElement):
 
     def unlock(self):
         self.locked = False
+
+    def get_size(self):
+        return self.size
 
 
 class UserParam(UIElement):
@@ -151,10 +166,15 @@ class Slider(UserParam):
         self.max = max
         self.length = length
         self.set_value(value)
+        self.min_image = Text(self.pos, str(self.min), 15)
+        self.max_image = Text(self.pos+pg.Vector2(self.length, 0), str(self.max), 15)
+        self.max_image.set_pos(self.max_image.pos - pg.Vector2(self.max_image.image.get_width(), 0))
         self.hover = False
         self.type = t
 
-    def draw(self, screen: pg.Vector2):
+    def draw(self, screen: pg.Surface) -> None:
+        if not self.visible:
+            return
         pg.draw.rect(screen, (0, 50, 255), pg.Rect(self.pos - pg.Vector2(0, self.BAR_HEIGHT//2),
                                                    pg.Vector2(self.length, self.BAR_HEIGHT)))
         circle_color = (0, 150, 255) if self.hover else (0, 50, 255)
@@ -164,10 +184,15 @@ class Slider(UserParam):
             if self.type == "SliderInt":
                 text = str(self.value)
             else:
-                text = f"{self.value:.2f}"
+                text = f"{self.value:.{self.compute_precision()}f}"
             image = font.render(text, False, (255, 255, 255), (0, 0, 0, 125))
             screen.blit(image, pg.Vector2(self.selectedPosX-image.get_width()/2,
                                           self.pos.y-self.CIRCLE_RADIUS-image.get_height()))
+        self.min_image.draw(screen)
+        self.max_image.draw(screen)
+
+    def compute_precision(self) -> int:
+        return int(max(-log10(self.max - self.min) + 2, 1))
 
     def set_value(self, value: pg.Vector2):
         value = min(max(value, self.min), self.max)
@@ -194,6 +219,8 @@ class Checkbox(UserParam):
         super().__init__(pos, param_name, model_param, value)
 
     def draw(self, screen: pg.Surface):
+        if not self.visible:
+            return
         pg.draw.rect(screen, (0, 0, 0), pg.Rect(self.pos, self.SIZE), width=self.WIDTH)
         if self.value:
             size = pg.Vector2(self.SIZE.x-self.WIDTH, self.SIZE.y-self.WIDTH)
