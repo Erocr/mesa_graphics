@@ -1,3 +1,5 @@
+from typing import Callable
+
 from mesa_graphics.Component import Component
 from mesa_graphics.UIElement import *
 from mesa_graphics.matplotlib_components import create_space_component
@@ -53,17 +55,17 @@ class View:
         """ End the visualization """
         pg.quit()
 
-    def add_UIElement(self, type, *args, **kwargs):
+    def add_UIElement(self, t: type, *args, **kwargs):
         """ This function instantiates a new UIElement.
 
-        :param type: The type of the object we want to create.
+        :param t: The type of the object we want to create.
         :param args: The parameters to pass in the class that we want to instantiate.
         :param kwargs: The parameters to pass in the class that we want to instantiate.
         :return: the object instantiated
 
         For example, if you want to instantiate a Button, call add_UIElement(Button, ...).
         """
-        to_add = type(*args, **kwargs)
+        to_add = t(*args, **kwargs)
         self.ui_elements.append(to_add)
         if isinstance(to_add, Button):
             self.buttons[to_add.name] = to_add
@@ -74,7 +76,7 @@ class View:
                 self.userEntries[to_add.name] = to_add
         return to_add
 
-    def _store_components(self, components):
+    def _store_components(self, components: list[tuple[Callable, int] | Callable]):
         """
         Store the components in a more suitable way, so it will be easier to access.
         It associates to each page the list of components that are in this page.
@@ -110,19 +112,19 @@ class View:
             if i not in self.components:
                 self.components[i] = []
 
-    def _create_ui(self, name, model_params, play_interval, render_interval):
+    def _create_ui(self, name: str, model_params, play_interval: int, render_interval: int) -> None:
         """ Instantiate the UI. """
         self._create_up_bar(name)
         self._create_switch_page_buttons()
         self._create_controls(model_params, play_interval, render_interval)
 
-    def _create_up_bar(self, name):
+    def _create_up_bar(self, name: str) -> None:
         """ Creates the blue bar on top of the screen, and write the name into it. """
         self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 80), (0, 80, 255))
         text = self.add_UIElement(Text, pg.Vector2(80, 0), name)
         text.set_pos(text.pos + pg.Vector2(0, 40 - text.image.get_height()/2))
 
-    def _create_controls(self, model_params, play_interval, render_interval):
+    def _create_controls(self, model_params, play_interval: int, render_interval: int) -> None:
         """
         This function creates the grey column in the left part of the screen, and fills it with the user parameters.
         It creates also the 3 buttons RESET, START/STOP, and STEP
@@ -139,7 +141,7 @@ class View:
         if model_params is not None:
             self._create_model_params_entries(model_params)
 
-    def _create_switch_page_buttons(self):
+    def _create_switch_page_buttons(self) -> None:
         """
         This function creates the buttons on top of the screen which allow to change the page.
         They are aligned.
@@ -166,21 +168,21 @@ class View:
             self.set_min_visible_page(min_visible_page)
         self.buttons[f"PAGE {self.page}"].lock()
 
-    def page_right(self):
+    def page_right(self) -> None:
         """
         The action called when the user click on the PAGE RIGHT button (<)
         Change the interval of page-switching buttons you can see.
         """
         self.set_min_visible_page(min(self.max_page - 8, self.min_visible_page + 6))
 
-    def page_left(self):
+    def page_left(self) -> None:
         """
         The action called when the user click on the PAGE LEFT button (<)
         Change the interval of page-switching buttons you can see.
         """
         self.set_min_visible_page(max(self.min_page, self.min_visible_page - 6))
 
-    def set_min_visible_page(self, min_visible_page):
+    def set_min_visible_page(self, min_visible_page: int) -> None:
         """
         When you have too much pages, the interface will show only 8 page-switching buttons.
         The pages chosen are from min_visible_page to min_visible_page+8.
@@ -204,7 +206,7 @@ class View:
             button.unlock()
         self.buttons[f"PAGE {self.page}"].lock()
 
-    def _create_flow_control_entries(self, play_interval, render_interval):
+    def _create_flow_control_entries(self, play_interval: int, render_interval: int) -> None:
         """
         Create the flow control user parameters. Thus are the two sliders "play interval" and "render interval".
         :param play_interval: The starting value of the play_interval's slider
@@ -235,7 +237,7 @@ class View:
         }
         self._create_user_param("render_interval", render_interval_params, y)
 
-    def _create_model_params_entries(self, model_params):
+    def _create_model_params_entries(self, model_params) -> None:
         """
         Create the tweakable user parameters in the left column, which describe how to re-instantiate the model using
         the RESET button.
@@ -244,7 +246,7 @@ class View:
         for param_name in model_params:
             y = self._create_user_param(param_name, model_params[param_name], y)
 
-    def _create_user_param(self, param_name, model_param, y):
+    def _create_user_param(self, param_name: str, model_param, y: int) -> int:
         """
         Create a user parameter (UserParam). A user parameter is something that the user can tweak.
         :param param_name: The name of the user parameter. It is used as an ID to recognize the user parameter.
@@ -271,7 +273,7 @@ class View:
 
         return y + 30
 
-    def _user_input_params_extraction(self, param, param_name):
+    def _user_input_params_extraction(self, param, param_name: str) -> tuple[type[UserParam], dict]:
         """
         The user can describe a param with a dictionary, but can also describe it with a mesa_user_param.Slider.
 
@@ -301,18 +303,18 @@ class View:
             }
             return Slider, res
 
-    def _compute_args_for_user_params_creation(self, type, x, y):
+    def _compute_args_for_user_params_creation(self, t: type[UserParam], x: int, y: int):
         """
         Build the positional arguments required to instantiate a specific UserParam widget.
-        :param type: Widget class to instantiate.
+        :param t: Widget class to instantiate.
         :return: Tuple of positional arguments compatible with add_UIElement().
         """
-        if type == Slider:
+        if t == Slider:
             return pg.Vector2(x, y), 290 - x
-        elif type == Checkbox:
+        elif t == Checkbox:
             return (pg.Vector2(x, y-Checkbox.SIZE.y/2),)
 
-    def _add_model_param_label(self, label, y):
+    def _add_model_param_label(self, label: str, y: int) -> tuple[int | float, int | float, Text]:
         """
         Helper function that creates the label as Text for a model parameter.
 
@@ -324,7 +326,7 @@ class View:
         for label in labels:
             if text is not None: y += text.image.get_height()
             text = self.add_UIElement(Text, pg.Vector2(10, y), label, font_size=20)
-        return text.image.get_width() + 20, y+text.image.get_height()/2, text
+        return text.image.get_width() + 20, y+text.image.get_height()/2, text  # noqa
 
     def _split_label(self, label: str):
         """ Split the labels so that only max_number_chars characters are in any line. """
@@ -415,7 +417,7 @@ class View:
             self.screen.blit(image, pg.Vector2(0, y))
             y += image.get_height()
 
-    def switch_page(self, new_page):
+    def switch_page(self, new_page: int):
         """
         Switch to another page and update page-selection buttons.
 
@@ -426,7 +428,7 @@ class View:
         self.buttons[f"PAGE {self.page}"].lock()
         self.page_scrolling_y = 0
 
-    def scroll(self, amount):
+    def scroll(self, amount: int):
         """
         Scroll through the components if there are to many components.
         :param amount: how much the user is scrolling.
