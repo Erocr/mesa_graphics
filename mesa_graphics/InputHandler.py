@@ -37,8 +37,8 @@ class InputHandler:
         for p in pg_keys:
             if p[:2] == "K_":
                 self.keys[p[2:]] = pg_keys[p]
-        self.keys["mouse_left"] = -1
-        self.keys["mouse_right"] = -3
+        self.keys["mouse_left"] = self.keys["mouse left"] = -1
+        self.keys["mouse_right"] = self.keys["mouse right"] = -3
 
     def update_counters(self):
         keys = list(self.events.keys())
