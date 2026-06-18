@@ -1,10 +1,12 @@
 from mesa_graphics.InputHandler import InputHandler
 from mesa_graphics.UIElement import Button, Slider, UserParam, Checkbox
 from pygame import K_d
+from mesa_graphics.Model import Model
+from mesa_graphics.View import View
 
 
 class Controller:
-    def __init__(self, model, view):
+    def __init__(self, model: Model, view: View):
         """ Controller class
         /!\\ The user must not use this class, use MesaGraphics instead /!\\
 
@@ -12,7 +14,7 @@ class Controller:
         buttons and behind sliders.
 
         :param model: A Model instance that will be visualized. It is the MesaGraphic's Model, and not
-        the user's on.
+        the user's one.
         :param view: The View class.
         """
         self.inputHandler = InputHandler()
@@ -20,9 +22,6 @@ class Controller:
         self.view = view
         self.sliderController = UserParamController(model, view, self.inputHandler)
         self.buttonsController = ButtonsController(model, view, self.inputHandler, self.sliderController)
-
-    def update_counters(self):
-        self.inputHandler.update_counters()
 
     def update(self):
         """
@@ -36,13 +35,25 @@ class Controller:
             self.model.debug = not self.model.debug
         self.view.scroll(-self.inputHandler.scroll_direction.y)
 
+    def update_counters(self):
+        """
+        Every key has a counter, counting how many frame was the last modification. This function update this counters.
+        """
+        self.inputHandler.update_counters()
+
     def _update_ui(self):
         """ It updates all the UI, reacting to user's inputs: buttons and sliders. """
-        for ui in self.view.ui_elements:
-            if isinstance(ui, Button):
-                self.buttonsController.update(ui)
-            if isinstance(ui, UserParam):
-                self.sliderController.update(ui)
+        if self.view.ui_focused is not None:
+            self._update_single_ui(self.view.ui_focused, True)
+        else:
+            for ui in self.view.ui_elements:
+                self._update_single_ui(ui)
+
+    def _update_single_ui(self, ui, focused=False):
+        if isinstance(ui, Button):
+            self.buttonsController.update(ui)
+        if isinstance(ui, UserParam):
+            self.sliderController.update(ui, focused)
 
     @property
     def is_terminated(self):
@@ -51,17 +62,33 @@ class Controller:
 
 
 class UserParamController:
-    def __init__(self, model, view, inputHandler):
+    def __init__(self, model: Model, view: View, inputHandler: InputHandler):
+        """
+        This class is responsible to update the user's params, according to the user's inputs.
+        The user's params are the sliders, and buttons in the column, in the left part of the screen.
+        """
         self.model = model
         self.view = view
         self.inputHandler = inputHandler
 
-    def update(self, userParam):
+    def update(self, userParam: UserParam, focused=False):
+        """
+        Updates a userParameter. Check if it must be changed, and if so, it calls the method in the userParam to make
+        the change.
+        :param userParam: The userParam to update
+        :return:
+        """
         mousePos = self.inputHandler.mouse_pos
         if isinstance(userParam, Slider):
             userParam.hover = (userParam.pos.x <= mousePos.x <= userParam.pos.x + userParam.length and
                                userParam.pos.y - 5 <= mousePos.y <= userParam.pos.y + 5)
+            if focused:
+                userParam.hover = True
+                if not self.inputHandler.holding("mouse_left"):
+                    userParam.hover = False
+                    self.view.ui_focused = None
             if userParam.hover and self.inputHandler.holding("mouse_left"):
+                self.view.ui_focused = userParam
                 pos = (mousePos.x - userParam.pos.x) / userParam.length
                 value = userParam.min + pos * (userParam.max - userParam.min)
                 d, m = divmod(value, userParam.step)
@@ -75,13 +102,15 @@ class UserParamController:
                      userParam.pos.y - 5 <= mousePos.y <= userParam.pos.y + Checkbox.SIZE.y)
             if hover and self.inputHandler.pressed("mouse_left"):
                 userParam.switch()
-            value = userParam.value
         else:
             raise NotImplementedError()
         if not userParam.model_param:
             self.model.notify_user_entries_change(userParam.name, userParam.value)
 
     def get_model_params(self):
+        """
+        Get the parameters to put in the user's Model we want to re-instantiate.
+        """
         res = {}
         for param in self.view.userTweakableModelParams:
             res[param] = self.view.userTweakableModelParams[param].value
@@ -89,7 +118,7 @@ class UserParamController:
 
 
 class ButtonsController:
-    def __init__(self, model, view, inputHandler, sliderController):
+    def __init__(self, model: Model, view: View, inputHandler: InputHandler, sliderController: UserParamController):
         """
         This class handles the logic behind the buttons.
 
@@ -126,9 +155,14 @@ class ButtonsController:
             if self.model.is_playing:
                 start_or_stop_action()
 
+        def toggle_or_untoggle_control_bar():
+            self.view.toggle_untoggle_control_bar()
+            self.view.buttons["remove control bar"].modify_text(("SHOW", "HIDE")[self.view.show_control_bar])
+
         self.button_actions["STEP"] = step_action
         self.button_actions["START/STOP"] = start_or_stop_action
         self.button_actions["RESET"] = reset_action
+        self.button_actions["remove control bar"] = toggle_or_untoggle_control_bar
 
     def _initialize_switch_page_buttons(self):
         """ Initialize the actions of the switching page buttons """
@@ -142,7 +176,7 @@ class ButtonsController:
         self.button_actions["PAGE RIGHT"] = lambda: self.view.page_right()
         self.button_actions["PAGE LEFT"] = lambda: self.view.page_left()
 
-    def update(self, button):
+    def update(self, button: Button):
         """
         This is the main function. It is called once per frame. It watches if the mouse hovers a button,
         and apply the action associated to the button if user clicks on it.

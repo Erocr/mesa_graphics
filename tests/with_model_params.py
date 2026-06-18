@@ -4,8 +4,7 @@ from mesa.visualization.components import AgentPortrayalStyle
 from mesa.visualization.space_renderer import SpaceRenderer
 import mesa.visualization.user_param as mesa_user_param
 
-from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import make_mpl_plot_component
+from mesa_graphics import make_mpl_plot_component, MesaGraphics
 
 
 class MoneyAgent(CellAgent):
@@ -73,7 +72,7 @@ model_params = {
         "max": 40,
         "step": 1,
     },
-    "seed": mesa_user_param.Slider("seed:", 1, 0, 100, 0.1),
+    "seed": mesa_user_param.Slider("seed:", 1, 0, 1, 0.01),
     "capacity": 50,
     "boolean": {"type": "Checkbox"}
 }
