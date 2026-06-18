@@ -39,6 +39,22 @@ class Rectangle(UIElement):
             pg.draw.rect(screen, self.color, pg.Rect(self.pos, self.size))
 
 
+class Shadow(UIElement):
+    def __init__(self, p1, p2, direction, length, initial_color, final_color):
+        super().__init__(p1)
+        self.p1 = p1
+        self.p2 = p2
+        self.dir = direction.normalize()
+        self.length = length
+        self.initial_color = pg.Vector3(initial_color)
+        self.final_color = pg.Vector3(final_color)
+
+    def draw(self, screen):
+        for i in range(self.length):
+            color = self.initial_color + (self.final_color - self.initial_color) * i / self.length
+            pg.draw.line(screen, color, self.p1 + i * self.dir, self.p2 + i * self.dir)
+
+
 class Text(UIElement):
     def __init__(self, pos: pg.Vector2, text: str, font_size=32):
         """
@@ -60,7 +76,6 @@ class Text(UIElement):
 
 class Button(UIElement):
     alreadyUsed = set()
-
 
     def __init__(self, pos, text: str, font_size=32, name=None, custom_draw: Callable = None):
         """

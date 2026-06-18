@@ -139,12 +139,15 @@ class View:
         """
         rect = self.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), (220, 220, 220))
         self.control_bar_ui_elements.append(rect)
+        l = 5
+        shadow = self.add_UIElement(Shadow, pg.Vector2(300-l, 37), pg.Vector2(300-l, 740), pg.Vector2(1, 0), l, (0, 0, 0), (255, 255, 255))
+        self.control_bar_ui_elements.append(shadow)
         x = 1050
         texts = ("RESET", "START", "STEP")
         names = ("RESET", "START/STOP", "STEP")
 
         def custom_draw(b, screen):
-            bg_color = (200, 200, 200) if b.hover else (100, 100, 100)
+            bg_color = (180, 180, 180) if b.hover else (100, 100, 100)
             pos = b.pos+pg.Vector2(5, 5)
             size = pg.Vector2(55, 27)
             pg.draw.rect(screen, bg_color, pg.Rect(pos, size), border_radius=10)
@@ -353,7 +356,7 @@ class View:
         :return: Tuple of positional arguments compatible with add_UIElement().
         """
         if t == Slider:
-            return pg.Vector2(x, y), 290 - x
+            return pg.Vector2(x, y), 280 - x
         elif t == Checkbox:
             return (pg.Vector2(x, y - Checkbox.SIZE.y / 2),)
 
