@@ -1,3 +1,5 @@
+from typing import Callable
+
 import pygame as pg
 
 
@@ -47,7 +49,7 @@ class Text(UIElement):
 class Button(UIElement):
     alreadyUsed = set()
 
-    def __init__(self, pos, text: str, font_size=32, name=None):
+    def __init__(self, pos, text: str, font_size=32, name=None, custom_draw: Callable = None):
         """
         The logic for drawing a clickable button.
 
@@ -55,6 +57,7 @@ class Button(UIElement):
         :param text: The string shown in the button.
         :param font_size: The font size of the text in the button.
         :param name: An identification. It is used to associate actions in the Controller.
+        :param custom_draw: A function that take the button and the screen, and draw the button on the screen.
         If no name is given, the name is the text. If the text is already used, it will put a number
         right after the text.
         """
@@ -62,6 +65,7 @@ class Button(UIElement):
         self.font_size = font_size
         self.text = Text(pos+pg.Vector2(10, 10), text, font_size)
         self.size = pg.Vector2(self.text.image.get_size()) + pg.Vector2(20, 20)
+        self.custom_draw = custom_draw
         self.hover = False
         if name is None:
             name = text
@@ -78,11 +82,14 @@ class Button(UIElement):
 
     def draw(self, screen):
         if self.visible:
-            bg_color = (200, 200, 200) if self.hover else (180, 180, 180)
-            if self.locked:
-                bg_color = (0, 80, 255)
-            pg.draw.rect(screen, bg_color, pg.Rect(self.pos, self.size))
-            self.text.draw(screen)
+            if self.custom_draw:
+                self.custom_draw(self, screen)
+            else:
+                bg_color = (200, 200, 200) if self.hover else (180, 180, 180)
+                if self.locked:
+                    bg_color = (0, 80, 255)
+                pg.draw.rect(screen, bg_color, pg.Rect(self.pos, self.size))
+                self.text.draw(screen)
 
     def modify_text(self, new_text, font_size=None):
         """

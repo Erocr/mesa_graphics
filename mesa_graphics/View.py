@@ -108,23 +108,23 @@ class View:
 
     def _create_up_bar(self, name):
         """ Creates the blue bar on top of the screen, and write the name into it. """
-        self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 80), (0, 80, 255))
-        text = self.add_UIElement(Text, pg.Vector2(80, 0), name)
-        text.set_pos(text.pos + pg.Vector2(0, 40 - text.image.get_height()/2))
+        self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), (150, 150, 150))
+        text = self.add_UIElement(Text, pg.Vector2(0, 0), name)
+        text.set_pos(pg.Vector2(40, 20 - text.image.get_height()/2))
 
     def _create_controls(self, model_params, play_interval, render_interval):
         """
         This function creates the grey column in the left part of the screen, and fills it.
         It creates also the 3 buttons RESET, START/STOP, and STEP
         """
-        self.add_UIElement(Rectangle, pg.Vector2(0, 80), pg.Vector2(300, 660), (220, 220, 220))
+        self.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), (220, 220, 220))
         x = 1050
         texts = ("RESET", "START", "STEP")
         names = ("RESET", "START/STOP", "STEP")
 
         for i in range(3):
-            button = self.add_UIElement(Button, pg.Vector2(x, 22), texts[i], font_size=15, name=names[i])
-            x += button.text.image.get_width() + 30
+            button = self.add_UIElement(Button, pg.Vector2(x, 0), texts[i], font_size=15, name=names[i])
+            x += button.size.x + 1
         self._create_flow_control_entries(play_interval, render_interval)
         if model_params is not None:
             self._create_model_params_entries(model_params)
@@ -134,14 +134,34 @@ class View:
         This function creates the buttons on top of the components part of the screen which
         allow to change the page. They are aligned
         """
+        rectangle = self.add_UIElement(Rectangle, pg.Vector2(300, 0), pg.Vector2(1280-300, 40), (150, 150, 150))
         buttons = []
+
+        def custom_page_draw(button, screen):
+            if button.locked:
+                pg.draw.rect(screen, (255, 255, 255), pg.Rect(button.pos, button.size),
+                             border_top_left_radius=10, border_top_right_radius=10)
+                pg.draw.rect(screen, (255, 255, 255), pg.Rect(button.pos+pg.Vector2(-10, button.size.y-10),
+                                                              pg.Vector2(10, 10)))
+                pg.draw.rect(screen, (255, 255, 255),
+                             pg.Rect(button.pos + pg.Vector2(button.size.x, button.size.y - 10), pg.Vector2(10, 10)))
+                pg.draw.circle(screen, (150, 150, 150), button.pos+pg.Vector2(-10, button.size.y-10), 10,
+                               draw_bottom_right=True)
+                pg.draw.circle(screen, (150, 150, 150),
+                               button.pos + pg.Vector2(button.size.x+10, button.size.y - 10), 10,
+                               draw_bottom_left=True)
+            button.text.draw(screen)
+
         for i in range(self.min_page, self.max_page+1):
-            buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", font_size=15))
-        size_x = sum([button.size.x for button in buttons]) + 10 * (len(buttons) - 1)
+            buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", font_size=15,
+                                              custom_draw=custom_page_draw))
+        size_x = sum([button.size.x for button in buttons])
         x = (1280 + 300) // 2 - size_x // 2
         for button in buttons:
-            button.set_pos(pg.Vector2(x, 90))
-            x += button.size.x + 10
+            button.set_pos(pg.Vector2(x, 0))
+            x += button.size.x
+
+        rectangle.size.y = buttons[0].size.y
 
         page_left = self.add_UIElement(Button, pg.Vector2(0, 0), "<", font_size=15, name="PAGE LEFT")
         page_right = self.add_UIElement(Button, pg.Vector2(0, 0), ">", font_size=15, name="PAGE RIGHT")
