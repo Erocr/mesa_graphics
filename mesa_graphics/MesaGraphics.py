@@ -1,6 +1,6 @@
-from mesa_graphics.View import View
-from mesa_graphics.Controller import Controller
-from mesa_graphics.Model import Model
+from .View import View
+from .Controller import Controller
+from .Model import Model
 from time import time, sleep
 import threading
 

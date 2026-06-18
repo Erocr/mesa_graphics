@@ -1,8 +1,8 @@
-from mesa_graphics.InputHandler import InputHandler
-from mesa_graphics.UIElement import Button, Slider, UserParam, Checkbox
+from .InputHandler import InputHandler
+from .UIElement import Button, Slider, UserParam, Checkbox
 from pygame import K_d
-from mesa_graphics.Model import Model
-from mesa_graphics.View import View
+from .Model import Model
+from .View import View
 
 
 class Controller:

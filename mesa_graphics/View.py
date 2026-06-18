@@ -1,8 +1,8 @@
 from typing import Callable
 
-from mesa_graphics.Component import Component
-from mesa_graphics.UIElement import *
-from mesa_graphics.matplotlib_components import create_space_component
+from .Component import Component
+from .UIElement import *
+from .matplotlib_components import create_space_component
 from time import time
 import mesa.visualization.user_param as mesa_user_param
 
