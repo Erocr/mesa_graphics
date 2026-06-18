@@ -33,9 +33,9 @@ class View:
         self.model = model
         self.max_page_scrolling_y = 0
         self.page_scrolling_y = 0
-        self.page = 0
-        self.min_page = self.max_page = 0
-        self.min_visible_page = 0
+        self.page = 0  # Showed page
+        self.min_page = self.max_page = 0  # The minimal page and maximal page existing
+        self.min_visible_page = 0  # The minimal switch-page button showed
         if components is None:
             self.components = {0: []}
         else:
@@ -46,8 +46,9 @@ class View:
         self.buttons = {}  # Provide fast and easy access to buttons
         self.userTweakableModelParams = {}  # Provide fast and easy access to user parameters
         self.userEntries = {}
-        self.ui_elements = []
-        self.control_bar_ui_elements = []
+        self.ui_elements = []  # List of UI
+        self.control_bar_ui_elements = []  # List of UI in the control bar
+        self.ui_focused = None  # UI element focused, the other are not interactive while one is focused
         if name is None:
             name = type(self.model).__name__
         self._create_ui(name, model_params, play_interval, render_interval)

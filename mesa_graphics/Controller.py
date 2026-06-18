@@ -43,11 +43,17 @@ class Controller:
 
     def _update_ui(self):
         """ It updates all the UI, reacting to user's inputs: buttons and sliders. """
-        for ui in self.view.ui_elements:
-            if isinstance(ui, Button):
-                self.buttonsController.update(ui)
-            if isinstance(ui, UserParam):
-                self.sliderController.update(ui)
+        if self.view.ui_focused is not None:
+            self._update_single_ui(self.view.ui_focused, True)
+        else:
+            for ui in self.view.ui_elements:
+                self._update_single_ui(ui)
+
+    def _update_single_ui(self, ui, focused=False):
+        if isinstance(ui, Button):
+            self.buttonsController.update(ui)
+        if isinstance(ui, UserParam):
+            self.sliderController.update(ui, focused)
 
     @property
     def is_terminated(self):
@@ -65,7 +71,7 @@ class UserParamController:
         self.view = view
         self.inputHandler = inputHandler
 
-    def update(self, userParam: UserParam):
+    def update(self, userParam: UserParam, focused=False):
         """
         Updates a userParameter. Check if it must be changed, and if so, it calls the method in the userParam to make
         the change.
@@ -76,7 +82,13 @@ class UserParamController:
         if isinstance(userParam, Slider):
             userParam.hover = (userParam.pos.x <= mousePos.x <= userParam.pos.x + userParam.length and
                                userParam.pos.y - 5 <= mousePos.y <= userParam.pos.y + 5)
+            if focused:
+                userParam.hover = True
+                if not self.inputHandler.holding("mouse_left"):
+                    userParam.hover = False
+                    self.view.ui_focused = None
             if userParam.hover and self.inputHandler.holding("mouse_left"):
+                self.view.ui_focused = userParam
                 pos = (mousePos.x - userParam.pos.x) / userParam.length
                 value = userParam.min + pos * (userParam.max - userParam.min)
                 d, m = divmod(value, userParam.step)
@@ -90,7 +102,6 @@ class UserParamController:
                      userParam.pos.y - 5 <= mousePos.y <= userParam.pos.y + Checkbox.SIZE.y)
             if hover and self.inputHandler.pressed("mouse_left"):
                 userParam.switch()
-            value = userParam.value
         else:
             raise NotImplementedError()
         if not userParam.model_param:
