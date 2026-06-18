@@ -111,7 +111,7 @@ class View:
         for page in self.components:
             if page < self.min_page: self.min_page = page
             if page > self.max_page: self.max_page = page
-        for i in range(self.min_page+1, self.max_page):
+        for i in range(self.min_page + 1, self.max_page):
             if i not in self.components:
                 self.components[i] = []
 
@@ -125,12 +125,12 @@ class View:
         """ Creates the blue bar on top of the screen, and write the name into it. """
         self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), (150, 150, 150))
         text = self.add_UIElement(Text, pg.Vector2(0, 0), name)
-        text.set_pos(pg.Vector2(40, 20 - text.image.get_height()/2))
+        text.set_pos(pg.Vector2(40, 20 - text.image.get_height() / 2))
         self._create_remove_controls_button()
 
     def _create_remove_controls_button(self) -> None:
         button = self.add_UIElement(Button, pg.Vector2(0, 0), "HIDE", font_size=20, name="remove control bar")
-        button.set_pos(pg.Vector2(40, 40) - pg.Vector2(*button.get_size()) * 0.5)
+        button.set_pos(pg.Vector2(20, 20) - pg.Vector2(*button.get_size()) * 0.5)
 
     def _create_controls(self, model_params, play_interval: int, render_interval: int) -> None:
         """
@@ -143,8 +143,17 @@ class View:
         texts = ("RESET", "START", "STEP")
         names = ("RESET", "START/STOP", "STEP")
 
+        def custom_draw(b, screen):
+            bg_color = (200, 200, 200) if b.hover else (100, 100, 100)
+            pos = b.pos+pg.Vector2(5, 5)
+            size = pg.Vector2(55, 27)
+            pg.draw.rect(screen, bg_color, pg.Rect(pos, size), border_radius=10)
+            b.text.pos = pos + size / 2 - pg.Vector2(*b.text.image.get_size()) / 2
+            b.text.draw(screen)
+
         for i in range(3):
-            button = self.add_UIElement(Button, pg.Vector2(x, 0), texts[i], font_size=15, name=names[i])
+            button = self.add_UIElement(Button, pg.Vector2(x, 0), texts[i], font_size=15, name=names[i],
+                                        custom_draw=custom_draw)
             x += button.size.x + 1
         self._create_flow_control_entries(play_interval, render_interval)
         if model_params is not None:
@@ -156,25 +165,30 @@ class View:
         They are aligned.
         If there are too many pages, it shows buttons that allow to change the page-switching buttons shown.
         """
-        rectangle = self.add_UIElement(Rectangle, pg.Vector2(300, 0), pg.Vector2(1280-300, 40), (150, 150, 150))
+        rectangle = self.add_UIElement(Rectangle, pg.Vector2(300, 0), pg.Vector2(1280 - 300, 40), (150, 150, 150))
         buttons = []
 
         def custom_page_draw(button, screen):
             if button.locked:
                 pg.draw.rect(screen, (255, 255, 255), pg.Rect(button.pos, button.size),
                              border_top_left_radius=10, border_top_right_radius=10)
-                pg.draw.rect(screen, (255, 255, 255), pg.Rect(button.pos+pg.Vector2(-10, button.size.y-10),
+                pg.draw.rect(screen, (255, 255, 255), pg.Rect(button.pos + pg.Vector2(-10, button.size.y - 10),
                                                               pg.Vector2(10, 10)))
                 pg.draw.rect(screen, (255, 255, 255),
                              pg.Rect(button.pos + pg.Vector2(button.size.x, button.size.y - 10), pg.Vector2(10, 10)))
-                pg.draw.circle(screen, (150, 150, 150), button.pos+pg.Vector2(-10, button.size.y-10), 10,
+                pg.draw.circle(screen, (150, 150, 150), button.pos + pg.Vector2(-10, button.size.y - 10), 10,
                                draw_bottom_right=True)
                 pg.draw.circle(screen, (150, 150, 150),
-                               button.pos + pg.Vector2(button.size.x+10, button.size.y - 10), 10,
+                               button.pos + pg.Vector2(button.size.x + 10, button.size.y - 10), 10,
                                draw_bottom_left=True)
+            elif button.hover:
+                pg.draw.rect(screen, (180, 180, 180),
+                             pg.Rect(button.pos + pg.Vector2(5, 5),
+                                     button.size - pg.Vector2(10, 10)),
+                             border_radius=10)
             button.text.draw(screen)
 
-        for i in range(self.min_page, self.max_page+1):
+        for i in range(self.min_page, self.max_page + 1):
             buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", font_size=15,
                                               custom_draw=custom_page_draw))
         size_x = sum([button.size.x for button in buttons])
@@ -192,8 +206,8 @@ class View:
         page_right.lock()
         page_left.lock()
 
-        if self.max_page+1 - self.min_page > 9:
-            min_visible_page = min(max(self.min_page, -4), self.max_page-8)
+        if self.max_page + 1 - self.min_page > 9:
+            min_visible_page = min(max(self.min_page, -4), self.max_page - 8)
             self.set_min_visible_page(min_visible_page)
         self.buttons[f"PAGE {self.page}"].lock()
 
@@ -224,7 +238,7 @@ class View:
                 button.visible = False
                 button.lock()
         visible_buttons = [self.buttons["PAGE LEFT"]] + \
-                          [self.buttons[f"PAGE {i}"] for i in range(self.min_visible_page, self.min_visible_page+9)] + \
+                          [self.buttons[f"PAGE {i}"] for i in range(self.min_visible_page, self.min_visible_page + 9)] + \
                           [self.buttons["PAGE RIGHT"]]
         size_x = sum([button.size.x for button in visible_buttons]) + 10 * (len(visible_buttons) - 1)
         x = (1280 + 300) // 2 - size_x // 2
@@ -341,7 +355,7 @@ class View:
         if t == Slider:
             return pg.Vector2(x, y), 290 - x
         elif t == Checkbox:
-            return (pg.Vector2(x, y-Checkbox.SIZE.y/2),)
+            return (pg.Vector2(x, y - Checkbox.SIZE.y / 2),)
 
     def _add_model_param_label(self, label: str, y: int) -> tuple[int | float, int | float, Text]:
         """
@@ -356,7 +370,7 @@ class View:
             if text is not None: y += text.image.get_height()
             text = self.add_UIElement(Text, pg.Vector2(10, y), label, font_size=20)
             self.control_bar_ui_elements.append(text)
-        return text.image.get_width() + 20, y+text.image.get_height()/2, text  # noqa
+        return text.image.get_width() + 20, y + text.image.get_height() / 2, text  # noqa
 
     def _split_label(self, label: str):
         """ Split the labels so that only max_number_chars characters are in any line. """
@@ -366,7 +380,7 @@ class View:
         i = -1
         last_chosen_i = 0
         current_size = 0
-        while i+1 < len(words):
+        while i + 1 < len(words):
             i += 1
             current_size += len(words[i]) + 1
             if current_size > max_number_chars:
@@ -384,7 +398,7 @@ class View:
                     current_size = len(words[i])
                     last_chosen_i = i
         r = ""
-        for j in range(last_chosen_i, i+1):
+        for j in range(last_chosen_i, i + 1):
             r += words[j] + " "
         res.append(r[:-1])
         return res
@@ -478,4 +492,3 @@ class View:
             self.page_scrolling_y = 0
         elif self.page_scrolling_y >= self.max_page_scrolling_y:
             self.page_scrolling_y = self.max_page_scrolling_y
-
