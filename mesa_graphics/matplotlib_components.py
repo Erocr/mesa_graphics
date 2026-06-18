@@ -10,17 +10,15 @@ from mesa_graphics.backend_integration import FigureMatplotlib
 
 
 def make_mpl_plot_component(
-    measure: str | dict[str, str] | list[str] | tuple[str],
-    post_process: Callable | None = None,
-    page: int = 0
+        measure: str | dict[str, str] | list[str] | tuple[str],
+        post_process: Callable | None = None,
+        page: int = 0
 ):
-    """Create a plotting function for a specified measure.
+    """Create a plotting function for a specified measure using matplotlib backend.
 
-    Args:
-        measure (str | dict[str, str] | list[str] | tuple[str]): Measure(s) to plot.
-        post_process: a user-specified callable to do post-processing called with the Axes instance.
-        page: Page number where the plot should be displayed.
-        save_format: save format of figure in solara backend
+    :param measure: measure (str | dict[str, str] | list[str] | tuple[str]): Measure(s) to plot.
+    :param post_process: a user-specified callable to do post-processing called with the Axes instance.
+    :param page: Page number where the plot should be displayed.
 
     Returns:
         (function, page): A tuple of a function that creates a PlotMatplotlib component and a page number.
@@ -33,18 +31,15 @@ def make_mpl_plot_component(
 
 
 def PlotMatplotlib(
-    model,
-    measure,
-    post_process: Callable | None = None
+        model,
+        measure,
+        post_process: Callable | None = None
 ):
     """Create a Matplotlib-based plot for a measure or measures.
 
-    Args:
-        model (mesa.Model): The model instance.
-        measure (str | dict[str, str] | list[str] | tuple[str]): Measure(s) to plot.
-        dependencies (list[any] | None): Optional dependencies for the plot.
-        post_process: a user-specified callable to do post-processing called with the Axes instance.
-        save_format: format used for saving the figure.
+    :param model: (mesa.Model) The model instance.
+    :param measure: (str | dict[str, str] | list[str] | tuple[str]) Measure(s) to plot.
+    :param post_process: a user-specified callable to do post-processing called with the Axes instance.
 
     Returns:
         solara.FigureMatplotlib: A component for rendering the plot.
@@ -74,7 +69,7 @@ def PlotMatplotlib(
 
 
 def create_space_component(renderer):
-    """Create a space visualization component for the given renderer."""
+    """Create a space visualization component for the given renderer. Must not be used by user. """
 
     def SpaceVisualizationComponent(model):
         """Component that renders the model's space using the provided renderer."""
@@ -84,17 +79,14 @@ def create_space_component(renderer):
 
 
 def SpaceRendererComponent(
-    model,
-    renderer
+        model,
+        renderer
 ):
     """Render the space of a model using a SpaceRenderer.
 
-    /!\\ For now, it uses only the matplotlib backend /!\\
 
-    Args:
-        model (Model): The model whose space is to be rendered.
-        renderer: A SpaceRenderer instance to render the model's space.
-        dependencies (list[any], optional): List of dependencies for the component.
+    :param model: (Model) The model whose space is to be rendered.
+    :param renderer: A SpaceRenderer instance to render the model's space.
     """
     # update renderer's space according to the model's space/grid
     renderer.space = getattr(model, "grid", getattr(model, "space", None))
@@ -175,10 +167,6 @@ def SpaceRendererComponent(
 make_plot_component = make_mpl_plot_component
 
 
-
-
-
-
 def make_space_matplotlib(*args, **kwargs):  # noqa: D103
     warnings.warn(
         "make_space_matplotlib has been renamed to make_mpl_space_component",
@@ -189,17 +177,16 @@ def make_space_matplotlib(*args, **kwargs):  # noqa: D103
 
 
 def make_mpl_space_component(
-    agent_portrayal: Callable | None = None,
-    propertylayer_portrayal: dict | None = None,
-    post_process: Callable | None = None,
-    **space_drawing_kwargs):
+        agent_portrayal: Callable | None = None,
+        propertylayer_portrayal: dict | None = None,
+        post_process: Callable | None = None,
+        **space_drawing_kwargs):
     """Create a Matplotlib-based space visualization component.
 
-    Args:
-        agent_portrayal: Function to portray agents.
-        propertylayer_portrayal: Dictionary of PropertyLayer portrayal specifications
-        post_process : a callable that will be called with the Axes instance. Allows for fine tuning plots (e.g., control ticks)
-        space_drawing_kwargs : additional keyword arguments to be passed on to the underlying space drawer function. See
+    :param agent_portrayal: Function to portray agents.
+    :param propertylayer_portrayal: Dictionary of PropertyLayer portrayal specifications
+    :param post_process: a callable that will be called with the Axes instance. Allows for fine tuning plots (e.g., control ticks)
+    :param space_drawing_kwargs: additional keyword arguments to be passed on to the underlying space drawer function. See
                                the functions for drawing the various spaces for further details.
 
     ``agent_portrayal`` is called with an agent and should return a dict. Valid fields in this dict are "color",
@@ -209,7 +196,6 @@ def make_mpl_space_component(
         function: A function that creates a SpaceMatplotlib component
     """
     if agent_portrayal is None:
-
         def agent_portrayal(a):
             return {}
 
@@ -226,11 +212,11 @@ def make_mpl_space_component(
 
 
 def SpaceMatplotlib(
-    model,
-    agent_portrayal,
-    propertylayer_portrayal,
-    post_process: Callable | None = None,
-    **space_drawing_kwargs,
+        model,
+        agent_portrayal,
+        propertylayer_portrayal,
+        post_process: Callable | None = None,
+        **space_drawing_kwargs,
 ):
     """Create a Matplotlib-based space visualization component."""
 

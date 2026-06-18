@@ -19,11 +19,11 @@ class Key:
 
 
 class InputHandler:
-    """
-    This class simplify the pygame inputs and make them more accessible via preprocessing them
-    You can access inputs via the methods pressed(), holding() and released()
-    """
     def __init__(self):
+        """
+        This class simplify the pygame inputs and make them more accessible via preprocessing them
+        You can access inputs via the methods pressed(), holding() and released()
+        """
         self.keys = {}
         self._pg_events()
         self.events = {}
@@ -37,8 +37,8 @@ class InputHandler:
         for p in pg_keys:
             if p[:2] == "K_":
                 self.keys[p[2:]] = pg_keys[p]
-        self.keys["mouse_left"] = -1
-        self.keys["mouse_right"] = -3
+        self.keys["mouse_left"] = self.keys["mouse left"] = -1
+        self.keys["mouse_right"] = self.keys["mouse right"] = -3
 
     def update_counters(self):
         keys = list(self.events.keys())
@@ -70,7 +70,7 @@ class InputHandler:
             if evt.type == pg.MOUSEWHEEL:
                 self._scroll_direction = pg.Vector2(evt.x, evt.y)
 
-    def key_id(self, key):
+    def key_id(self, key: int | str):
         """
         This function generalizes the pygame keys. Moreover, it gives a better error if it doesn't exist.
         :param key: the pygame key or the string describing the key.
@@ -85,17 +85,17 @@ class InputHandler:
         else:
             raise Exception(f"key {key} does not exist")
 
-    def pressed(self, key):
+    def pressed(self, key: int | str):
         """ Returns True only during the frame in which the user presse the key. """
         key = self.key_id(key)
         return key in self.events and self.events[key].pressed
 
-    def holding(self, key):
+    def holding(self, key: int | str):
         """ Returns True while the user is pressing the key. """
         key = self.key_id(key)
         return key in self.events and self.events[key].holding
 
-    def released(self, key):
+    def released(self, key: int | str):
         """ Returns True only during the frame in which the user release the key. """
         key = self.key_id(key)
         return key in self.events and self.events[key].released
@@ -107,4 +107,5 @@ class InputHandler:
 
     @property
     def scroll_direction(self):
+        """ Get the vector representing how much the user is scrolling """
         return self._scroll_direction

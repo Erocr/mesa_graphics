@@ -4,7 +4,7 @@ import pygame as pg
 
 def FigureMatplotlib(fig):
     """ Transforms a matplotlib figure into a pygame.Surface. It has the same name of the Solara version to
-    help switching between the two visualizations. """
+    help switching between the two visualizations. Be aware that you must use the result of this function. """
     surf = mpl_plot_to_pg_surf(fig)
     return surf
 

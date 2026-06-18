@@ -49,7 +49,7 @@ SliderController --> InputHandler
 /' ########## Model part ########## '/
 
 class Model
-Model : <color:blue> Model de mesa
+Model : <color:blue> Model de l'utilisateur
 
 /' ##########  View part ########## '/
 
