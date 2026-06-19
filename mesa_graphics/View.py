@@ -50,6 +50,7 @@ class View:
         self.ui_elements = []  # List of UI
         self.control_bar_ui_elements = []  # List of UI in the control bar
         self.ui_focused = None  # UI element focused, the other are not interactive while one is focused
+        self.up_bar_shadow = None  # The up bar shadow have to be changed when you toggle / untoggle the left bar
         if name is None:
             name = type(self.model).__name__
         self._create_ui(name, model_params, play_interval, render_interval)
@@ -125,16 +126,29 @@ class View:
     def _create_up_bar(self, name: str) -> None:
         """ Creates the blue bar on top of the screen, and write the name into it. """
         self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), (150, 150, 150))
-        self.add_UIElement(Shadow, pg.Vector2(295, 37), pg.Vector2(1280, 37), pg.Vector2(0, 1), 5,
-                           curved_border_1=True)
+        self.up_bar_shadow = self.add_UIElement(Shadow, pg.Vector2(295, 37), pg.Vector2(1280, 37),
+                                                pg.Vector2(0, 1), 5, curved_border_1=True)
         text = self.add_UIElement(Text, pg.Vector2(0, 0), name)
         text.set_pos(pg.Vector2(40, 20 - text.image.get_height() / 2))
         self._create_remove_controls_button()
         self._create_reset_start_step_buttons()
 
     def _create_remove_controls_button(self) -> None:
-        button = self.add_UIElement(Button, pg.Vector2(0, 0), "HIDE", font_size=20, name="remove control bar")
-        button.set_pos(pg.Vector2(20, 20) - pg.Vector2(*button.get_size()) * 0.5)
+
+        def custom_draw(button, screen):
+            bg_color = (180, 180, 180) if button.hover else (150, 150, 150)
+            pg.draw.rect(screen, bg_color, pg.Rect(button.pos, button.size), border_radius=10)
+
+            offset = pg.Vector2(5, 5)
+            pg.draw.rect(screen, (100, 100, 100), pg.Rect(button.pos+offset, button.size-2*offset),
+                         border_radius=5, width=3)
+            pg.draw.line(screen, (100, 100, 100), button.pos+offset+pg.Vector2(8, 0),
+                         button.pos+offset+pg.Vector2(8, button.size.y-2*offset.y-3), width=3)
+
+        button = self.add_UIElement(Button, pg.Vector2(0, 0), "", font_size=20, name="remove control bar",
+                                    custom_draw=custom_draw)
+        button.size = pg.Vector2(33, 33)
+        button.set_pos(pg.Vector2(2, 2))
 
     def _create_controls(self, model_params, play_interval: int, render_interval: int) -> None:
         """
@@ -396,7 +410,8 @@ class View:
         self.draw_components()
         self._page_scroll_clamp()
         for ui in self.ui_elements:
-            ui.draw(self.screen)
+            if ui.visible:
+                ui.draw(self.screen)
         if self.model.debug: self.draw_debug()
         self.model.debug_infos["viewer_time"] = time() - start
         pg.display.flip()
@@ -451,6 +466,8 @@ class View:
 
     def toggle_untoggle_control_bar(self):
         self.show_control_bar = not self.show_control_bar
+        self.up_bar_shadow.p1 = pg.Vector2(295*self.show_control_bar, 37)
+        self.up_bar_shadow.curved_border_1 = self.show_control_bar
         for elt in self.control_bar_ui_elements:
             elt.visible = self.show_control_bar
 

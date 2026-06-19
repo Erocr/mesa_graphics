@@ -35,8 +35,7 @@ class Rectangle(UIElement):
         self.color = color
 
     def draw(self, screen: pg.Surface):
-        if self.visible:
-            pg.draw.rect(screen, self.color, pg.Rect(self.pos, self.size))
+        pg.draw.rect(screen, self.color, pg.Rect(self.pos, self.size))
 
 
 class Shadow(UIElement):
@@ -73,8 +72,7 @@ class Text(UIElement):
         self.image = font.render(text, False, (0, 0, 0))
 
     def draw(self, screen: pg.Surface):
-        if self.visible:
-            screen.blit(self.image, self.pos)
+        screen.blit(self.image, self.pos)
 
     def set_pos(self, pos: pg.Vector2):
         self.pos = pos
@@ -114,15 +112,14 @@ class Button(UIElement):
         self.locked = False
 
     def draw(self, screen: pg.Surface):
-        if self.visible:
-            if self.custom_draw:
-                self.custom_draw(self, screen)
-            else:
-                bg_color = (200, 200, 200) if self.hover else (180, 180, 180)
-                if self.locked:
-                    bg_color = (0, 80, 255)
-                pg.draw.rect(screen, bg_color, pg.Rect(self.pos, self.size))
-                self.text.draw(screen)
+        if self.custom_draw:
+            self.custom_draw(self, screen)
+        else:
+            bg_color = (200, 200, 200) if self.hover else (180, 180, 180)
+            if self.locked:
+                bg_color = (0, 80, 255)
+            pg.draw.rect(screen, bg_color, pg.Rect(self.pos, self.size))
+            self.text.draw(screen)
 
     def modify_text(self, new_text: str, font_size=None):
         """
@@ -201,8 +198,6 @@ class Slider(UserParam):
         self.type = t
 
     def draw(self, screen: pg.Surface) -> None:
-        if not self.visible:
-            return
         pg.draw.rect(screen, (0, 50, 255), pg.Rect(self.pos - pg.Vector2(0, self.BAR_HEIGHT//2),
                                                    pg.Vector2(self.length, self.BAR_HEIGHT)))
         circle_color = (0, 150, 255) if self.hover else (0, 50, 255)
@@ -247,8 +242,6 @@ class Checkbox(UserParam):
         super().__init__(pos, param_name, model_param, value)
 
     def draw(self, screen: pg.Surface):
-        if not self.visible:
-            return
         pg.draw.rect(screen, (0, 0, 0), pg.Rect(self.pos, self.SIZE), width=self.WIDTH)
         if self.value:
             size = pg.Vector2(self.SIZE.x-self.WIDTH, self.SIZE.y-self.WIDTH)

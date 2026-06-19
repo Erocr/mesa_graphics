@@ -157,7 +157,6 @@ class ButtonsController:
 
         def toggle_or_untoggle_control_bar():
             self.view.toggle_untoggle_control_bar()
-            self.view.buttons["remove control bar"].modify_text(("SHOW", "HIDE")[self.view.show_control_bar])
 
         self.button_actions["STEP"] = step_action
         self.button_actions["START/STOP"] = start_or_stop_action
