@@ -117,16 +117,19 @@ class View:
 
     def _create_ui(self, name: str, model_params, play_interval: int, render_interval: int) -> None:
         """ Instantiate the UI. """
+        self._create_controls(model_params, play_interval, render_interval)
         self._create_up_bar(name)
         self._create_switch_page_buttons()
-        self._create_controls(model_params, play_interval, render_interval)
 
     def _create_up_bar(self, name: str) -> None:
         """ Creates the blue bar on top of the screen, and write the name into it. """
         self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), (150, 150, 150))
+        self.add_UIElement(Shadow, pg.Vector2(295, 37), pg.Vector2(1280, 37), pg.Vector2(0, 1), 5,
+                           curved_border_1=True)
         text = self.add_UIElement(Text, pg.Vector2(0, 0), name)
         text.set_pos(pg.Vector2(40, 20 - text.image.get_height() / 2))
         self._create_remove_controls_button()
+        self._create_reset_start_step_buttons()
 
     def _create_remove_controls_button(self) -> None:
         button = self.add_UIElement(Button, pg.Vector2(0, 0), "HIDE", font_size=20, name="remove control bar")
@@ -140,8 +143,14 @@ class View:
         rect = self.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), (220, 220, 220))
         self.control_bar_ui_elements.append(rect)
         l = 5
-        shadow = self.add_UIElement(Shadow, pg.Vector2(300-l, 37), pg.Vector2(300-l, 740), pg.Vector2(1, 0), l, (0, 0, 0), (255, 255, 255))
+        shadow = self.add_UIElement(Shadow, pg.Vector2(300-l, 37), pg.Vector2(300-l, 740), pg.Vector2(1, 0), l,
+                                    curved_border_1=True)
         self.control_bar_ui_elements.append(shadow)
+        self._create_flow_control_entries(play_interval, render_interval)
+        if model_params is not None:
+            self._create_model_params_entries(model_params)
+
+    def _create_reset_start_step_buttons(self):
         x = 1050
         texts = ("RESET", "START", "STEP")
         names = ("RESET", "START/STOP", "STEP")
@@ -158,9 +167,6 @@ class View:
             button = self.add_UIElement(Button, pg.Vector2(x, 0), texts[i], font_size=15, name=names[i],
                                         custom_draw=custom_draw)
             x += button.size.x + 1
-        self._create_flow_control_entries(play_interval, render_interval)
-        if model_params is not None:
-            self._create_model_params_entries(model_params)
 
     def _create_switch_page_buttons(self) -> None:
         """
@@ -168,7 +174,6 @@ class View:
         They are aligned.
         If there are too many pages, it shows buttons that allow to change the page-switching buttons shown.
         """
-        rectangle = self.add_UIElement(Rectangle, pg.Vector2(300, 0), pg.Vector2(1280 - 300, 40), (150, 150, 150))
         buttons = []
 
         def custom_page_draw(button, screen):
@@ -199,8 +204,6 @@ class View:
         for button in buttons:
             button.set_pos(pg.Vector2(x, 0))
             x += button.size.x
-
-        rectangle.size.y = buttons[0].size.y
 
         page_left = self.add_UIElement(Button, pg.Vector2(0, 0), "<", font_size=15, name="PAGE LEFT")
         page_right = self.add_UIElement(Button, pg.Vector2(0, 0), ">", font_size=15, name="PAGE RIGHT")

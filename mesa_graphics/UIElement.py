@@ -40,7 +40,8 @@ class Rectangle(UIElement):
 
 
 class Shadow(UIElement):
-    def __init__(self, p1, p2, direction, length, initial_color, final_color):
+    def __init__(self, p1, p2, direction, length, initial_color=(0, 0, 0), final_color=(255, 255, 255),
+                 curved_border_1=False, curved_border_2=False):
         super().__init__(p1)
         self.p1 = p1
         self.p2 = p2
@@ -48,11 +49,16 @@ class Shadow(UIElement):
         self.length = length
         self.initial_color = pg.Vector3(initial_color)
         self.final_color = pg.Vector3(final_color)
+        self.curved_border_1 = curved_border_1
+        self.curved_border_2 = curved_border_2
 
     def draw(self, screen):
         for i in range(self.length):
             color = self.initial_color + (self.final_color - self.initial_color) * i / self.length
-            pg.draw.line(screen, color, self.p1 + i * self.dir, self.p2 + i * self.dir)
+            dir_v = (self.p2 - self.p1).normalize()
+            cb1 = dir_v * self.curved_border_1 * i
+            cb2 = -dir_v * self.curved_border_2 * i
+            pg.draw.line(screen, color, self.p1 + i * self.dir + cb1, self.p2 + i * self.dir + cb2)
 
 
 class Text(UIElement):
