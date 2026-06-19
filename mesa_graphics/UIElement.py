@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Callable
 from math import log10
 
@@ -61,14 +62,14 @@ class Shadow(UIElement):
 
 
 class Text(UIElement):
-    def __init__(self, pos: pg.Vector2, text: str, font_size=32):
+    def __init__(self, pos: pg.Vector2, text: str, font: pg.font.Font):
         """
         :param pos: The top-left corner position. It must be a pg.Vector2
         :param text: The string shown
-        :param font_size: The font size
+        :param font: The font
         """
         super().__init__(pos)
-        font = pg.font.Font(pg.font.match_font("liberationmono"), font_size)
+        self.font = font
         self.image = font.render(text, False, (0, 0, 0))
 
     def draw(self, screen: pg.Surface):
@@ -81,21 +82,21 @@ class Text(UIElement):
 class Button(UIElement):
     alreadyUsed = set()
 
-    def __init__(self, pos, text: str, font_size=32, name=None, custom_draw: Callable = None):
+    def __init__(self, pos, text: str, font, name=None, custom_draw: Callable = None):
         """
         The logic for drawing a clickable button.
 
         :param pos: The top-left corner position. It must be a pg.Vector2.
         :param text: The string shown in the button.
-        :param font_size: The font size of the text in the button.
+        :param font: The font of the text in the button.
         :param name: An identification. It is used to associate actions in the Controller.
         :param custom_draw: A function that take the button and the screen, and draw the button on the screen.
         If no name is given, the name is the text. If the name is already used, it will put a number
         right after it.
         """
         super().__init__(pos)
-        self.font_size = font_size
-        self.text = Text(pos+pg.Vector2(10, 10), text, font_size)
+        self.font = font
+        self.text = Text(pos+pg.Vector2(10, 10), text, font)
         self.size = pg.Vector2(self.text.image.get_size()) + pg.Vector2(20, 20)
         self.custom_draw = custom_draw
         self.hover = False
@@ -121,16 +122,17 @@ class Button(UIElement):
             pg.draw.rect(screen, bg_color, pg.Rect(self.pos, self.size))
             self.text.draw(screen)
 
-    def modify_text(self, new_text: str, font_size=None):
+    def modify_text(self, new_text: str, font=None):
         """
         Modifies the text written in the button.
         :param new_text: the new string to show.
-        :param font_size: The new font_size. If you don't put the font size, it will put the font_size
-        given at the creation of the instance.
+        :param font: The new font. If you don't put the font size, it will put the previous font
         """
-        if font_size is None:
-            font_size = self.font_size
-        self.text = Text(self.pos + pg.Vector2(10, 10), new_text, font_size)
+        if font is None:
+            font = self.font
+        else:
+            self.font = font
+        self.text = Text(self.pos + pg.Vector2(10, 10), new_text, font)
         self.size = pg.Vector2(self.text.image.get_size()) + pg.Vector2(20, 20)
 
     def set_pos(self, pos: pg.Vector2):
@@ -167,6 +169,7 @@ class UserParam(UIElement):
 class Slider(UserParam):
     CIRCLE_RADIUS = 5
     BAR_HEIGHT = 2
+    FONT = None
 
     def __init__(self, pos: pg.Vector2, length: int, t: str, param_name: str, model_param=True, value=None, min=0,
                  max=10, step=0.01):
@@ -181,6 +184,9 @@ class Slider(UserParam):
         :param max: The maximum value it can take.
         :param step: The step between two possible values.
         """
+        if Slider.FONT is None:
+            eternalo_path = Path(__file__).parent.parent.joinpath("assets/Eternalo.ttf")
+            Slider.FONT = pg.font.Font(eternalo_path, 10)
         assert min <= max, "min shall be less than max"
         assert t in ("SliderInt", "SliderFloat"), f"type {t} is unknown"
         if value is None: value = (min + max) / 2
@@ -191,8 +197,8 @@ class Slider(UserParam):
         self.max = max
         self.length = length
         self.set_value(value)
-        self.min_image = Text(self.pos, str(self.min), 15)
-        self.max_image = Text(self.pos+pg.Vector2(self.length, 0), str(self.max), 15)
+        self.min_image = Text(self.pos, str(self.min), Slider.FONT)
+        self.max_image = Text(self.pos+pg.Vector2(self.length, 0), str(self.max), Slider.FONT)
         self.max_image.set_pos(self.max_image.pos - pg.Vector2(self.max_image.image.get_width(), 0))
         self.hover = False
         self.type = t

@@ -1,4 +1,5 @@
 import warnings
+from pathlib import Path
 from typing import Callable
 
 from mesa_graphics.Component import Component
@@ -29,7 +30,8 @@ class View:
             Can include user-adjustable parameters and fixed parameters. Defaults to None.
         :param name: Name of the visualization. Defaults to the model's class name.
         """
-        pg.font.init()
+        self.fonts = {}
+        self.init_fonts()
         self.screen = pg.display.set_mode((1280, 740), pg.RESIZABLE)
         self.model = model
         self.max_page_scrolling_y = 0
@@ -55,6 +57,12 @@ class View:
             name = type(self.model).__name__
         self._create_ui(name, model_params, play_interval, render_interval)
         self.show_control_bar = True
+
+    def init_fonts(self):
+        pg.font.init()
+        eternalo_path = Path(__file__).parent.parent.joinpath("assets/Eternalo.ttf")
+        self.fonts["basic15"] = pg.font.Font(eternalo_path, 15)
+        self.fonts["basic20"] = pg.font.Font(eternalo_path, 20)
 
     def quit(self):
         """ End the visualization """
@@ -128,7 +136,7 @@ class View:
         self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), (150, 150, 150))
         self.up_bar_shadow = self.add_UIElement(Shadow, pg.Vector2(295, 37), pg.Vector2(1280, 37),
                                                 pg.Vector2(0, 1), 5, curved_border_1=True)
-        text = self.add_UIElement(Text, pg.Vector2(0, 0), name)
+        text = self.add_UIElement(Text, pg.Vector2(0, 0), name, self.fonts["basic15"])
         text.set_pos(pg.Vector2(40, 20 - text.image.get_height() / 2))
         self._create_remove_controls_button()
         self._create_reset_start_step_buttons()
@@ -145,7 +153,8 @@ class View:
             pg.draw.line(screen, (100, 100, 100), button.pos+offset+pg.Vector2(8, 0),
                          button.pos+offset+pg.Vector2(8, button.size.y-2*offset.y-3), width=3)
 
-        button = self.add_UIElement(Button, pg.Vector2(0, 0), "", font_size=20, name="remove control bar",
+        button = self.add_UIElement(Button, pg.Vector2(0, 0), "",
+                                    self.fonts["basic15"], name="remove control bar",
                                     custom_draw=custom_draw)
         button.size = pg.Vector2(33, 33)
         button.set_pos(pg.Vector2(2, 2))
@@ -179,7 +188,7 @@ class View:
             b.text.draw(screen)
 
         for i in range(3):
-            button = self.add_UIElement(Button, pg.Vector2(x, 0), texts[i], font_size=15, name=names[i],
+            button = self.add_UIElement(Button, pg.Vector2(x, 0), texts[i], self.fonts["basic15"], name=names[i],
                                         custom_draw=custom_draw)
             x += button.size.x + 1
 
@@ -213,20 +222,20 @@ class View:
 
         if self.max_page + 1 - self.min_page <= 10:
             for i in range(self.min_page, self.max_page + 1):
-                buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", font_size=15,
+                buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.fonts["basic15"],
                                                   custom_draw=custom_page_draw))
             size_x = sum([button.size.x for button in buttons])
             x = (1050 + 300) // 2 - size_x // 2
             for button in buttons:
                 button.set_pos(pg.Vector2(x, 0))
                 x += button.size.x
+                button.size.y = 37
 
         else:
-            font_size = 15 - max(0, (-25-self.min_page+self.max_page+1)//5)
-            if font_size < 10:
+            if 30 < -self.min_page+self.max_page+1:
                 warnings.warn("There are to many pages, the visualisation could not support it.")
             for i in range(self.min_page, self.max_page + 1):
-                buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"{i}", font_size=font_size,
+                buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"{i}", self.fonts["basic15"],
                                                   custom_draw=custom_page_draw, name=f"PAGE {i}"))
                 x = 310
                 button_size_x = (1040 - 310) // len(buttons)
@@ -358,7 +367,7 @@ class View:
         text = None
         for label in labels:
             if text is not None: y += text.image.get_height()
-            text = self.add_UIElement(Text, pg.Vector2(10, y), label, font_size=20)
+            text = self.add_UIElement(Text, pg.Vector2(10, y), label, self.fonts["basic20"])
             self.control_bar_ui_elements.append(text)
         return text.image.get_width() + 20, y + text.image.get_height() / 2, text  # noqa
 
@@ -446,10 +455,9 @@ class View:
         texts = []
         for info in self.model.debug_infos:
             texts.append(info + ": " + str(self.model.debug_infos[info]))
-        font = pg.font.Font('freesansbold.ttf', 15)
         y = 0
         for text in texts:
-            image = font.render(text, False, (255, 255, 255), (0, 0, 0, 125))
+            image = self.fonts["basic15"].render(text, False, (255, 255, 255), (0, 0, 0, 125))
             self.screen.blit(image, pg.Vector2(0, y))
             y += image.get_height()
 
