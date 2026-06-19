@@ -1,3 +1,4 @@
+import warnings
 from typing import Callable
 
 from mesa_graphics.Component import Component
@@ -196,64 +197,33 @@ class View:
                              border_radius=10)
             button.text.draw(screen)
 
-        for i in range(self.min_page, self.max_page + 1):
-            buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", font_size=15,
-                                              custom_draw=custom_page_draw))
-        size_x = sum([button.size.x for button in buttons])
-        x = (1280 + 300) // 2 - size_x // 2
-        for button in buttons:
-            button.set_pos(pg.Vector2(x, 0))
-            x += button.size.x
+        if self.max_page + 1 - self.min_page <= 10:
+            for i in range(self.min_page, self.max_page + 1):
+                buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", font_size=15,
+                                                  custom_draw=custom_page_draw))
+            size_x = sum([button.size.x for button in buttons])
+            x = (1050 + 300) // 2 - size_x // 2
+            for button in buttons:
+                button.set_pos(pg.Vector2(x, 0))
+                x += button.size.x
 
-        page_left = self.add_UIElement(Button, pg.Vector2(0, 0), "<", font_size=15, name="PAGE LEFT")
-        page_right = self.add_UIElement(Button, pg.Vector2(0, 0), ">", font_size=15, name="PAGE RIGHT")
-        page_right.visible = False
-        page_left.visible = False
-        page_right.lock()
-        page_left.lock()
+        else:
+            font_size = 15 - max(0, (-25-self.min_page+self.max_page+1)//5)
+            if font_size < 10:
+                warnings.warn("There are to many pages, the visualisation could not support it.")
+            for i in range(self.min_page, self.max_page + 1):
+                buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"{i}", font_size=font_size,
+                                                  custom_draw=custom_page_draw, name=f"PAGE {i}"))
+                x = 310
+                button_size_x = (1040 - 310) // len(buttons)
+                for button in buttons:
+                    button.set_pos(pg.Vector2(x, 0))
+                    button.size = pg.Vector2(button_size_x, 37)
+                    button.text.pos = button.pos + button.size // 2 - pg.Vector2(button.text.image.get_size()) // 2
+                    x += button_size_x
 
-        if self.max_page + 1 - self.min_page > 9:
-            min_visible_page = min(max(self.min_page, -4), self.max_page - 8)
-            self.set_min_visible_page(min_visible_page)
         self.buttons[f"PAGE {self.page}"].lock()
 
-    def page_right(self) -> None:
-        """
-        The action called when the user click on the PAGE RIGHT button (<)
-        Change the interval of page-switching buttons you can see.
-        """
-        self.set_min_visible_page(min(self.max_page - 8, self.min_visible_page + 6))
-
-    def page_left(self) -> None:
-        """
-        The action called when the user click on the PAGE LEFT button (<)
-        Change the interval of page-switching buttons you can see.
-        """
-        self.set_min_visible_page(max(self.min_page, self.min_visible_page - 6))
-
-    def set_min_visible_page(self, min_visible_page: int) -> None:
-        """
-        When you have too much pages, the interface will show only 8 page-switching buttons.
-        The pages chosen are from min_visible_page to min_visible_page+8.
-        So the function set the attribute min_visible_page with the one chosen, and then rearrange the buttons, so
-        that we see this buttons at the right places.
-        """
-        self.min_visible_page = min_visible_page
-        for button in self.buttons.values():
-            if button.name[:4] == "PAGE":
-                button.visible = False
-                button.lock()
-        visible_buttons = [self.buttons["PAGE LEFT"]] + \
-                          [self.buttons[f"PAGE {i}"] for i in range(self.min_visible_page, self.min_visible_page + 9)] + \
-                          [self.buttons["PAGE RIGHT"]]
-        size_x = sum([button.size.x for button in visible_buttons]) + 10 * (len(visible_buttons) - 1)
-        x = (1280 + 300) // 2 - size_x // 2
-        for button in visible_buttons:
-            button.set_pos(pg.Vector2(x, 90))
-            x += button.size.x + 10
-            button.visible = True
-            button.unlock()
-        self.buttons[f"PAGE {self.page}"].lock()
 
     def _create_flow_control_entries(self, play_interval: int, render_interval: int) -> None:
         """

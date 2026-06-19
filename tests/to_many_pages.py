@@ -42,7 +42,7 @@ class MoneyModel(mesa.Model):
 money_model = MoneyModel()
 
 GiniPlotPage0 = make_mpl_plot_component("Gini", page=0)
-GiniPlotPage1 = make_mpl_plot_component("Gini", page=15)
+GiniPlotPage1 = make_mpl_plot_component("Gini", page=40)
 
 page = MesaGraphics(
     money_model,
