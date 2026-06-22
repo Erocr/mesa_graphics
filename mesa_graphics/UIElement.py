@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Callable
 from math import log10
+from .constants import palette
 
 import pygame as pg
 
@@ -9,7 +10,7 @@ class UIElement:
     def __init__(self, pos: pg.Vector2, visible=True):
         """ It is an abstract class describing an element of UI. """
         self.pos = pos
-        self._visible = True
+        self._visible = visible
 
     @property
     def visible(self):
@@ -25,30 +26,30 @@ class UIElement:
 
 
 class Rectangle(UIElement):
-    def __init__(self, pos: pg.Vector2, size: pg.Vector2, color=(255, 255, 255)):
+    def __init__(self, pos: pg.Vector2, size: pg.Vector2, color=5):
         """
         :param pos: The top-left corner position. It must be a pg.Vector2.
         :param size: The size of the rectangle. It must be a pg.Vector2.
-        :param color: The filling color. It is a tuple (r, g, b).
+        :param color: The filling color. It is an index in the palette.
         """
         super().__init__(pos)
         self.size = size
         self.color = color
 
     def draw(self, screen: pg.Surface):
-        pg.draw.rect(screen, self.color, pg.Rect(self.pos, self.size))
+        pg.draw.rect(screen, palette[self.color], pg.Rect(self.pos, self.size))
 
 
 class Shadow(UIElement):
-    def __init__(self, p1, p2, direction, length, initial_color=(0, 0, 0), final_color=(255, 255, 255),
+    def __init__(self, p1, p2, direction, length, initial_color=0, final_color=5,
                  curved_border_1=False, curved_border_2=False):
         super().__init__(p1)
         self.p1 = p1
         self.p2 = p2
         self.dir = direction.normalize()
         self.length = length
-        self.initial_color = pg.Vector3(initial_color)
-        self.final_color = pg.Vector3(final_color)
+        self.initial_color = pg.Vector3(palette[initial_color])
+        self.final_color = pg.Vector3(palette[final_color])
         self.curved_border_1 = curved_border_1
         self.curved_border_2 = curved_border_2
 
@@ -116,10 +117,10 @@ class Button(UIElement):
         if self.custom_draw:
             self.custom_draw(self, screen)
         else:
-            bg_color = (200, 200, 200) if self.hover else (180, 180, 180)
+            bg_color = 4 if self.hover else 3
             if self.locked:
-                bg_color = (0, 80, 255)
-            pg.draw.rect(screen, bg_color, pg.Rect(self.pos, self.size))
+                bg_color = 1
+            pg.draw.rect(screen, palette[bg_color], pg.Rect(self.pos, self.size))
             self.text.draw(screen)
 
     def modify_text(self, new_text: str, font=None):
@@ -248,11 +249,11 @@ class Checkbox(UserParam):
         super().__init__(pos, param_name, model_param, value)
 
     def draw(self, screen: pg.Surface):
-        pg.draw.rect(screen, (0, 0, 0), pg.Rect(self.pos, self.SIZE), width=self.WIDTH)
+        pg.draw.rect(screen, palette[0], pg.Rect(self.pos, self.SIZE), width=self.WIDTH)
         if self.value:
             size = pg.Vector2(self.SIZE.x-self.WIDTH, self.SIZE.y-self.WIDTH)
-            pg.draw.line(screen, (0, 0, 0), self.pos, self.pos + size, Checkbox.WIDTH)
-            pg.draw.line(screen, (0, 0, 0),
+            pg.draw.line(screen, palette[0], self.pos, self.pos + size, Checkbox.WIDTH)
+            pg.draw.line(screen, palette[0],
                          self.pos+pg.Vector2(size.x, 0),
                          self.pos + pg.Vector2(0, size.y), Checkbox.WIDTH)
 

@@ -133,7 +133,7 @@ class View:
 
     def _create_up_bar(self, name: str) -> None:
         """ Creates the blue bar on top of the screen, and write the name into it. """
-        self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), (150, 150, 150))
+        self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), color=2)
         self.up_bar_shadow = self.add_UIElement(Shadow, pg.Vector2(295, 37), pg.Vector2(1280, 37),
                                                 pg.Vector2(0, 1), 5, curved_border_1=True)
         text = self.add_UIElement(Text, pg.Vector2(0, 0), name, self.fonts["basic15"])
@@ -144,13 +144,13 @@ class View:
     def _create_remove_controls_button(self) -> None:
 
         def custom_draw(button, screen):
-            bg_color = (180, 180, 180) if button.hover else (150, 150, 150)
-            pg.draw.rect(screen, bg_color, pg.Rect(button.pos, button.size), border_radius=10)
+            bg_color = 3 if button.hover else 2
+            pg.draw.rect(screen, palette[bg_color], pg.Rect(button.pos, button.size), border_radius=10)
 
             offset = pg.Vector2(5, 5)
-            pg.draw.rect(screen, (100, 100, 100), pg.Rect(button.pos+offset, button.size-2*offset),
+            pg.draw.rect(screen, palette[1], pg.Rect(button.pos+offset, button.size-2*offset),
                          border_radius=5, width=3)
-            pg.draw.line(screen, (100, 100, 100), button.pos+offset+pg.Vector2(8, 0),
+            pg.draw.line(screen, palette[1], button.pos+offset+pg.Vector2(8, 0),
                          button.pos+offset+pg.Vector2(8, button.size.y-2*offset.y-3), width=3)
 
         button = self.add_UIElement(Button, pg.Vector2(0, 0), "",
@@ -164,7 +164,7 @@ class View:
         This function creates the grey column in the left part of the screen, and fills it with the user parameters.
         It creates also the 3 buttons RESET, START/STOP, and STEP
         """
-        rect = self.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), (220, 220, 220))
+        rect = self.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), 4)
         self.control_bar_ui_elements.append(rect)
         l = 5
         shadow = self.add_UIElement(Shadow, pg.Vector2(300-l, 37), pg.Vector2(300-l, 740), pg.Vector2(1, 0), l,
@@ -175,22 +175,22 @@ class View:
             self._create_model_params_entries(model_params)
 
     def _create_reset_start_step_buttons(self):
-        x = 1050
+        x = 1090
         texts = ("RESET", "START", "STEP")
         names = ("RESET", "START/STOP", "STEP")
 
         def custom_draw(b, screen):
-            bg_color = (180, 180, 180) if b.hover else (100, 100, 100)
+            bg_color = 3 if b.hover else 1
             pos = b.pos+pg.Vector2(5, 5)
             size = pg.Vector2(55, 27)
-            pg.draw.rect(screen, bg_color, pg.Rect(pos, size), border_radius=10)
+            pg.draw.rect(screen, palette[bg_color], pg.Rect(pos, size), border_radius=10)
             b.text.pos = pos + size / 2 - pg.Vector2(*b.text.image.get_size()) / 2
             b.text.draw(screen)
 
         for i in range(3):
-            button = self.add_UIElement(Button, pg.Vector2(x, 0), texts[i], self.fonts["basic15"], name=names[i],
+            self.add_UIElement(Button, pg.Vector2(x, 0), texts[i], self.fonts["basic15"], name=names[i],
                                         custom_draw=custom_draw)
-            x += button.size.x + 1
+            x += 60
 
     def _create_switch_page_buttons(self) -> None:
         """
@@ -202,15 +202,15 @@ class View:
 
         def custom_page_draw(button, screen):
             if button.locked:
-                pg.draw.rect(screen, (255, 255, 255), pg.Rect(button.pos, button.size),
+                pg.draw.rect(screen, palette[5], pg.Rect(button.pos, button.size),
                              border_top_left_radius=10, border_top_right_radius=10)
-                pg.draw.rect(screen, (255, 255, 255), pg.Rect(button.pos + pg.Vector2(-10, button.size.y - 10),
+                pg.draw.rect(screen, palette[5], pg.Rect(button.pos + pg.Vector2(-10, button.size.y - 10),
                                                               pg.Vector2(10, 10)))
-                pg.draw.rect(screen, (255, 255, 255),
+                pg.draw.rect(screen, palette[5],
                              pg.Rect(button.pos + pg.Vector2(button.size.x, button.size.y - 10), pg.Vector2(10, 10)))
-                pg.draw.circle(screen, (150, 150, 150), button.pos + pg.Vector2(-10, button.size.y - 10), 10,
+                pg.draw.circle(screen, palette[2], button.pos + pg.Vector2(-10, button.size.y - 10), 10,
                                draw_bottom_right=True)
-                pg.draw.circle(screen, (150, 150, 150),
+                pg.draw.circle(screen, palette[2],
                                button.pos + pg.Vector2(button.size.x + 10, button.size.y - 10), 10,
                                draw_bottom_left=True)
             elif button.hover:
