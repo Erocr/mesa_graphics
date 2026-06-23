@@ -186,8 +186,8 @@ class Slider(UserParam):
         :param step: The step between two possible values.
         """
         if Slider.FONT is None:
-            eternalo_path = Path(__file__).parent.parent.joinpath("assets/Eternalo.ttf")
-            Slider.FONT = pg.font.Font(eternalo_path, 10)
+            path = pg.font.get_default_font()
+            Slider.FONT = pg.font.Font(path, 10)
         assert min <= max, "min shall be less than max"
         assert t in ("SliderInt", "SliderFloat"), f"type {t} is unknown"
         if value is None: value = (min + max) / 2
