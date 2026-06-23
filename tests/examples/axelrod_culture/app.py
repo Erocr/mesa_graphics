@@ -4,7 +4,7 @@ import numpy as np
 from axelrod_culture.model import AxelrodModel, number_of_cultural_regions
 from matplotlib.figure import Figure
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import make_plot_component
+from mesa_graphics.components import make_plot_component
 from mesa_graphics.backend_integration import FigureMatplotlib
 
 

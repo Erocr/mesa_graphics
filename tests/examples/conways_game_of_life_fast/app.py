@@ -1,5 +1,5 @@
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import make_plot_component, make_space_component
+from mesa_graphics.components import make_plot_component, make_space_component
 from model import GameOfLifeModel
 
 propertylayer_portrayal = {

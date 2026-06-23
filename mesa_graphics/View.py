@@ -2,7 +2,7 @@ from typing import Callable
 
 from .Component import Component
 from .UIElement import *
-from .matplotlib_components import create_space_component
+from .components import create_space_component
 from time import time
 import mesa.visualization.user_param as mesa_user_param
 
@@ -28,7 +28,8 @@ class View:
             Can include user-adjustable parameters and fixed parameters. Defaults to None.
         :param name: Name of the visualization. Defaults to the model's class name.
         """
-        pg.font.init()
+        self.fonts = {}
+        self.init_fonts()
         self.screen = pg.display.set_mode((1280, 740), pg.RESIZABLE)
         self.model = model
         self.max_page_scrolling_y = 0
@@ -49,10 +50,17 @@ class View:
         self.ui_elements = []  # List of UI
         self.control_bar_ui_elements = []  # List of UI in the control bar
         self.ui_focused = None  # UI element focused, the other are not interactive while one is focused
+        self.up_bar_shadow = None  # The up bar shadow have to be changed when you toggle / untoggle the left bar
         if name is None:
             name = type(self.model).__name__
         self._create_ui(name, model_params, play_interval, render_interval)
         self.show_control_bar = True
+
+    def init_fonts(self):
+        pg.font.init()
+        default_path = pg.font.get_default_font()
+        self.fonts["basic15"] = pg.font.Font(default_path, 15)
+        self.fonts["basic20"] = pg.font.Font(default_path, 20)
 
     def quit(self):
         """ End the visualization """
@@ -111,44 +119,76 @@ class View:
         for page in self.components:
             if page < self.min_page: self.min_page = page
             if page > self.max_page: self.max_page = page
-        for i in range(self.min_page+1, self.max_page):
+        for i in range(self.min_page + 1, self.max_page):
             if i not in self.components:
                 self.components[i] = []
 
     def _create_ui(self, name: str, model_params, play_interval: int, render_interval: int) -> None:
         """ Instantiate the UI. """
+        self._create_controls(model_params, play_interval, render_interval)
         self._create_up_bar(name)
         self._create_switch_page_buttons()
-        self._create_controls(model_params, play_interval, render_interval)
 
     def _create_up_bar(self, name: str) -> None:
         """ Creates the blue bar on top of the screen, and write the name into it. """
-        self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 80), (0, 80, 255))
-        text = self.add_UIElement(Text, pg.Vector2(80, 0), name)
-        text.set_pos(text.pos + pg.Vector2(0, 40 - text.image.get_height()/2))
+        self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), color=2)
+        self.up_bar_shadow = self.add_UIElement(Shadow, pg.Vector2(295, 37), pg.Vector2(1280, 37),
+                                                pg.Vector2(0, 1), 5, curved_border_1=True)
+        text = self.add_UIElement(Text, pg.Vector2(0, 0), name, self.fonts["basic15"])
+        text.set_pos(pg.Vector2(40, 20 - text.image.get_height() / 2))
         self._create_remove_controls_button()
+        self._create_reset_start_step_buttons()
 
     def _create_remove_controls_button(self) -> None:
-        button = self.add_UIElement(Button, pg.Vector2(0, 0), "HIDE", font_size=20, name="remove control bar")
-        button.set_pos(pg.Vector2(40, 40) - pg.Vector2(*button.get_size()) * 0.5)
+
+        def custom_draw(button, screen):
+            bg_color = 3 if button.hover else 2
+            pg.draw.rect(screen, palette[bg_color], pg.Rect(button.pos, button.size), border_radius=10)
+
+            offset = pg.Vector2(5, 5)
+            pg.draw.rect(screen, palette[1], pg.Rect(button.pos+offset, button.size-2*offset),
+                         border_radius=5, width=3)
+            pg.draw.line(screen, palette[1], button.pos+offset+pg.Vector2(8, 0),
+                         button.pos+offset+pg.Vector2(8, button.size.y-2*offset.y-3), width=3)
+
+        button = self.add_UIElement(Button, pg.Vector2(0, 0), "",
+                                    self.fonts["basic15"], name="remove control bar",
+                                    custom_draw=custom_draw)
+        button.size = pg.Vector2(33, 33)
+        button.set_pos(pg.Vector2(2, 2))
 
     def _create_controls(self, model_params, play_interval: int, render_interval: int) -> None:
         """
         This function creates the grey column in the left part of the screen, and fills it with the user parameters.
         It creates also the 3 buttons RESET, START/STOP, and STEP
         """
-        rect = self.add_UIElement(Rectangle, pg.Vector2(0, 80), pg.Vector2(300, 660), (220, 220, 220))
+        rect = self.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), 4)
         self.control_bar_ui_elements.append(rect)
-        x = 1050
-        texts = ("RESET", "START", "STEP")
-        names = ("RESET", "START/STOP", "STEP")
-
-        for i in range(3):
-            button = self.add_UIElement(Button, pg.Vector2(x, 22), texts[i], font_size=15, name=names[i])
-            x += button.text.image.get_width() + 30
+        l = 5
+        shadow = self.add_UIElement(Shadow, pg.Vector2(300-l, 37), pg.Vector2(300-l, 740), pg.Vector2(1, 0), l,
+                                    curved_border_1=True)
+        self.control_bar_ui_elements.append(shadow)
         self._create_flow_control_entries(play_interval, render_interval)
         if model_params is not None:
             self._create_model_params_entries(model_params)
+
+    def _create_reset_start_step_buttons(self):
+        x = 1090
+        texts = ("RESET", "START", "STEP")
+        names = ("RESET", "START/STOP", "STEP")
+
+        def custom_draw(b, screen):
+            bg_color = 3 if b.hover else 1
+            pos = b.pos+pg.Vector2(5, 5)
+            size = pg.Vector2(55, 27)
+            pg.draw.rect(screen, palette[bg_color], pg.Rect(pos, size), border_radius=10)
+            b.text.pos = pos + size / 2 - pg.Vector2(*b.text.image.get_size()) / 2
+            b.text.draw(screen)
+
+        for i in range(3):
+            self.add_UIElement(Button, pg.Vector2(x, 0), texts[i], self.fonts["basic15"], name=names[i],
+                                        custom_draw=custom_draw)
+            x += 60
 
     def _create_switch_page_buttons(self) -> None:
         """
@@ -157,63 +197,54 @@ class View:
         If there are too many pages, it shows buttons that allow to change the page-switching buttons shown.
         """
         buttons = []
-        for i in range(self.min_page, self.max_page+1):
-            buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", font_size=15))
-        size_x = sum([button.size.x for button in buttons]) + 10 * (len(buttons) - 1)
-        x = (1280 + 300) // 2 - size_x // 2
-        for button in buttons:
-            button.set_pos(pg.Vector2(x, 90))
-            x += button.size.x + 10
 
-        page_left = self.add_UIElement(Button, pg.Vector2(0, 0), "<", font_size=15, name="PAGE LEFT")
-        page_right = self.add_UIElement(Button, pg.Vector2(0, 0), ">", font_size=15, name="PAGE RIGHT")
-        page_right.visible = False
-        page_left.visible = False
-        page_right.lock()
-        page_left.lock()
+        def custom_page_draw(button, screen):
+            if button.locked:
+                pg.draw.rect(screen, palette[5], pg.Rect(button.pos, button.size),
+                             border_top_left_radius=10, border_top_right_radius=10)
+                pg.draw.rect(screen, palette[5], pg.Rect(button.pos + pg.Vector2(-10, button.size.y - 10),
+                                                              pg.Vector2(10, 10)))
+                pg.draw.rect(screen, palette[5],
+                             pg.Rect(button.pos + pg.Vector2(button.size.x, button.size.y - 10), pg.Vector2(10, 10)))
+                pg.draw.circle(screen, palette[2], button.pos + pg.Vector2(-10, button.size.y - 10), 10,
+                               draw_bottom_right=True)
+                pg.draw.circle(screen, palette[2],
+                               button.pos + pg.Vector2(button.size.x + 10, button.size.y - 10), 10,
+                               draw_bottom_left=True)
+            elif button.hover:
+                pg.draw.rect(screen, (180, 180, 180),
+                             pg.Rect(button.pos + pg.Vector2(5, 5),
+                                     button.size - pg.Vector2(10, 10)),
+                             border_radius=10)
+            button.text.draw(screen)
 
-        if self.max_page+1 - self.min_page > 9:
-            min_visible_page = min(max(self.min_page, -4), self.max_page-8)
-            self.set_min_visible_page(min_visible_page)
+        if self.max_page + 1 - self.min_page <= 10:
+            for i in range(self.min_page, self.max_page + 1):
+                buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.fonts["basic15"],
+                                                  custom_draw=custom_page_draw))
+            size_x = sum([button.size.x for button in buttons])
+            x = (1050 + 300) // 2 - size_x // 2
+            for button in buttons:
+                button.set_pos(pg.Vector2(x, 0))
+                x += button.size.x
+                button.size.y = 37
+
+        else:
+            if 30 < -self.min_page+self.max_page+1:
+                warnings.warn("There are to many pages, the visualisation could not support it.")
+            for i in range(self.min_page, self.max_page + 1):
+                buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"{i}", self.fonts["basic15"],
+                                                  custom_draw=custom_page_draw, name=f"PAGE {i}"))
+                x = 310
+                button_size_x = (1040 - 310) // len(buttons)
+                for button in buttons:
+                    button.set_pos(pg.Vector2(x, 0))
+                    button.size = pg.Vector2(button_size_x, 37)
+                    button.text.pos = button.pos + button.size // 2 - pg.Vector2(button.text.image.get_size()) // 2
+                    x += button_size_x
+
         self.buttons[f"PAGE {self.page}"].lock()
 
-    def page_right(self) -> None:
-        """
-        The action called when the user click on the PAGE RIGHT button (<)
-        Change the interval of page-switching buttons you can see.
-        """
-        self.set_min_visible_page(min(self.max_page - 8, self.min_visible_page + 6))
-
-    def page_left(self) -> None:
-        """
-        The action called when the user click on the PAGE LEFT button (<)
-        Change the interval of page-switching buttons you can see.
-        """
-        self.set_min_visible_page(max(self.min_page, self.min_visible_page - 6))
-
-    def set_min_visible_page(self, min_visible_page: int) -> None:
-        """
-        When you have too much pages, the interface will show only 8 page-switching buttons.
-        The pages chosen are from min_visible_page to min_visible_page+8.
-        So the function set the attribute min_visible_page with the one chosen, and then rearrange the buttons, so
-        that we see this buttons at the right places.
-        """
-        self.min_visible_page = min_visible_page
-        for button in self.buttons.values():
-            if button.name[:4] == "PAGE":
-                button.visible = False
-                button.lock()
-        visible_buttons = [self.buttons["PAGE LEFT"]] + \
-                          [self.buttons[f"PAGE {i}"] for i in range(self.min_visible_page, self.min_visible_page+9)] + \
-                          [self.buttons["PAGE RIGHT"]]
-        size_x = sum([button.size.x for button in visible_buttons]) + 10 * (len(visible_buttons) - 1)
-        x = (1280 + 300) // 2 - size_x // 2
-        for button in visible_buttons:
-            button.set_pos(pg.Vector2(x, 90))
-            x += button.size.x + 10
-            button.visible = True
-            button.unlock()
-        self.buttons[f"PAGE {self.page}"].lock()
 
     def _create_flow_control_entries(self, play_interval: int, render_interval: int) -> None:
         """
@@ -319,9 +350,9 @@ class View:
         :return: Tuple of positional arguments compatible with add_UIElement().
         """
         if t == Slider:
-            return pg.Vector2(x, y), 290 - x
+            return pg.Vector2(x, y), 280 - x
         elif t == Checkbox:
-            return (pg.Vector2(x, y-Checkbox.SIZE.y/2),)
+            return (pg.Vector2(x, y - Checkbox.SIZE.y / 2),)
 
     def _add_model_param_label(self, label: str, y: int) -> tuple[int | float, int | float, Text]:
         """
@@ -334,9 +365,9 @@ class View:
         text = None
         for label in labels:
             if text is not None: y += text.image.get_height()
-            text = self.add_UIElement(Text, pg.Vector2(10, y), label, font_size=20)
+            text = self.add_UIElement(Text, pg.Vector2(10, y), label, self.fonts["basic20"])
             self.control_bar_ui_elements.append(text)
-        return text.image.get_width() + 20, y+text.image.get_height()/2, text  # noqa
+        return text.image.get_width() + 20, y + text.image.get_height() / 2, text  # noqa
 
     def _split_label(self, label: str):
         """ Split the labels so that only max_number_chars characters are in any line. """
@@ -346,7 +377,7 @@ class View:
         i = -1
         last_chosen_i = 0
         current_size = 0
-        while i+1 < len(words):
+        while i + 1 < len(words):
             i += 1
             current_size += len(words[i]) + 1
             if current_size > max_number_chars:
@@ -364,7 +395,7 @@ class View:
                     current_size = len(words[i])
                     last_chosen_i = i
         r = ""
-        for j in range(last_chosen_i, i+1):
+        for j in range(last_chosen_i, i + 1):
             r += words[j] + " "
         res.append(r[:-1])
         return res
@@ -386,7 +417,8 @@ class View:
         self.draw_components()
         self._page_scroll_clamp()
         for ui in self.ui_elements:
-            ui.draw(self.screen)
+            if ui.visible:
+                ui.draw(self.screen)
         if self.model.debug: self.draw_debug()
         self.model.debug_infos["viewer_time"] = time() - start
         pg.display.flip()
@@ -421,10 +453,9 @@ class View:
         texts = []
         for info in self.model.debug_infos:
             texts.append(info + ": " + str(self.model.debug_infos[info]))
-        font = pg.font.Font('freesansbold.ttf', 15)
         y = 0
         for text in texts:
-            image = font.render(text, False, (255, 255, 255), (0, 0, 0, 125))
+            image = self.fonts["basic15"].render(text, False, (255, 255, 255), (0, 0, 0, 125))
             self.screen.blit(image, pg.Vector2(0, y))
             y += image.get_height()
 
@@ -441,6 +472,8 @@ class View:
 
     def toggle_untoggle_control_bar(self):
         self.show_control_bar = not self.show_control_bar
+        self.up_bar_shadow.p1 = pg.Vector2(295*self.show_control_bar, 37)
+        self.up_bar_shadow.curved_border_1 = self.show_control_bar
         for elt in self.control_bar_ui_elements:
             elt.visible = self.show_control_bar
 
@@ -458,4 +491,3 @@ class View:
             self.page_scrolling_y = 0
         elif self.page_scrolling_y >= self.max_page_scrolling_y:
             self.page_scrolling_y = self.max_page_scrolling_y
-

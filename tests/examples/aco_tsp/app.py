@@ -4,7 +4,7 @@ import networkx as nx
 from aco_tsp.model import AcoTspModel, TSPGraph
 from matplotlib.figure import Figure
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import make_plot_component
+from mesa_graphics.components import make_plot_component
 from mesa_graphics.backend_integration import FigureMatplotlib
 
 

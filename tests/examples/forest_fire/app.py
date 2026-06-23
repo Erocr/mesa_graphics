@@ -1,5 +1,5 @@
 from forest_fire.model import ForestFire
-from mesa_graphics.matplotlib_components import (
+from mesa_graphics.components import (
     make_plot_component,
     make_space_component,
 )

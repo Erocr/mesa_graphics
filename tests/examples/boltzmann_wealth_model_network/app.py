@@ -1,7 +1,7 @@
 from boltzmann_wealth_model_network.model import BoltzmannWealthModelNetwork
 from mesa.mesa_logging import INFO, log_to_stderr
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import (
+from mesa_graphics.components import (
     make_plot_component,
     make_space_component
 )

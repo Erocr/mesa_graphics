@@ -1,5 +1,5 @@
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import make_mpl_space_component
+from mesa_graphics.components import make_mpl_space_component
 from termites.model import TermiteModel
 
 wood_chip_portrayal = {
