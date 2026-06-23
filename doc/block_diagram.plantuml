@@ -1,0 +1,47 @@
+@startuml
+
+start
+
+partition MesaGraphics {
+    :initialize;
+}
+
+partition Model {
+    :initializeModel;
+}
+
+partition View {
+    :initializeView;
+}
+
+partition Controller {
+    :initializeController;
+}
+
+fork
+
+partition MainThread {
+    while (running)
+        :handleUserInputs();
+        :draw();
+    endwhile
+}
+
+fork again
+
+partition WorkerThread {
+    while (running)
+        :updateModel();
+        :render();
+    endwhile
+}
+
+end fork
+
+partition MesaGraphics {
+    :shutdown;
+}
+
+stop
+
+@enduml
