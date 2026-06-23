@@ -6,7 +6,7 @@ from dining_philosophers.agent import ForkAgent, PhilosopherAgent, State
 from dining_philosophers.model import DiningPhilosophersModel
 from matplotlib.figure import Figure
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import make_space_component, make_plot_component
+from mesa_graphics.components import make_space_component, make_plot_component
 from mesa_graphics.backend_integration import FigureMatplotlib
 
 

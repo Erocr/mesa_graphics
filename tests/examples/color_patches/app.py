@@ -5,7 +5,7 @@ the drawing of the model representation on the canvas
 # import webbrowser
 from color_patches.model import ColorPatches
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import make_space_component
+from mesa_graphics.components import make_space_component
 from mesa.visualization.user_param import (
     Slider,
 )

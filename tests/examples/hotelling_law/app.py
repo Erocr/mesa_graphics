@@ -5,7 +5,7 @@ from hotelling_law.agents import ConsumerAgent, StoreAgent
 from hotelling_law.model import HotellingModel
 from matplotlib.figure import Figure
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import make_plot_component
+from mesa_graphics.components import make_plot_component
 from mesa_graphics.backend_integration import FigureMatplotlib
 
 model_params = {

@@ -4,7 +4,7 @@ from typing import Callable
 
 from mesa_graphics.Component import Component
 from mesa_graphics.UIElement import *
-from mesa_graphics.matplotlib_components import create_space_component
+from mesa_graphics.components import create_space_component
 from time import time
 import mesa.visualization.user_param as mesa_user_param
 
@@ -60,9 +60,9 @@ class View:
 
     def init_fonts(self):
         pg.font.init()
-        eternalo_path = Path(__file__).parent.parent.joinpath("assets/Eternalo.ttf")
-        self.fonts["basic15"] = pg.font.Font(eternalo_path, 15)
-        self.fonts["basic20"] = pg.font.Font(eternalo_path, 20)
+        default_path = pg.font.get_default_font()
+        self.fonts["basic15"] = pg.font.Font(default_path, 15)
+        self.fonts["basic20"] = pg.font.Font(default_path, 20)
 
     def quit(self):
         """ End the visualization """

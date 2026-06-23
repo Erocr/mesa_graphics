@@ -20,8 +20,8 @@ class Controller:
         self.inputHandler = InputHandler()
         self.model = model
         self.view = view
-        self.sliderController = UserParamController(model, view, self.inputHandler)
-        self.buttonsController = ButtonsController(model, view, self.inputHandler, self.sliderController)
+        self.userParamController = UserParamController(model, view, self.inputHandler)
+        self.buttonsController = ButtonsController(model, view, self.inputHandler, self.userParamController)
 
     def update(self):
         """
@@ -53,7 +53,7 @@ class Controller:
         if isinstance(ui, Button):
             self.buttonsController.update(ui)
         if isinstance(ui, UserParam):
-            self.sliderController.update(ui, focused)
+            self.userParamController.update(ui, focused)
 
     @property
     def is_terminated(self):

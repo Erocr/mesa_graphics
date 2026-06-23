@@ -3,7 +3,7 @@ import logging
 import matplotlib.pyplot as plt
 from deffuant_weisbuch.model import DeffuantWeisbuchModel
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import make_plot_component
+from mesa_graphics.components import make_plot_component
 from mesa_graphics.backend_integration import FigureMatplotlib
 from mesa.visualization.utils import update_counter
 
