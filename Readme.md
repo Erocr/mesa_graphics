@@ -37,10 +37,16 @@ To install the latest stable Mesa release, run:
 pip install mesa
 ```
 
+You need also networkx, altair, matplolib and solara:
+
+```bash
+pip install networkx altair matplotlib solara
+```
+
 ### Install pygame 2.6.1 or later
  
 ```bash
-pip install Pygame
+pip install pygame
 ```
 Use Pygame 2.6.1 or later.
 
@@ -49,8 +55,11 @@ Use Pygame 2.6.1 or later.
 Start by cloning the repository in your project folder 
 ```bash
 cd projectFolder
-git clone 'https://github.com/Erocr/mesa_graphics.git'
+git clone --filter=blob:none --sparse https://github.com/Erocr/mesa_graphics.git
+cd mesa_graphics
+git sparse-checkout set mesa_graphics
 ```
+This command clone only the part of the repository with the source code.  
 If git is not installed on your computer, or you have problems, you can go directly on 
 [the github page](https://github.com/Erocr/mesa_graphics), then click on the green Code button, download ZIP, and 
 extract the ZIP file in your project folder.

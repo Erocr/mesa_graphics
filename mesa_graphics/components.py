@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from mesa.visualization.mpl_space_drawing import draw_space
 
-from mesa_graphics.backend_integration import FigureMatplotlib
+from .backend_integration import FigureMatplotlib
 
 
 def make_mpl_plot_component(

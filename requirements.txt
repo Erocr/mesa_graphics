@@ -1,5 +1,7 @@
-mesa
 numpy
 matplotlib
-pandas
+mesa
+networkx
+altair
+solara
 pygame
