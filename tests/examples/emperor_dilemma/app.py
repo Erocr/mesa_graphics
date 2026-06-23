@@ -1,6 +1,6 @@
 from mesa.visualization import Slider, SpaceRenderer
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import make_plot_component
+from mesa_graphics.components import make_plot_component
 from mesa.visualization.components.portrayal_components import AgentPortrayalStyle
 
 from tests.examples.emperor_dilemma.model import EmperorModel

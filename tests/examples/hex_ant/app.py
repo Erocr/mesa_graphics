@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import make_space_component
+from mesa_graphics.components import make_space_component
 from mesa.visualization.components import PropertyLayerStyle
 
 from tests.examples.hex_ant.agent import AntState

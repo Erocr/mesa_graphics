@@ -4,7 +4,7 @@ from mesa.visualization.components import AgentPortrayalStyle
 from mesa.visualization.space_renderer import SpaceRenderer
 
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import make_mpl_plot_component
+from mesa_graphics.components import make_mpl_plot_component
 
 
 class MoneyAgent(CellAgent):

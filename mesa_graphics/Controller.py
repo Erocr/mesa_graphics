@@ -20,8 +20,8 @@ class Controller:
         self.inputHandler = InputHandler()
         self.model = model
         self.view = view
-        self.sliderController = UserParamController(model, view, self.inputHandler)
-        self.buttonsController = ButtonsController(model, view, self.inputHandler, self.sliderController)
+        self.userParamController = UserParamController(model, view, self.inputHandler)
+        self.buttonsController = ButtonsController(model, view, self.inputHandler, self.userParamController)
 
     def update(self):
         """
@@ -53,7 +53,7 @@ class Controller:
         if isinstance(ui, Button):
             self.buttonsController.update(ui)
         if isinstance(ui, UserParam):
-            self.sliderController.update(ui, focused)
+            self.userParamController.update(ui, focused)
 
     @property
     def is_terminated(self):
@@ -157,7 +157,6 @@ class ButtonsController:
 
         def toggle_or_untoggle_control_bar():
             self.view.toggle_untoggle_control_bar()
-            self.view.buttons["remove control bar"].modify_text(("SHOW", "HIDE")[self.view.show_control_bar])
 
         self.button_actions["STEP"] = step_action
         self.button_actions["START/STOP"] = start_or_stop_action
@@ -172,9 +171,6 @@ class ButtonsController:
             return res
         for i in range(self.view.min_page, self.view.max_page+1):
             self.button_actions[f"PAGE {i}"] = switch_page(i)
-
-        self.button_actions["PAGE RIGHT"] = lambda: self.view.page_right()
-        self.button_actions["PAGE LEFT"] = lambda: self.view.page_left()
 
     def update(self, button: Button):
         """

@@ -2,7 +2,7 @@ import weakref
 
 from matplotlib.markers import MarkerStyle
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import make_plot_component, make_space_component
+from mesa_graphics.components import make_plot_component, make_space_component
 from mesa.visualization import Slider
 from virus_antibody.agents import AntibodyAgent, VirusAgent
 from virus_antibody.model import VirusAntibodyModel

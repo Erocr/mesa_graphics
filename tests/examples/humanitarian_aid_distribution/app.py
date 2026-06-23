@@ -2,7 +2,7 @@ from humanitarian_aid_distribution.agents import Beneficiary, Truck
 from humanitarian_aid_distribution.model import HumanitarianModel
 from mesa.visualization import SpaceRenderer
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.matplotlib_components import make_plot_component
+from mesa_graphics.components import make_plot_component
 from mesa.visualization.components import AgentPortrayalStyle
 
 
