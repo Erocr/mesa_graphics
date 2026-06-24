@@ -1,3 +1,4 @@
+import warnings
 from typing import Callable
 
 from .Component import Component
@@ -32,8 +33,9 @@ class View:
         self.init_fonts()
         self.screen = pg.display.set_mode((1280, 740), pg.RESIZABLE)
         self.model = model
-        self.max_page_scrolling_y = 0
-        self.page_scrolling_y = 0
+        self.max_param_scrolling_y = self.param_scrolling_y = 0
+        self.param_elements = []  # There are all the elements that you can move scrolling through the parameter window
+        self.max_page_scrolling_y = self.page_scrolling_y = 0
         self.page = 0  # Showed page
         self.min_page = self.max_page = 0  # The minimal page and maximal page existing
         self.min_visible_page = 0  # The minimal switch-page button showed
@@ -260,7 +262,7 @@ class View:
             "step": 10,
             "value": play_interval,
             "param_name": "play_interval",
-            "label": "play interval (ms):",
+            "label": "Play interval (ms):",
             "model_param": False
         }
         y = self._create_user_param("play_interval", play_interval_params, y)
@@ -272,7 +274,7 @@ class View:
             "step": 1,
             "value": render_interval,
             "param_name": "render_interval",
-            "label": "render interval (steps): ",
+            "label": "Render interval (steps): ",
             "model_param": False
         }
         self._create_user_param("render_interval", render_interval_params, y)
@@ -285,6 +287,7 @@ class View:
         y = 300
         for param_name in model_params:
             y = self._create_user_param(param_name, model_params[param_name], y)
+        self.max_param_scrolling_y = max(y - 700, 0)
 
     def _create_user_param(self, param_name: str, model_param, y: int) -> int:
         """
@@ -310,6 +313,7 @@ class View:
             args = self._compute_args_for_user_params_creation(type, x, y)
             elem = self.add_UIElement(type, *args, **param)
             self.control_bar_ui_elements.append(elem)
+            self.param_elements.append(elem)
 
         return y + 30
 
@@ -367,6 +371,7 @@ class View:
             if text is not None: y += text.image.get_height()
             text = self.add_UIElement(Text, pg.Vector2(10, y), label, self.fonts["basic20"])
             self.control_bar_ui_elements.append(text)
+            self.param_elements.append(text)
         return text.image.get_width() + 20, y + text.image.get_height() / 2, text  # noqa
 
     def _split_label(self, label: str):
@@ -477,7 +482,7 @@ class View:
         for elt in self.control_bar_ui_elements:
             elt.visible = self.show_control_bar
 
-    def scroll(self, amount: int):
+    def scroll_page(self, amount: int):
         """
         Scroll through the components if there are to many components.
         :param amount: how much the user is scrolling.
@@ -485,9 +490,26 @@ class View:
         self.page_scrolling_y += amount * self.SCROLL_SENSIBILITY
         self._page_scroll_clamp()
 
+    def scroll_params(self, amount: int):
+        """
+        Scroll through the parameters if there are to many parameters.
+        :param amount: how much the user is scrolling.
+        """
+        prev_param_scrolling_y = self.param_scrolling_y
+        self.param_scrolling_y += amount * self.SCROLL_SENSIBILITY
+        self._param_scroll_clamp()
+        amount = self.param_scrolling_y - prev_param_scrolling_y
+        for element in self.param_elements:
+            element.set_pos(element.pos - pg.Vector2(0, amount))
+
     def _page_scroll_clamp(self):
-        """ Clamp the scroll value if it is too high or too low. """
         if self.page_scrolling_y <= 0:
             self.page_scrolling_y = 0
         elif self.page_scrolling_y >= self.max_page_scrolling_y:
             self.page_scrolling_y = self.max_page_scrolling_y
+
+    def _param_scroll_clamp(self):
+        if self.param_scrolling_y <= 0:
+            self.param_scrolling_y = 0
+        elif self.param_scrolling_y >= self.max_param_scrolling_y:
+            self.param_scrolling_y = self.max_param_scrolling_y

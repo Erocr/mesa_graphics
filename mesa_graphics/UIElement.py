@@ -24,6 +24,9 @@ class UIElement:
         """ This function draws the UIElement onto the screen. """
         assert False, "this is an abstract method"
 
+    def set_pos(self, new_pos):
+        self.pos = new_pos
+
 
 class Rectangle(UIElement):
     def __init__(self, pos: pg.Vector2, size: pg.Vector2, color=5):
@@ -60,6 +63,11 @@ class Shadow(UIElement):
             cb1 = dir_v * self.curved_border_1 * i
             cb2 = -dir_v * self.curved_border_2 * i
             pg.draw.line(screen, color, self.p1 + i * self.dir + cb1, self.p2 + i * self.dir + cb2)
+
+    def set_pos(self, new_pos):
+        v = self.p2 - self.p1
+        self.p1 = new_pos
+        self.p2 = new_pos + v
 
 
 class Text(UIElement):
@@ -205,8 +213,10 @@ class Slider(UserParam):
         self.type = t
 
     def draw(self, screen: pg.Surface) -> None:
-        pg.draw.rect(screen, (0, 50, 255), pg.Rect(self.pos - pg.Vector2(0, self.BAR_HEIGHT//2),
-                                                   pg.Vector2(self.length, self.BAR_HEIGHT)))
+        pg.draw.rect(screen, (0, 50, 255), pg.Rect(self.pos + pg.Vector2(0, -self.BAR_HEIGHT//2),
+                                                   pg.Vector2(self.selectedPosX-self.pos.x, self.BAR_HEIGHT)))
+        pg.draw.rect(screen, (180, 180, 180), pg.Rect(self.pos + pg.Vector2(self.selectedPosX-self.pos.x, -self.BAR_HEIGHT // 2),
+                                                      pg.Vector2(self.length-self.selectedPosX+self.pos.x, self.BAR_HEIGHT)))
         circle_color = (0, 150, 255) if self.hover else (0, 50, 255)
         pg.draw.circle(screen, circle_color, pg.Vector2(self.selectedPosX, self.pos.y), self.CIRCLE_RADIUS)
         if self.hover:
@@ -220,6 +230,11 @@ class Slider(UserParam):
                                           self.pos.y-self.CIRCLE_RADIUS-image.get_height()))
         self.min_image.draw(screen)
         self.max_image.draw(screen)
+
+    def set_pos(self, new_pos):
+        self.pos = new_pos
+        self.min_image.pos = new_pos
+        self.max_image.pos = new_pos + pg.Vector2(self.length - self.max_image.image.get_width(), 0)
 
     def compute_precision(self) -> int:
         return int(max(-log10(self.max - self.min) + 2, 1))
