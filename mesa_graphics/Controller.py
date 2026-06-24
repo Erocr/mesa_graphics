@@ -1,3 +1,5 @@
+import mesa.visualization
+
 from .InputHandler import InputHandler
 from .UIElement import Button, Slider, UserParam, Checkbox
 from pygame import K_d
@@ -6,7 +8,7 @@ from .View import View
 
 
 class Controller:
-    def __init__(self, model: Model, view: View):
+    def __init__(self, model: Model, view: View, model_params=None):
         """ Controller class
         /!\\ The user must not use this class, use MesaGraphics instead /!\\
 
@@ -20,8 +22,9 @@ class Controller:
         self.inputHandler = InputHandler()
         self.model = model
         self.view = view
-        self.userParamController = UserParamController(model, view, self.inputHandler)
+        self.userParamController = UserParamController(model, view, self.inputHandler, model_params=model_params)
         self.buttonsController = ButtonsController(model, view, self.inputHandler, self.userParamController)
+        self.anormal_termination = False
 
     def update(self):
         """
@@ -64,11 +67,14 @@ class Controller:
     @property
     def is_terminated(self):
         """ Get if user asked to close the window, and so, to end the visualization. """
-        return self.inputHandler.quit
+        return self.inputHandler.quit or self.anormal_termination
+
+    def terminate(self):
+        self.anormal_termination = True
 
 
 class UserParamController:
-    def __init__(self, model: Model, view: View, inputHandler: InputHandler):
+    def __init__(self, model: Model, view: View, inputHandler: InputHandler, model_params=None):
         """
         This class is responsible to update the user's params, according to the user's inputs.
         The user's params are the sliders, and buttons in the column, in the left part of the screen.
@@ -76,6 +82,15 @@ class UserParamController:
         self.model = model
         self.view = view
         self.inputHandler = inputHandler
+        self.default_model_params = {}
+        self.set_default_model_params(model_params)
+
+    def set_default_model_params(self, model_params):
+        for param in model_params:
+            if isinstance(model_params[param], dict) or isinstance(model_params[param], mesa.visualization.Slider):
+                pass
+            else:
+                self.default_model_params[param] = model_params[param]
 
     def update(self, userParam: UserParam, focused=False):
         """
@@ -117,7 +132,7 @@ class UserParamController:
         """
         Get the parameters to put in the user's Model we want to re-instantiate.
         """
-        res = {}
+        res = self.default_model_params.copy()
         for param in self.view.userTweakableModelParams:
             res[param] = self.view.userTweakableModelParams[param].value
         return res

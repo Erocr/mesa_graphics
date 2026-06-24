@@ -1,3 +1,5 @@
+import warnings
+
 from .View import View
 from .Controller import Controller
 from .Model import Model
@@ -39,7 +41,7 @@ class MesaGraphics:
         self.model = Model(model, play_interval, render_interval)
         self.view = View(self.model, renderer=renderer, components=components, play_interval=play_interval,
                          render_interval=render_interval, model_params=model_params, name=name)
-        self.controller = Controller(self.model, self.view)
+        self.controller = Controller(self.model, self.view, model_params=model_params)
         self.barrier = threading.Barrier(2)
         self.update_thread = threading.Thread(target=self._worker_thread_loop)
         self.update_thread.start()
@@ -56,10 +58,14 @@ class MesaGraphics:
         This thread must be as fast as possible in order to have a responsive graphical interface.
         So, execute all the heavy computations in the worker thread.
         """
-        while not self.controller.is_terminated:
-            self.controller.update()
-            self.view.draw()
-            sleep(0.001)
+        try:
+            while not self.controller.is_terminated:
+                self.controller.update()
+                self.view.draw()
+                sleep(0.001)
+        except Exception as ex:
+            self.controller.terminate()
+            warnings.warn(f"An error occurred in the viewer thread: \n{ex}")
         self.view.quit()
         self.barrier.wait()
 
@@ -74,11 +80,16 @@ class MesaGraphics:
         Rendering can also be very time-consuming, and user can create custom components, making it possibly even
         slower.
         """
-        while not self.controller.is_terminated:
-            start = time()
-            self.model.update()
-            self.view.render()
-            d = time() - start
-            if d < self.model.play_interval * 0.001:
-                sleep(self.model.play_interval * 0.001 - d)
+        try:
+            while not self.controller.is_terminated:
+                start = time()
+                self.model.update()
+                self.view.render()
+                d = time() - start
+                if d < self.model.play_interval * 0.001:
+                    sleep(self.model.play_interval * 0.001 - d)
+        except Exception as ex:
+            self.controller.terminate()
+            warnings.warn(f"An error occurred in the worker thread: \n{ex}")
         self.barrier.wait()
+
