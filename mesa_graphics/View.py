@@ -485,7 +485,10 @@ class UserParamView:
         :param play_interval: The starting value of the play_interval's slider
         :param render_interval: The starting value of the render_interval's slider
         """
-        y = 90
+        starting_y = y = 90
+        rect = self.view.add_UIElement(Rectangle, pg.Vector2(5, y - 10), pg.Vector2(285, 10), 5, border_radius=10)
+        self.scrollable_elements.append(rect)
+        self.hideable_elements.append(rect)
         play_interval_params = {
             "type": "SliderInt",
             "min": 0,
@@ -508,7 +511,8 @@ class UserParamView:
             "label": "Render interval (steps): ",
             "model_param": False
         }
-        self._create_user_param("render_interval", render_interval_params, y)
+        y = self._create_user_param("render_interval", render_interval_params, y)
+        rect.size.y = y - starting_y
 
     def _user_input_params_extraction(self, param, param_name: str) -> tuple[type[UserParam], dict]:
         """
