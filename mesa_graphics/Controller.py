@@ -190,7 +190,7 @@ class ButtonsController:
             def res():
                 self.view.switch_page(i)
             return res
-        for i in range(self.view.min_page, self.view.max_page+1):
+        for i in range(self.view.componentsView.min_page, self.view.componentsView.max_page+1):
             self.button_actions[f"PAGE {i}"] = switch_page(i)
 
     def update(self, button: Button):

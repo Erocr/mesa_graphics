@@ -1,5 +1,4 @@
 import warnings
-from typing import Callable
 
 from .Component import Component
 from .UIElement import *
@@ -9,7 +8,7 @@ import mesa.visualization.user_param as mesa_user_param
 
 
 class View:
-    SCROLL_SENSIBILITY = 10
+    SCROLL_SENSIBILITY = 15
 
     def __init__(self, model, renderer=None, components=None, play_interval=100, render_interval=1, model_params=None,
                  name=None):
@@ -35,17 +34,9 @@ class View:
         self.model = model
         self.max_param_scrolling_y = self.param_scrolling_y = 0
         self.param_elements = []  # There are all the elements that you can move scrolling through the parameter window
-        self.max_page_scrolling_y = self.page_scrolling_y = 0
-        self.page = 0  # Showed page
-        self.min_page = self.max_page = 0  # The minimal page and maximal page existing
-        self.min_visible_page = 0  # The minimal switch-page button showed
-        if components is None:
-            self.components = {0: []}
-        else:
-            self.components = {0: []}
-            self._store_components(components)
-        if renderer is not None:
-            self.components[0].insert(0, Component(self.model, create_space_component(renderer)))
+
+        self.componentsView = ComponentsView(self, components, renderer)
+
         self.buttons = {}  # Provide fast and easy access to buttons
         self.userTweakableModelParams = {}  # Provide fast and easy access to user parameters
         self.userEntries = {}
@@ -89,47 +80,11 @@ class View:
                 self.userEntries[to_add.name] = to_add
         return to_add
 
-    def _store_components(self, components: list[tuple[Callable, int] | Callable]):
-        """
-        Store the components in a more suitable way, so it will be easier to access.
-        It associates to each page the list of components that are in this page.
-
-        :param components: a list of components. Each component can be a tuple (component, page), or only a component.
-
-        For each element of components. If it is only a component, it will be by default placed at the page 0.
-        Moreover, if not all th pages are used, it will create empty pages automatically. For example, if you have
-        page 0 and 3 used, it will create automatically pages 1 and 2 blank.
-        """
-        for comp_page in components:
-            if isinstance(comp_page, tuple):
-                comp, page = comp_page
-            else:
-                comp, page = comp_page, 0
-            if page not in self.components:
-                self.components[page] = []
-            self.components[page].append(Component(self.model, comp))
-        self._add_unuseful_pages()
-
-    def _add_unuseful_pages(self):
-        """
-        Create as many blank pages as needed.
-        If the user put something in the 0-th page anf the second page, this function creates a blank
-        page for page 1.
-        """
-        self.min_page = 0
-        self.max_page = 0
-        for page in self.components:
-            if page < self.min_page: self.min_page = page
-            if page > self.max_page: self.max_page = page
-        for i in range(self.min_page + 1, self.max_page):
-            if i not in self.components:
-                self.components[i] = []
-
     def _create_ui(self, name: str, model_params, play_interval: int, render_interval: int) -> None:
         """ Instantiate the UI. """
         self._create_controls(model_params, play_interval, render_interval)
         self._create_up_bar(name)
-        self._create_switch_page_buttons()
+        self.componentsView.create_switch_page_buttons()
 
     def _create_up_bar(self, name: str) -> None:
         """ Creates the blue bar on top of the screen, and write the name into it. """
@@ -148,10 +103,10 @@ class View:
             pg.draw.rect(screen, palette[bg_color], pg.Rect(button.pos, button.size), border_radius=10)
 
             offset = pg.Vector2(5, 5)
-            pg.draw.rect(screen, palette[1], pg.Rect(button.pos+offset, button.size-2*offset),
+            pg.draw.rect(screen, palette[1], pg.Rect(button.pos + offset, button.size - 2 * offset),
                          border_radius=5, width=3)
-            pg.draw.line(screen, palette[1], button.pos+offset+pg.Vector2(8, 0),
-                         button.pos+offset+pg.Vector2(8, button.size.y-2*offset.y-3), width=3)
+            pg.draw.line(screen, palette[1], button.pos + offset + pg.Vector2(8, 0),
+                         button.pos + offset + pg.Vector2(8, button.size.y - 2 * offset.y - 3), width=3)
 
         button = self.add_UIElement(Button, pg.Vector2(0, 0), "",
                                     self.fonts["basic15"], name="remove control bar",
@@ -167,7 +122,7 @@ class View:
         rect = self.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), 4)
         self.control_bar_ui_elements.append(rect)
         l = 5
-        shadow = self.add_UIElement(Shadow, pg.Vector2(300-l, 37), pg.Vector2(300-l, 740), pg.Vector2(1, 0), l,
+        shadow = self.add_UIElement(Shadow, pg.Vector2(300 - l, 37), pg.Vector2(300 - l, 740), pg.Vector2(1, 0), l,
                                     curved_border_1=True)
         self.control_bar_ui_elements.append(shadow)
         self._create_flow_control_entries(play_interval, render_interval)
@@ -181,7 +136,7 @@ class View:
 
         def custom_draw(b, screen):
             bg_color = 3 if b.hover else 1
-            pos = b.pos+pg.Vector2(5, 5)
+            pos = b.pos + pg.Vector2(5, 5)
             size = pg.Vector2(55, 27)
             pg.draw.rect(screen, palette[bg_color], pg.Rect(pos, size), border_radius=10)
             b.text.pos = pos + size / 2 - pg.Vector2(*b.text.image.get_size()) / 2
@@ -189,64 +144,8 @@ class View:
 
         for i in range(3):
             self.add_UIElement(Button, pg.Vector2(x, 0), texts[i], self.fonts["basic15"], name=names[i],
-                                        custom_draw=custom_draw)
+                               custom_draw=custom_draw)
             x += 60
-
-    def _create_switch_page_buttons(self) -> None:
-        """
-        This function creates the buttons on top of the screen which allow to change the page.
-        They are aligned.
-        If there are too many pages, it shows buttons that allow to change the page-switching buttons shown.
-        """
-        buttons = []
-
-        def custom_page_draw(button, screen):
-            if button.locked:
-                pg.draw.rect(screen, palette[5], pg.Rect(button.pos, button.size),
-                             border_top_left_radius=10, border_top_right_radius=10)
-                pg.draw.rect(screen, palette[5], pg.Rect(button.pos + pg.Vector2(-10, button.size.y - 10),
-                                                              pg.Vector2(10, 10)))
-                pg.draw.rect(screen, palette[5],
-                             pg.Rect(button.pos + pg.Vector2(button.size.x, button.size.y - 10), pg.Vector2(10, 10)))
-                pg.draw.circle(screen, palette[2], button.pos + pg.Vector2(-10, button.size.y - 10), 10,
-                               draw_bottom_right=True)
-                pg.draw.circle(screen, palette[2],
-                               button.pos + pg.Vector2(button.size.x + 10, button.size.y - 10), 10,
-                               draw_bottom_left=True)
-            elif button.hover:
-                pg.draw.rect(screen, (180, 180, 180),
-                             pg.Rect(button.pos + pg.Vector2(5, 5),
-                                     button.size - pg.Vector2(10, 10)),
-                             border_radius=10)
-            button.text.draw(screen)
-
-        if self.max_page + 1 - self.min_page <= 10:
-            for i in range(self.min_page, self.max_page + 1):
-                buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.fonts["basic15"],
-                                                  custom_draw=custom_page_draw))
-            size_x = sum([button.size.x for button in buttons])
-            x = (1050 + 300) // 2 - size_x // 2
-            for button in buttons:
-                button.set_pos(pg.Vector2(x, 0))
-                x += button.size.x
-                button.size.y = 37
-
-        else:
-            if 30 < -self.min_page+self.max_page+1:
-                warnings.warn("There are to many pages, the visualisation could not support it.")
-            for i in range(self.min_page, self.max_page + 1):
-                buttons.append(self.add_UIElement(Button, pg.Vector2(0, 0), f"{i}", self.fonts["basic15"],
-                                                  custom_draw=custom_page_draw, name=f"PAGE {i}"))
-                x = 310
-                button_size_x = (1040 - 310) // len(buttons)
-                for button in buttons:
-                    button.set_pos(pg.Vector2(x, 0))
-                    button.size = pg.Vector2(button_size_x, 37)
-                    button.text.pos = button.pos + button.size // 2 - pg.Vector2(button.text.image.get_size()) // 2
-                    x += button_size_x
-
-        self.buttons[f"PAGE {self.page}"].lock()
-
 
     def _create_flow_control_entries(self, play_interval: int, render_interval: int) -> None:
         """
@@ -410,8 +309,7 @@ class View:
         Renders all the component images according to the model state. It stores the images in the components
         themselves. Note that these operations are really heavy.
         """
-        for component in self.components[self.page]:
-            component.render()
+        self.componentsView.render()
 
     def draw(self):
         """
@@ -419,36 +317,14 @@ class View:
         """
         start = time()
         self.screen.fill((255, 255, 255))
-        self.draw_components()
-        self._page_scroll_clamp()
+        self.componentsView.draw()
+
         for ui in self.ui_elements:
             if ui.visible:
                 ui.draw(self.screen)
         if self.model.debug: self.draw_debug()
         self.model.debug_infos["viewer_time"] = time() - start
         pg.display.flip()
-
-    def draw_components(self):
-        """
-        This function draws all the components in the current page.
-        """
-        y = 135 - self.page_scrolling_y
-        next_y = y - 55
-        default_x = (0, 300)[self.show_control_bar]
-        x = default_x
-        for component in self.components[self.page]:
-            image = component.image
-            if image is None:
-                continue
-            size = image.get_size()
-            if size[0] + x > 1280:
-                y = next_y + 10
-                next_y = y
-                x = default_x
-            next_y = max(next_y, y + size[1])
-            self.screen.blit(image, (x, y))
-            x += size[0] + 10
-        self.max_page_scrolling_y = max(next_y - 700 + self.page_scrolling_y, 0)
 
     def draw_debug(self):
         """
@@ -470,14 +346,11 @@ class View:
 
         Resets the page scrolling position.
         """
-        self.buttons[f"PAGE {self.page}"].unlock()
-        self.page = new_page
-        self.buttons[f"PAGE {self.page}"].lock()
-        self.page_scrolling_y = 0
+        self.componentsView.switch_page(new_page)
 
     def toggle_untoggle_control_bar(self):
         self.show_control_bar = not self.show_control_bar
-        self.up_bar_shadow.p1 = pg.Vector2(295*self.show_control_bar, 37)
+        self.up_bar_shadow.p1 = pg.Vector2(295 * self.show_control_bar, 37)
         self.up_bar_shadow.curved_border_1 = self.show_control_bar
         for elt in self.control_bar_ui_elements:
             elt.visible = self.show_control_bar
@@ -487,8 +360,7 @@ class View:
         Scroll through the components if there are to many components.
         :param amount: how much the user is scrolling.
         """
-        self.page_scrolling_y += amount * self.SCROLL_SENSIBILITY
-        self._page_scroll_clamp()
+        self.componentsView.scroll(amount)
 
     def scroll_params(self, amount: int):
         """
@@ -502,14 +374,163 @@ class View:
         for element in self.param_elements:
             element.set_pos(element.pos - pg.Vector2(0, amount))
 
+    def _param_scroll_clamp(self):
+        if self.param_scrolling_y <= 0:
+            self.param_scrolling_y = 0
+        elif self.param_scrolling_y >= self.max_param_scrolling_y:
+            self.param_scrolling_y = self.max_param_scrolling_y
+
+
+class ComponentsView:
+    def __init__(self, view: View, components, renderer):
+        self.view = view
+        self.max_page_scrolling_y = self.page_scrolling_y = 0
+        self.page = 0  # Showed page
+        self.min_page = self.max_page = 0  # The minimal page and maximal page existing
+        self.min_visible_page = 0  # The minimal switch-page button showed
+        if components is None:
+            self.components = {0: []}
+        else:
+            self.components = {0: []}
+            self._store_components(components)
+        if renderer is not None:
+            self.components[0].insert(0, Component(self.view.model, create_space_component(renderer)))
+
+    def _store_components(self, components: list[tuple[Callable, int] | Callable]):
+        """
+        Store the components in a more suitable way, so it will be easier to access.
+        It associates to each page the list of components that are in this page.
+
+        :param components: a list of components. Each component can be a tuple (component, page), or only a component.
+
+        For each element of components. If it is only a component, it will be by default placed at the page 0.
+        Moreover, if not all th pages are used, it will create empty pages automatically. For example, if you have
+        page 0 and 3 used, it will create automatically pages 1 and 2 blank.
+        """
+        for comp_page in components:
+            if isinstance(comp_page, tuple):
+                comp, page = comp_page
+            else:
+                comp, page = comp_page, 0
+            if page not in self.components:
+                self.components[page] = []
+            self.components[page].append(Component(self.view.model, comp))
+        self._add_unuseful_pages()
+
+    def _add_unuseful_pages(self):
+        """
+        Create as many blank pages as needed.
+        If the user put something in the 0-th page anf the second page, this function creates a blank
+        page for page 1.
+        """
+        self.min_page = 0
+        self.max_page = 0
+        for page in self.components:
+            if page < self.min_page: self.min_page = page
+            if page > self.max_page: self.max_page = page
+        for i in range(self.min_page + 1, self.max_page):
+            if i not in self.components:
+                self.components[i] = []
+
+    def create_switch_page_buttons(self) -> None:
+        """
+        This function creates the buttons on top of the screen which allow to change the page.
+        They are aligned.
+        If there are too many pages, it shows buttons that allow to change the page-switching buttons shown.
+        """
+        buttons = []
+
+        def custom_page_draw(button, screen):
+            if button.locked:
+                pg.draw.rect(screen, palette[5], pg.Rect(button.pos, button.size),
+                             border_top_left_radius=10, border_top_right_radius=10)
+                pg.draw.rect(screen, palette[5], pg.Rect(button.pos + pg.Vector2(-10, button.size.y - 10),
+                                                         pg.Vector2(10, 10)))
+                pg.draw.rect(screen, palette[5],
+                             pg.Rect(button.pos + pg.Vector2(button.size.x, button.size.y - 10), pg.Vector2(10, 10)))
+                pg.draw.circle(screen, palette[2], button.pos + pg.Vector2(-10, button.size.y - 10), 10,
+                               draw_bottom_right=True)
+                pg.draw.circle(screen, palette[2],
+                               button.pos + pg.Vector2(button.size.x + 10, button.size.y - 10), 10,
+                               draw_bottom_left=True)
+            elif button.hover:
+                pg.draw.rect(screen, (180, 180, 180),
+                             pg.Rect(button.pos + pg.Vector2(5, 5),
+                                     button.size - pg.Vector2(10, 10)),
+                             border_radius=10)
+            button.text.draw(screen)
+
+        if self.max_page + 1 - self.min_page <= 10:
+            for i in range(self.min_page, self.max_page + 1):
+                buttons.append(self.view.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.view.fonts["basic15"],
+                                                       custom_draw=custom_page_draw))
+            size_x = sum([button.size.x for button in buttons])
+            x = (1050 + 300) // 2 - size_x // 2
+            for button in buttons:
+                button.set_pos(pg.Vector2(x, 0))
+                x += button.size.x
+                button.size.y = 37
+
+        else:
+            if 30 < -self.min_page + self.max_page + 1:
+                warnings.warn("There are to many pages, the visualisation could not support it.")
+            for i in range(self.min_page, self.max_page + 1):
+                buttons.append(self.view.add_UIElement(Button, pg.Vector2(0, 0), f"{i}", self.view.fonts["basic15"],
+                                                       custom_draw=custom_page_draw, name=f"PAGE {i}"))
+                x = 310
+                button_size_x = (1040 - 310) // len(buttons)
+                for button in buttons:
+                    button.set_pos(pg.Vector2(x, 0))
+                    button.size = pg.Vector2(button_size_x, 37)
+                    button.text.pos = button.pos + button.size // 2 - pg.Vector2(button.text.image.get_size()) // 2
+                    x += button_size_x
+
+        self.view.buttons[f"PAGE {self.page}"].lock()
+
+    def draw(self):
+        """
+        This function draws all the components in the current page.
+        """
+        y = 135 - self.page_scrolling_y
+        next_y = y - 55
+        default_x = (0, 300)[self.view.show_control_bar]
+        x = default_x
+        for component in self.components[self.page]:
+            image = component.image
+            if image is None:
+                continue
+            size = image.get_size()
+            if size[0] + x > 1280:
+                y = next_y + 10
+                next_y = y
+                x = default_x
+            next_y = max(next_y, y + size[1])
+            self.view.screen.blit(image, (x, y))
+            x += size[0] + 10
+        self.max_page_scrolling_y = max(next_y - 700 + self.page_scrolling_y, 0)
+        self._page_scroll_clamp()
+
+    def switch_page(self, new_page):
+        """ Change the current page """
+        self.view.buttons[f"PAGE {self.page}"].unlock()
+        self.page = new_page
+        self.view.buttons[f"PAGE {self.page}"].lock()
+        self.page_scrolling_y = 0
+
     def _page_scroll_clamp(self):
         if self.page_scrolling_y <= 0:
             self.page_scrolling_y = 0
         elif self.page_scrolling_y >= self.max_page_scrolling_y:
             self.page_scrolling_y = self.max_page_scrolling_y
 
-    def _param_scroll_clamp(self):
-        if self.param_scrolling_y <= 0:
-            self.param_scrolling_y = 0
-        elif self.param_scrolling_y >= self.max_param_scrolling_y:
-            self.param_scrolling_y = self.max_param_scrolling_y
+    def render(self):
+        """
+        Renders all the component images according to the model state. It stores the images in the components
+        themselves. Note that these operations are really heavy.
+        """
+        for component in self.components[self.page]:
+            component.render()
+
+    def scroll(self, amount: int):
+        self.page_scrolling_y += amount * self.view.SCROLL_SENSIBILITY
+        self._page_scroll_clamp()
