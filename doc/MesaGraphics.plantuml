@@ -1,7 +1,8 @@
 @startuml
 
 class MesaGraphics
-MesaGraphics : start()
+MesaGraphics : _view_thread_loop()
+MesaGraphics : _worker_thread_loop()
 
 class View
 View : screen
@@ -32,24 +33,25 @@ Controller --> InputHandler
 
 class ButtonsController
 ButtonsController : actions
-ButtonsController : update(UIButton)
+ButtonsController : update(Button)
 Controller --> ButtonsController
 View <-- ButtonsController
 Model <-- ButtonsController
 ButtonsController --> InputHandler
 
 
-class SliderController
-SliderController : update(UISlider)
-Controller --> SliderController
-View <-- SliderController
-Model <-- SliderController
-SliderController --> InputHandler
+class UserParamController
+UserParamController : update(UserParam)
+Controller --> UserParamController
+View <-- UserParamController
+Model <-- UserParamController
+UserParamController --> InputHandler
 
 /' ########## Model part ########## '/
 
 class Model
 Model : <color:blue> Model de l'utilisateur
+Model : update()
 
 /' ##########  View part ########## '/
 
@@ -97,8 +99,9 @@ class Checkbox
 UserParam <|-- Checkbox
 
 
-class matplotlib_components
-matplotlib_components : create_space_component(Renderer, page)
-matplotlib_components : make_mpl_plot_component(measure, post_process, page)
+class components
+components : create_space_component(Renderer, page)
+components : make_mpl_plot_component(measure, post_process, page)
+components : make_plot_component(measure, post_process, page)
 
 @enduml

@@ -41,7 +41,7 @@ class MesaGraphics:
                          render_interval=render_interval, model_params=model_params, name=name)
         self.controller = Controller(self.model, self.view)
         self.barrier = threading.Barrier(2)
-        self.update_thread = threading.Thread(target=self._update_thread_loop)
+        self.update_thread = threading.Thread(target=self._worker_thread_loop)
         self.update_thread.start()
         self._view_thread_loop()
 
@@ -63,7 +63,7 @@ class MesaGraphics:
         self.view.quit()
         self.barrier.wait()
 
-    def _update_thread_loop(self):
+    def _worker_thread_loop(self):
         """ Worker loop executed in the secondary thread.
 
         It must execute all the computationally expensive operations. It has the role to:
