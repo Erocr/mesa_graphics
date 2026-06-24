@@ -32,22 +32,17 @@ class View:
         self.init_fonts()
         self.screen = pg.display.set_mode((1280, 740), pg.RESIZABLE)
         self.model = model
-        self.max_param_scrolling_y = self.param_scrolling_y = 0
-        self.param_elements = []  # There are all the elements that you can move scrolling through the parameter window
-
         self.componentsView = ComponentsView(self, components, renderer)
-
+        self.controlBarView = ControlBarView(self)
         self.buttons = {}  # Provide fast and easy access to buttons
-        self.userTweakableModelParams = {}  # Provide fast and easy access to user parameters
-        self.userEntries = {}
         self.ui_elements = []  # List of UI
-        self.control_bar_ui_elements = []  # List of UI in the control bar
+
         self.ui_focused = None  # UI element focused, the other are not interactive while one is focused
-        self.up_bar_shadow = None  # The up bar shadow have to be changed when you toggle / untoggle the left bar
+        # Only the sliders can be focused yet.
+
         if name is None:
             name = type(self.model).__name__
         self._create_ui(name, model_params, play_interval, render_interval)
-        self.show_control_bar = True
 
     def init_fonts(self):
         pg.font.init()
@@ -75,14 +70,14 @@ class View:
             self.buttons[to_add.name] = to_add
         if isinstance(to_add, UserParam):
             if to_add.model_param:
-                self.userTweakableModelParams[to_add.name] = to_add
+                self.controlBarView.userTweakableModelParams[to_add.name] = to_add
             else:
-                self.userEntries[to_add.name] = to_add
+                self.controlBarView.userTweakableEntries[to_add.name] = to_add
         return to_add
 
     def _create_ui(self, name: str, model_params, play_interval: int, render_interval: int) -> None:
         """ Instantiate the UI. """
-        self._create_controls(model_params, play_interval, render_interval)
+        self.controlBarView.create_controls(model_params, play_interval, render_interval)
         self._create_up_bar(name)
         self.componentsView.create_switch_page_buttons()
 
@@ -92,7 +87,7 @@ class View:
         self.up_bar_shadow = self.add_UIElement(Shadow, pg.Vector2(295, 37), pg.Vector2(1280, 37),
                                                 pg.Vector2(0, 1), 5, curved_border_1=True)
         text = self.add_UIElement(Text, pg.Vector2(0, 0), name, self.fonts["basic15"])
-        text.set_pos(pg.Vector2(40, 20 - text.image.get_height() / 2))
+        text.set_pos(pg.Vector2(40, 20 - text.image.get_height() / 2))   # noqa
         self._create_remove_controls_button()
         self._create_reset_start_step_buttons()
 
@@ -114,21 +109,6 @@ class View:
         button.size = pg.Vector2(33, 33)
         button.set_pos(pg.Vector2(2, 2))
 
-    def _create_controls(self, model_params, play_interval: int, render_interval: int) -> None:
-        """
-        This function creates the grey column in the left part of the screen, and fills it with the user parameters.
-        It creates also the 3 buttons RESET, START/STOP, and STEP
-        """
-        rect = self.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), 4)
-        self.control_bar_ui_elements.append(rect)
-        l = 5
-        shadow = self.add_UIElement(Shadow, pg.Vector2(300 - l, 37), pg.Vector2(300 - l, 740), pg.Vector2(1, 0), l,
-                                    curved_border_1=True)
-        self.control_bar_ui_elements.append(shadow)
-        self._create_flow_control_entries(play_interval, render_interval)
-        if model_params is not None:
-            self._create_model_params_entries(model_params)
-
     def _create_reset_start_step_buttons(self):
         x = 1090
         texts = ("RESET", "START", "STEP")
@@ -146,163 +126,6 @@ class View:
             self.add_UIElement(Button, pg.Vector2(x, 0), texts[i], self.fonts["basic15"], name=names[i],
                                custom_draw=custom_draw)
             x += 60
-
-    def _create_flow_control_entries(self, play_interval: int, render_interval: int) -> None:
-        """
-        Create the flow control user parameters. Thus are the two sliders "play interval" and "render interval".
-        :param play_interval: The starting value of the play_interval's slider
-        :param render_interval: The starting value of the render_interval's slider
-        """
-        y = 90
-        play_interval_params = {
-            "type": "SliderInt",
-            "min": 0,
-            "max": 2000,
-            "step": 10,
-            "value": play_interval,
-            "param_name": "play_interval",
-            "label": "Play interval (ms):",
-            "model_param": False
-        }
-        y = self._create_user_param("play_interval", play_interval_params, y)
-
-        render_interval_params = {
-            "type": "SliderInt",
-            "min": 1,
-            "max": 50,
-            "step": 1,
-            "value": render_interval,
-            "param_name": "render_interval",
-            "label": "Render interval (steps): ",
-            "model_param": False
-        }
-        self._create_user_param("render_interval", render_interval_params, y)
-
-    def _create_model_params_entries(self, model_params) -> None:
-        """
-        Create the tweakable user parameters in the left column, which describe how to re-instantiate the model using
-        the RESET button.
-        """
-        y = 300
-        for param_name in model_params:
-            y = self._create_user_param(param_name, model_params[param_name], y)
-        self.max_param_scrolling_y = max(y - 700, 0)
-
-    def _create_user_param(self, param_name: str, model_param, y: int) -> int:
-        """
-        Create a user parameter (UserParam). A user parameter is something that the user can tweak.
-        :param param_name: The name of the user parameter. It is used as an ID to recognize the user parameter.
-        If this name already exists, we will automatically add numbers at the end of the name.
-        :param model_param: a boolean, set to true if the value of the user parameter is uses as a parameter for the
-        next instantiation of the user's model.
-        :param y: The vertical position at which the user parameter widget should be placed.
-        :return: The next available vertical position. This value can be used to place subsequent UI elements without
-        overlapping this widget.
-        """
-        p = self._user_input_params_extraction(model_param, param_name)
-        if p is not None:
-            type, param = p
-            label = param_name
-            if "label" in param:
-                label = param.pop("label")
-
-            x, y, lastUiElement = self._add_model_param_label(label, y)
-            x = 10
-            y += lastUiElement.image.get_height()
-            args = self._compute_args_for_user_params_creation(type, x, y)
-            elem = self.add_UIElement(type, *args, **param)
-            self.control_bar_ui_elements.append(elem)
-            self.param_elements.append(elem)
-
-        return y + 30
-
-    def _user_input_params_extraction(self, param, param_name: str) -> tuple[type[UserParam], dict]:
-        """
-        The user can describe a param with a dictionary, but can also describe it with a mesa_user_param.Slider.
-
-        This functions see how the user describes his userParam, and transform this description in a dictionary
-        description.
-
-        :return: Tuple (UIElementClass, parameter_dict) if the parameter definition is recognized, raise an error.
-        """
-        if isinstance(param, dict):
-            param["param_name"] = param_name
-            t = param.pop("type")
-            param["t"] = t
-            if t in ("SliderInt", "SliderFloat"):
-                return Slider, param
-            elif t == "Checkbox":
-                return Checkbox, param
-            raise NotImplementedError(f"The type {t} has not been implemented")
-        elif isinstance(param, mesa_user_param.Slider):
-            res = {
-                "param_name": param_name,
-                "label": param.label,
-                "min": param.min,
-                "max": param.max,
-                "step": param.step,
-                "value": param.value,
-                "t": ("SliderInt", "SliderFloat")[param.is_float_slider]
-            }
-            return Slider, res
-
-    def _compute_args_for_user_params_creation(self, t: type[UserParam], x: int, y: int):
-        """
-        Build the positional arguments required to instantiate a specific UserParam widget.
-        :param t: Widget class to instantiate.
-        :return: Tuple of positional arguments compatible with add_UIElement().
-        """
-        if t == Slider:
-            return pg.Vector2(x, y), 280 - x
-        elif t == Checkbox:
-            return (pg.Vector2(x, y - Checkbox.SIZE.y / 2),)
-
-    def _add_model_param_label(self, label: str, y: int) -> tuple[int | float, int | float, Text]:
-        """
-        Helper function that creates the label as Text for a model parameter.
-
-        :return: (next_x, center_y, text_element)
-        """
-        labels = self._split_label(label)
-        if len(labels) == 0: labels = [label]
-        text = None
-        for label in labels:
-            if text is not None: y += text.image.get_height()
-            text = self.add_UIElement(Text, pg.Vector2(10, y), label, self.fonts["basic20"])
-            self.control_bar_ui_elements.append(text)
-            self.param_elements.append(text)
-        return text.image.get_width() + 20, y + text.image.get_height() / 2, text  # noqa
-
-    def _split_label(self, label: str):
-        """ Split the labels so that only max_number_chars characters are in any line. """
-        max_number_chars = 24
-        res = []
-        words = label.split(" ")
-        i = -1
-        last_chosen_i = 0
-        current_size = 0
-        while i + 1 < len(words):
-            i += 1
-            current_size += len(words[i]) + 1
-            if current_size > max_number_chars:
-                if i > last_chosen_i:
-                    r = ""
-                    for j in range(last_chosen_i, i):
-                        r += words[j] + " "
-                    res.append(r[:-1])
-                    last_chosen_i = i
-                    i -= 1
-                else:
-                    while len(words[i]) >= max_number_chars:
-                        res.append(words[i][:max_number_chars])
-                        words[i] = words[i][max_number_chars:]
-                    current_size = len(words[i])
-                    last_chosen_i = i
-        r = ""
-        for j in range(last_chosen_i, i + 1):
-            r += words[j] + " "
-        res.append(r[:-1])
-        return res
 
     def render(self):
         """
@@ -348,13 +171,6 @@ class View:
         """
         self.componentsView.switch_page(new_page)
 
-    def toggle_untoggle_control_bar(self):
-        self.show_control_bar = not self.show_control_bar
-        self.up_bar_shadow.p1 = pg.Vector2(295 * self.show_control_bar, 37)
-        self.up_bar_shadow.curved_border_1 = self.show_control_bar
-        for elt in self.control_bar_ui_elements:
-            elt.visible = self.show_control_bar
-
     def scroll_page(self, amount: int):
         """
         Scroll through the components if there are to many components.
@@ -362,36 +178,23 @@ class View:
         """
         self.componentsView.scroll(amount)
 
-    def scroll_params(self, amount: int):
-        """
-        Scroll through the parameters if there are to many parameters.
-        :param amount: how much the user is scrolling.
-        """
-        prev_param_scrolling_y = self.param_scrolling_y
-        self.param_scrolling_y += amount * self.SCROLL_SENSIBILITY
-        self._param_scroll_clamp()
-        amount = self.param_scrolling_y - prev_param_scrolling_y
-        for element in self.param_elements:
-            element.set_pos(element.pos - pg.Vector2(0, amount))
-
-    def _param_scroll_clamp(self):
-        if self.param_scrolling_y <= 0:
-            self.param_scrolling_y = 0
-        elif self.param_scrolling_y >= self.max_param_scrolling_y:
-            self.param_scrolling_y = self.max_param_scrolling_y
-
 
 class ComponentsView:
-    def __init__(self, view: View, components, renderer):
+    def __init__(self, view: View, components, renderer=None):
+        """
+        This class handle the components view. It handles the rendering of components and the pages.
+        :param view: The View class, useful because only the View class can create new UI elements.
+        :param components: The components sent by the user. They are tuples (component, page), or only the component.
+        A component is a function that takes the model, and returns a pygame.Surface/
+        :param renderer: The renderer is optional. It is a SpaceRenderer from mesa.visualization.
+        """
         self.view = view
         self.max_page_scrolling_y = self.page_scrolling_y = 0
         self.page = 0  # Showed page
         self.min_page = self.max_page = 0  # The minimal page and maximal page existing
         self.min_visible_page = 0  # The minimal switch-page button showed
-        if components is None:
-            self.components = {0: []}
-        else:
-            self.components = {0: []}
+        self.components = {0: []}
+        if components is not None:
             self._store_components(components)
         if renderer is not None:
             self.components[0].insert(0, Component(self.view.model, create_space_component(renderer)))
@@ -435,8 +238,7 @@ class ComponentsView:
     def create_switch_page_buttons(self) -> None:
         """
         This function creates the buttons on top of the screen which allow to change the page.
-        They are aligned.
-        If there are too many pages, it shows buttons that allow to change the page-switching buttons shown.
+        They are aligned. If there are too many pages, they will be smaller.
         """
         buttons = []
 
@@ -462,8 +264,9 @@ class ComponentsView:
 
         if self.max_page + 1 - self.min_page <= 10:
             for i in range(self.min_page, self.max_page + 1):
-                buttons.append(self.view.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.view.fonts["basic15"],
-                                                       custom_draw=custom_page_draw))
+                buttons.append(
+                    self.view.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.view.fonts["basic15"],
+                                            custom_draw=custom_page_draw))
             size_x = sum([button.size.x for button in buttons])
             x = (1050 + 300) // 2 - size_x // 2
             for button in buttons:
@@ -493,7 +296,7 @@ class ComponentsView:
         """
         y = 135 - self.page_scrolling_y
         next_y = y - 55
-        default_x = (0, 300)[self.view.show_control_bar]
+        default_x = (0, 300)[self.view.controlBarView.show_control_bar]
         x = default_x
         for component in self.components[self.page]:
             image = component.image
@@ -534,3 +337,212 @@ class ComponentsView:
     def scroll(self, amount: int):
         self.page_scrolling_y += amount * self.view.SCROLL_SENSIBILITY
         self._page_scroll_clamp()
+
+
+class ControlBarView:
+    def __init__(self, view):
+        self.view = view
+        self.max_param_scrolling_y = self.param_scrolling_y = 0
+        self.param_elements = []  # There are all the elements that you can move scrolling through the parameter window
+        self.userTweakableModelParams = {}  # Provide fast and easy access to user's Model parameters
+        self.userTweakableEntries = {}
+        self.control_bar_ui_elements = []  # List of UI in the control bar
+        self.up_bar_shadow = None  # The up bar shadow have to be changed when you toggle / untoggle the left bar
+        self.show_control_bar = True
+
+    def toggle_untoggle_control_bar(self):
+        self.show_control_bar = not self.show_control_bar
+        self.up_bar_shadow.p1 = pg.Vector2(295 * self.show_control_bar, 37)
+        self.up_bar_shadow.curved_border_1 = self.show_control_bar
+        for elt in self.control_bar_ui_elements:
+            elt.visible = self.show_control_bar
+
+    def scroll_params(self, amount: int):
+        """
+        Scroll through the parameters if there are to many parameters.
+        :param amount: how much the user is scrolling.
+        """
+        prev_param_scrolling_y = self.param_scrolling_y
+        self.param_scrolling_y += amount * self.view.SCROLL_SENSIBILITY
+        self._param_scroll_clamp()
+        amount = self.param_scrolling_y - prev_param_scrolling_y
+        for element in self.param_elements:
+            element.set_pos(element.pos - pg.Vector2(0, amount))
+
+    def _param_scroll_clamp(self):
+        if self.param_scrolling_y <= 0:
+            self.param_scrolling_y = 0
+        elif self.param_scrolling_y >= self.max_param_scrolling_y:
+            self.param_scrolling_y = self.max_param_scrolling_y
+
+    def _add_model_param_label(self, label: str, y: int) -> tuple[int | float, int | float, Text]:
+        """
+        Helper function that creates the label as Text for a model parameter.
+
+        :return: (next_x, center_y, text_element)
+        """
+        labels = self._split_label(label)
+        if len(labels) == 0: labels = [label]
+        text = None
+        for label in labels:
+            if text is not None: y += text.image.get_height()
+            text = self.view.add_UIElement(Text, pg.Vector2(10, y), label, self.view.fonts["basic20"])
+            self.control_bar_ui_elements.append(text)
+            self.param_elements.append(text)
+        return text.image.get_width() + 20, y + text.image.get_height() / 2, text  # noqa
+
+    def _split_label(self, label: str):
+        """ Split the labels so that only max_number_chars characters are in any line. """
+        max_number_chars = 24
+        res = []
+        words = label.split(" ")
+        i = -1
+        last_chosen_i = 0
+        current_size = 0
+        while i + 1 < len(words):
+            i += 1
+            current_size += len(words[i]) + 1
+            if current_size > max_number_chars:
+                if i > last_chosen_i:
+                    r = ""
+                    for j in range(last_chosen_i, i):
+                        r += words[j] + " "
+                    res.append(r[:-1])
+                    last_chosen_i = i
+                    i -= 1
+                else:
+                    while len(words[i]) >= max_number_chars:
+                        res.append(words[i][:max_number_chars])
+                        words[i] = words[i][max_number_chars:]
+                    current_size = len(words[i])
+                    last_chosen_i = i
+        r = ""
+        for j in range(last_chosen_i, i + 1):
+            r += words[j] + " "
+        res.append(r[:-1])
+        return res
+
+    def _create_model_params_entries(self, model_params) -> None:
+        """
+        Create the tweakable user parameters in the left column, which describe how to re-instantiate the model using
+        the RESET button.
+        """
+        y = 300
+        for param_name in model_params:
+            y = self._create_user_param(param_name, model_params[param_name], y)
+        self.max_param_scrolling_y = max(y - 700, 0)
+
+    def _create_user_param(self, param_name: str, model_param, y: int) -> int:
+        """
+        Create a user parameter (UserParam). A user parameter is something that the user can tweak.
+        :param param_name: The name of the user parameter. It is used as an ID to recognize the user parameter.
+        If this name already exists, we will automatically add numbers at the end of the name.
+        :param model_param: a boolean, set to true if the value of the user parameter is uses as a parameter for the
+        next instantiation of the user's model.
+        :param y: The vertical position at which the user parameter widget should be placed.
+        :return: The next available vertical position. This value can be used to place subsequent UI elements without
+        overlapping this widget.
+        """
+        p = self._user_input_params_extraction(model_param, param_name)
+        if p is not None:
+            type, param = p
+            label = param_name
+            if "label" in param:
+                label = param.pop("label")
+
+            x, y, lastUiElement = self._add_model_param_label(label, y)
+            x = 10
+            y += lastUiElement.image.get_height()
+            args = self._compute_args_for_user_params_creation(type, x, y)
+            elem = self.view.add_UIElement(type, *args, **param)
+            self.control_bar_ui_elements.append(elem)
+            self.param_elements.append(elem)
+
+        return y + 30
+
+    def create_controls(self, model_params, play_interval: int, render_interval: int) -> None:
+        """
+        This function creates the grey column in the left part of the screen, and fills it with the user parameters.
+        It creates also the 3 buttons RESET, START/STOP, and STEP
+        """
+        rect = self.view.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), 4)
+        self.control_bar_ui_elements.append(rect)
+        l = 5
+        shadow = self.view.add_UIElement(Shadow, pg.Vector2(300 - l, 37), pg.Vector2(300 - l, 740), pg.Vector2(1, 0), l,
+                                    curved_border_1=True)
+        self.control_bar_ui_elements.append(shadow)
+        self._create_flow_control_entries(play_interval, render_interval)
+        if model_params is not None:
+            self._create_model_params_entries(model_params)
+
+    def _create_flow_control_entries(self, play_interval: int, render_interval: int) -> None:
+        """
+        Create the flow control user parameters. Thus are the two sliders "play interval" and "render interval".
+        :param play_interval: The starting value of the play_interval's slider
+        :param render_interval: The starting value of the render_interval's slider
+        """
+        y = 90
+        play_interval_params = {
+            "type": "SliderInt",
+            "min": 0,
+            "max": 2000,
+            "step": 10,
+            "value": play_interval,
+            "param_name": "play_interval",
+            "label": "Play interval (ms):",
+            "model_param": False
+        }
+        y = self._create_user_param("play_interval", play_interval_params, y)
+
+        render_interval_params = {
+            "type": "SliderInt",
+            "min": 1,
+            "max": 50,
+            "step": 1,
+            "value": render_interval,
+            "param_name": "render_interval",
+            "label": "Render interval (steps): ",
+            "model_param": False
+        }
+        self._create_user_param("render_interval", render_interval_params, y)
+
+    def _user_input_params_extraction(self, param, param_name: str) -> tuple[type[UserParam], dict]:
+        """
+        The user can describe a param with a dictionary, but can also describe it with a mesa_user_param.Slider.
+
+        This functions see how the user describes his userParam, and transform this description in a dictionary
+        description.
+
+        :return: Tuple (UIElementClass, parameter_dict) if the parameter definition is recognized, raise an error.
+        """
+        if isinstance(param, dict):
+            param["param_name"] = param_name
+            t = param.pop("type")
+            param["t"] = t
+            if t in ("SliderInt", "SliderFloat"):
+                return Slider, param
+            elif t == "Checkbox":
+                return Checkbox, param
+            raise NotImplementedError(f"The type {t} has not been implemented")
+        elif isinstance(param, mesa_user_param.Slider):
+            res = {
+                "param_name": param_name,
+                "label": param.label,
+                "min": param.min,
+                "max": param.max,
+                "step": param.step,
+                "value": param.value,
+                "t": ("SliderInt", "SliderFloat")[param.is_float_slider]
+            }
+            return Slider, res
+
+    def _compute_args_for_user_params_creation(self, t: type[UserParam], x: int, y: int):
+        """
+        Build the positional arguments required to instantiate a specific UserParam widget.
+        :param t: Widget class to instantiate.
+        :return: Tuple of positional arguments compatible with add_UIElement().
+        """
+        if t == Slider:
+            return pg.Vector2(x, y), 280 - x
+        elif t == Checkbox:
+            return (pg.Vector2(x, y - Checkbox.SIZE.y / 2),)

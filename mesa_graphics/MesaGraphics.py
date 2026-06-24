@@ -3,12 +3,13 @@ import warnings
 from .View import View
 from .Controller import Controller
 from .Model import Model
+import mesa
 from time import time, sleep
 import threading
 
 
 class MesaGraphics:
-    def __init__(self, model: Model,
+    def __init__(self, model: mesa.Model,
                  renderer=None,
                  components=None,
                  play_interval: int = 100,
@@ -58,16 +59,19 @@ class MesaGraphics:
         This thread must be as fast as possible in order to have a responsive graphical interface.
         So, execute all the heavy computations in the worker thread.
         """
+        ex = None
         try:
             while not self.controller.is_terminated:
                 self.controller.update()
                 self.view.draw()
                 sleep(0.001)
-        except Exception as ex:
+        except Exception as e:
             self.controller.terminate()
-            warnings.warn(f"An error occurred in the viewer thread: \n{ex}")
+            ex = e
         self.view.quit()
         self.barrier.wait()
+        if ex is not None:
+            raise ex
 
     def _worker_thread_loop(self):
         """ Worker loop executed in the secondary thread.

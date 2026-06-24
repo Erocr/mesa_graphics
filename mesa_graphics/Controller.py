@@ -42,7 +42,7 @@ class Controller:
         if self.inputHandler.mouse_pos.x > 300:
             self.view.scroll_page(-self.inputHandler.scroll_direction.y)
         else:
-            self.view.scroll_params(-self.inputHandler.scroll_direction.y)
+            self.view.controlBarView.scroll_params(-self.inputHandler.scroll_direction.y)
 
     def update_counters(self):
         """
@@ -133,8 +133,8 @@ class UserParamController:
         Get the parameters to put in the user's Model we want to re-instantiate.
         """
         res = self.default_model_params.copy()
-        for param in self.view.userTweakableModelParams:
-            res[param] = self.view.userTweakableModelParams[param].value
+        for param in self.view.controlBarView.userTweakableModelParams:
+            res[param] = self.view.controlBarView.userTweakableModelParams[param].value
         return res
 
 
@@ -177,7 +177,7 @@ class ButtonsController:
                 start_or_stop_action()
 
         def toggle_or_untoggle_control_bar():
-            self.view.toggle_untoggle_control_bar()
+            self.view.controlBarView.toggle_untoggle_control_bar()
 
         self.button_actions["STEP"] = step_action
         self.button_actions["START/STOP"] = start_or_stop_action
