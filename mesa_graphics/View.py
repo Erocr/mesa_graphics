@@ -33,10 +33,11 @@ class View:
         self.screen = pg.display.set_mode((1280, 740), pg.RESIZABLE)
         self.model = model
         self.componentsView = ComponentsView(self, components, renderer)
-        self.controlBarView = ControlBarView(self)
+        self.userParamView = UserParamView(self)
+
         self.buttons = {}  # Provide fast and easy access to buttons
         self.ui_elements = []  # List of UI
-
+        self.up_bar_shadow = None  # The up bar shadow have to be changed when you toggle / untoggle the left bar
         self.ui_focused = None  # UI element focused, the other are not interactive while one is focused
         # Only the sliders can be focused yet.
 
@@ -70,14 +71,14 @@ class View:
             self.buttons[to_add.name] = to_add
         if isinstance(to_add, UserParam):
             if to_add.model_param:
-                self.controlBarView.userTweakableModelParams[to_add.name] = to_add
+                self.userParamView.userTweakableModelParams[to_add.name] = to_add
             else:
-                self.controlBarView.userTweakableEntries[to_add.name] = to_add
+                self.userParamView.userTweakableEntries[to_add.name] = to_add
         return to_add
 
     def _create_ui(self, name: str, model_params, play_interval: int, render_interval: int) -> None:
         """ Instantiate the UI. """
-        self.controlBarView.create_controls(model_params, play_interval, render_interval)
+        self.userParamView.create_controls(model_params, play_interval, render_interval)
         self._create_up_bar(name)
         self.componentsView.create_switch_page_buttons()
 
@@ -296,7 +297,7 @@ class ComponentsView:
         """
         y = 135 - self.page_scrolling_y
         next_y = y - 55
-        default_x = (0, 300)[self.view.controlBarView.show_control_bar]
+        default_x = (0, 300)[self.view.userParamView.show_control_bar]
         x = default_x
         for component in self.components[self.page]:
             image = component.image
@@ -339,22 +340,21 @@ class ComponentsView:
         self._page_scroll_clamp()
 
 
-class ControlBarView:
+class UserParamView:
     def __init__(self, view):
         self.view = view
         self.max_param_scrolling_y = self.param_scrolling_y = 0
-        self.param_elements = []  # There are all the elements that you can move scrolling through the parameter window
+        self.scrollable_elements = []  # There are all the elements that you can move scrolling through the parameter window
+        self.hideable_elements = []  # List of the UI elements that should be hided when you untoggle the control bar.
         self.userTweakableModelParams = {}  # Provide fast and easy access to user's Model parameters
         self.userTweakableEntries = {}
-        self.control_bar_ui_elements = []  # List of UI in the control bar
-        self.up_bar_shadow = None  # The up bar shadow have to be changed when you toggle / untoggle the left bar
         self.show_control_bar = True
 
     def toggle_untoggle_control_bar(self):
         self.show_control_bar = not self.show_control_bar
-        self.up_bar_shadow.p1 = pg.Vector2(295 * self.show_control_bar, 37)
-        self.up_bar_shadow.curved_border_1 = self.show_control_bar
-        for elt in self.control_bar_ui_elements:
+        self.view.up_bar_shadow.p1 = pg.Vector2(295 * self.show_control_bar, 37)
+        self.view.up_bar_shadow.curved_border_1 = self.show_control_bar
+        for elt in self.hideable_elements:
             elt.visible = self.show_control_bar
 
     def scroll_params(self, amount: int):
@@ -366,7 +366,7 @@ class ControlBarView:
         self.param_scrolling_y += amount * self.view.SCROLL_SENSIBILITY
         self._param_scroll_clamp()
         amount = self.param_scrolling_y - prev_param_scrolling_y
-        for element in self.param_elements:
+        for element in self.scrollable_elements:
             element.set_pos(element.pos - pg.Vector2(0, amount))
 
     def _param_scroll_clamp(self):
@@ -387,8 +387,8 @@ class ControlBarView:
         for label in labels:
             if text is not None: y += text.image.get_height()
             text = self.view.add_UIElement(Text, pg.Vector2(10, y), label, self.view.fonts["basic20"])
-            self.control_bar_ui_elements.append(text)
-            self.param_elements.append(text)
+            self.hideable_elements.append(text)
+            self.scrollable_elements.append(text)
         return text.image.get_width() + 20, y + text.image.get_height() / 2, text  # noqa
 
     def _split_label(self, label: str):
@@ -427,9 +427,13 @@ class ControlBarView:
         Create the tweakable user parameters in the left column, which describe how to re-instantiate the model using
         the RESET button.
         """
-        y = 300
+        starting_y = y = 300
+        rect = self.view.add_UIElement(Rectangle, pg.Vector2(5, y-10), pg.Vector2(285, 10), 5, border_radius=10)
+        self.scrollable_elements.append(rect)
+        self.hideable_elements.append(rect)
         for param_name in model_params:
             y = self._create_user_param(param_name, model_params[param_name], y)
+        rect.size.y = y - starting_y
         self.max_param_scrolling_y = max(y - 700, 0)
 
     def _create_user_param(self, param_name: str, model_param, y: int) -> int:
@@ -455,8 +459,8 @@ class ControlBarView:
             y += lastUiElement.image.get_height()
             args = self._compute_args_for_user_params_creation(type, x, y)
             elem = self.view.add_UIElement(type, *args, **param)
-            self.control_bar_ui_elements.append(elem)
-            self.param_elements.append(elem)
+            self.hideable_elements.append(elem)
+            self.scrollable_elements.append(elem)
 
         return y + 30
 
@@ -466,11 +470,11 @@ class ControlBarView:
         It creates also the 3 buttons RESET, START/STOP, and STEP
         """
         rect = self.view.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), 4)
-        self.control_bar_ui_elements.append(rect)
+        self.hideable_elements.append(rect)
         l = 5
         shadow = self.view.add_UIElement(Shadow, pg.Vector2(300 - l, 37), pg.Vector2(300 - l, 740), pg.Vector2(1, 0), l,
                                     curved_border_1=True)
-        self.control_bar_ui_elements.append(shadow)
+        self.hideable_elements.append(shadow)
         self._create_flow_control_entries(play_interval, render_interval)
         if model_params is not None:
             self._create_model_params_entries(model_params)

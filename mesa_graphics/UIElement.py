@@ -29,18 +29,22 @@ class UIElement:
 
 
 class Rectangle(UIElement):
-    def __init__(self, pos: pg.Vector2, size: pg.Vector2, color=5):
+    def __init__(self, pos: pg.Vector2, size: pg.Vector2, color=5, *args, **kwargs):
         """
         :param pos: The top-left corner position. It must be a pg.Vector2.
         :param size: The size of the rectangle. It must be a pg.Vector2.
         :param color: The filling color. It is an index in the palette.
+        :param args: Arguments to add in the pg.draw.rect function
+        :param kwargs: Arguments to add in the pg.draw.rect function
         """
         super().__init__(pos)
         self.size = size
         self.color = color
+        self.args = args
+        self.kwargs = kwargs
 
     def draw(self, screen: pg.Surface):
-        pg.draw.rect(screen, palette[self.color], pg.Rect(self.pos, self.size))
+        pg.draw.rect(screen, palette[self.color], pg.Rect(self.pos, self.size), *self.args, **self.kwargs)
 
 
 class Shadow(UIElement):

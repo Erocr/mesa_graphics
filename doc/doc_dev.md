@@ -153,6 +153,11 @@ The Controller is divided into ButtonsController and UserParamController. The Bu
 the Button actions, while the UserParamController is responsible for modifying the userParam values according to the 
 user's inputs.
 
+### View
+
+The View is divided in UserParamView, and ComponentsView. The UserParamView handles the control bar column (the column 
+on the left side of the screen). The ComponentsView handles the components, and the page system.
+
 ### UIElement
 
 All the graphical elements are UIElements (except the components).
@@ -188,4 +193,12 @@ When the user change a UserParam value, the UserParamController calls a method o
 Finally, when the user re-instantiate the Model, the UserParamController iterates through all the UserParam to retrieve 
 their values, and use them to instantiate the next model.
 
+### Special UI Elements
+
+Some UIElement must be tracked. For example, when you untoggle the control bar, some UI elements must be hided. So,
+we put all the UI Elements that must be hided when we untoggle the control bar in a list. This logic is used for several 
+other features. So, if you want that your UIElement has the good behaviours, pay attention to put it in the right lists.
+I put here a list of these features:
+- **UserParamView.hideable_elements**: The elements that are hided when you untoggle the control bar
+- **UserParamView.scrollable_elements**: The elements that go up and down when you scroll in the control bar
 
