@@ -3,8 +3,25 @@ import warnings
 from .Component import Component
 from .UIElement import *
 from .components import create_space_component
-from time import time
 import mesa.visualization.user_param as mesa_user_param
+
+"""
+This file contains the logic for drawing.
+It is divided in three classes: 
+View is the front class, and it is the one that handles all through the other classes.
+UserParamView handles only the left column bar, and what is inside. 
+ComponentsView handles the page system, and the components.
+
+
+
+The important functions:
+- View._creat_ui  (called in View.__init__, describes where are placed each UIElement)
+- ComponentsView.create_ui
+- UserParamView.create_ui
+- View.add_UIElement
+- View.draw  (called once per frame)
+- ComponentsView.draw  (called by View.draw)
+"""
 
 
 class View:
@@ -16,6 +33,8 @@ class View:
         /!\\ The user must not use this class, use MesaGraphics instead /!\\
 
         This class provides all the logic for the graphics. It handles the screen and draws on it.
+        The class is divided in two other classes, for a better subdivision. The UserParamView class handles the logic
+        for drawing the control bar. The ComponentsView handles the drawing of components.
 
         :param model: A Model instance that will be visualized. It is the MesaGraphic's Model, and not
         the user's on
@@ -45,15 +64,30 @@ class View:
             name = type(self.model).__name__
         self._create_ui(name, model_params, play_interval, render_interval)
 
-    def init_fonts(self):
-        pg.font.init()
-        default_path = pg.font.get_default_font()
-        self.fonts["basic15"] = pg.font.Font(default_path, 15)
-        self.fonts["basic20"] = pg.font.Font(default_path, 20)
+    def render(self):
+        """
+        Renders all the component images according to the model state. It stores the images in the components
+        themselves. Note that these operations are really heavy.
+        """
+        self.componentsView.render()
 
-    def quit(self):
-        """ End the visualization """
-        pg.quit()
+    def draw(self):
+        """
+        Main function. It is called once per frame by MesaGraphics, in the main thread.
+        It refreshes the screen and draws all onto it.
+        """
+        self.screen.fill((255, 255, 255))
+        self.componentsView.draw()  # Draw the components
+
+        # Draw the UI Elements
+        for ui in self.ui_elements:
+            if ui.visible:
+                ui.draw(self.screen)
+
+        # Draw the debug message (if debug is enabled)
+        if self.model.debug: self.draw_debug()
+
+        pg.display.flip()  # Refresh the screen with the modifications
 
     def add_UIElement(self, typ: type, *args, **kwargs):
         """ This function instantiates a new UIElement.
@@ -76,11 +110,30 @@ class View:
                 self.userParamView.userTweakableEntries[to_add.name] = to_add
         return to_add
 
+    def init_fonts(self):
+        """
+        Called in the __init__ of View.
+        It initializes the pygame.font module, and creates some fonts
+        """
+        pg.font.init()
+        default_path = pg.font.get_default_font()
+        self.fonts["basic15"] = pg.font.Font(default_path, 15)
+        self.fonts["basic20"] = pg.font.Font(default_path, 20)
+
+    def quit(self):
+        """ End the visualization """
+        pg.quit()
+
     def _create_ui(self, name: str, model_params, play_interval: int, render_interval: int) -> None:
-        """ Instantiate the UI. """
-        self.userParamView.create_controls(model_params, play_interval, render_interval)
+        """
+        Instantiate the UI.
+        This function creates all the UIElements. This function describe where each element is placed.
+        Moreover, the order of creation describe which element is above. The drawer draws them in the order of creation.
+        So the last UIElement is the one above the others, and the first one is the one beyond the others.
+        """
+        self.userParamView.create_ui(model_params, play_interval, render_interval)
         self._create_up_bar(name)
-        self.componentsView.create_switch_page_buttons()
+        self.componentsView.create_ui()
 
     def _create_up_bar(self, name: str) -> None:
         """ Creates the blue bar on top of the screen, and write the name into it. """
@@ -93,6 +146,7 @@ class View:
         self._create_reset_start_step_buttons()
 
     def _create_remove_controls_button(self) -> None:
+        """ Creates the button that toggle or untoggle the control bar. """
 
         def custom_draw(button, screen):
             bg_color = 3 if button.hover else 2
@@ -111,6 +165,7 @@ class View:
         button.set_pos(pg.Vector2(2, 2))
 
     def _create_reset_start_step_buttons(self):
+        """ Creates the three buttons in the up bar : RESET, START/STOP and STEP """
         x = 1090
         texts = ("RESET", "START", "STEP")
         names = ("RESET", "START/STOP", "STEP")
@@ -127,28 +182,6 @@ class View:
             self.add_UIElement(Button, pg.Vector2(x, 0), texts[i], self.fonts["basic15"], name=names[i],
                                custom_draw=custom_draw)
             x += 60
-
-    def render(self):
-        """
-        Renders all the component images according to the model state. It stores the images in the components
-        themselves. Note that these operations are really heavy.
-        """
-        self.componentsView.render()
-
-    def draw(self):
-        """
-        Main function. It is called once per frame. It refreshes the screen and draws all the information in it.
-        """
-        start = time()
-        self.screen.fill((255, 255, 255))
-        self.componentsView.draw()
-
-        for ui in self.ui_elements:
-            if ui.visible:
-                ui.draw(self.screen)
-        if self.model.debug: self.draw_debug()
-        self.model.debug_infos["viewer_time"] = time() - start
-        pg.display.flip()
 
     def draw_debug(self):
         """
@@ -200,6 +233,32 @@ class ComponentsView:
         if renderer is not None:
             self.components[0].insert(0, Component(self.view.model, create_space_component(renderer)))
 
+    def create_ui(self) -> None:
+        self.create_switch_page_buttons()
+
+    def draw(self):
+        """
+        This function draws all the components in the current page.
+        """
+        y = 135 - self.page_scrolling_y
+        next_y = y - 55
+        default_x = (0, 300)[self.view.userParamView.show_control_bar]
+        x = default_x
+        for component in self.components[self.page]:
+            image = component.image
+            if image is None:
+                continue
+            size = image.get_size()
+            if size[0] + x > 1280:
+                y = next_y + 10
+                next_y = y
+                x = default_x
+            next_y = max(next_y, y + size[1])
+            self.view.screen.blit(image, (x, y))
+            x += size[0] + 10
+        self.max_page_scrolling_y = max(next_y - 700 + self.page_scrolling_y, 0)
+        self._page_scroll_clamp()
+
     def _store_components(self, components: list[tuple[Callable, int] | Callable]):
         """
         Store the components in a more suitable way, so it will be easier to access.
@@ -219,9 +278,9 @@ class ComponentsView:
             if page not in self.components:
                 self.components[page] = []
             self.components[page].append(Component(self.view.model, comp))
-        self._add_unuseful_pages()
+        self._fill_missing_pages()
 
-    def _add_unuseful_pages(self):
+    def _fill_missing_pages(self):
         """
         Create as many blank pages as needed.
         If the user put something in the 0-th page anf the second page, this function creates a blank
@@ -291,29 +350,6 @@ class ComponentsView:
 
         self.view.buttons[f"PAGE {self.page}"].lock()
 
-    def draw(self):
-        """
-        This function draws all the components in the current page.
-        """
-        y = 135 - self.page_scrolling_y
-        next_y = y - 55
-        default_x = (0, 300)[self.view.userParamView.show_control_bar]
-        x = default_x
-        for component in self.components[self.page]:
-            image = component.image
-            if image is None:
-                continue
-            size = image.get_size()
-            if size[0] + x > 1280:
-                y = next_y + 10
-                next_y = y
-                x = default_x
-            next_y = max(next_y, y + size[1])
-            self.view.screen.blit(image, (x, y))
-            x += size[0] + 10
-        self.max_page_scrolling_y = max(next_y - 700 + self.page_scrolling_y, 0)
-        self._page_scroll_clamp()
-
     def switch_page(self, new_page):
         """ Change the current page """
         self.view.buttons[f"PAGE {self.page}"].unlock()
@@ -349,6 +385,21 @@ class UserParamView:
         self.userTweakableModelParams = {}  # Provide fast and easy access to user's Model parameters
         self.userTweakableEntries = {}
         self.show_control_bar = True
+
+    def create_ui(self, model_params, play_interval: int, render_interval: int) -> None:
+        """
+        This function creates the grey column in the left part of the screen, and fills it with the user parameters.
+        It creates also the 3 buttons RESET, START/STOP, and STEP
+        """
+        rect = self.view.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), 4)
+        self.hideable_elements.append(rect)
+        l = 5
+        shadow = self.view.add_UIElement(Shadow, pg.Vector2(300 - l, 37), pg.Vector2(300 - l, 740), pg.Vector2(1, 0), l,
+                                    curved_border_1=True)
+        self.hideable_elements.append(shadow)
+        self._create_flow_control_entries(play_interval, render_interval)
+        if model_params is not None:
+            self._create_model_params_entries(model_params)
 
     def toggle_untoggle_control_bar(self):
         self.show_control_bar = not self.show_control_bar
@@ -463,21 +514,6 @@ class UserParamView:
             self.scrollable_elements.append(elem)
 
         return y + 30
-
-    def create_controls(self, model_params, play_interval: int, render_interval: int) -> None:
-        """
-        This function creates the grey column in the left part of the screen, and fills it with the user parameters.
-        It creates also the 3 buttons RESET, START/STOP, and STEP
-        """
-        rect = self.view.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), 4)
-        self.hideable_elements.append(rect)
-        l = 5
-        shadow = self.view.add_UIElement(Shadow, pg.Vector2(300 - l, 37), pg.Vector2(300 - l, 740), pg.Vector2(1, 0), l,
-                                    curved_border_1=True)
-        self.hideable_elements.append(shadow)
-        self._create_flow_control_entries(play_interval, render_interval)
-        if model_params is not None:
-            self._create_model_params_entries(model_params)
 
     def _create_flow_control_entries(self, play_interval: int, render_interval: int) -> None:
         """

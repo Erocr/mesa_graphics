@@ -90,6 +90,7 @@ class MesaGraphics:
                 self.model.update()
                 self.view.render()
                 d = time() - start
+                self.model.debug_infos["worker time"] = d
                 if d < self.model.play_interval * 0.001:
                     sleep(self.model.play_interval * 0.001 - d)
         except Exception as ex:
