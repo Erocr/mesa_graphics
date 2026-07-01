@@ -1,6 +1,6 @@
 @startuml
 
-class MesaGraphics
+class MesaGraphics <<(A, red)>>
 MesaGraphics : _view_thread_loop()
 MesaGraphics : _worker_thread_loop()
 
@@ -50,7 +50,7 @@ UserParamController --> InputHandler
 /' ########## Model part ########## '/
 
 class Model
-Model : <color:blue> Model de l'utilisateur
+Model : Model de l'utilisateur
 Model : update()
 
 /' ##########  View part ########## '/
@@ -105,7 +105,7 @@ class Checkbox
 UserParam <|-- Checkbox
 
 
-class components
+class components <<(A, red)>>
 components : create_space_component(Renderer, page)
 components : make_mpl_plot_component(measure, post_process, page)
 components : make_plot_component(measure, post_process, page)

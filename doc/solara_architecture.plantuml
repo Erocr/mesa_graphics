@@ -1,11 +1,11 @@
 @startuml
 
 abstract class AbstractRenderer
-AbstractRenderer : <color:blue> initialize_canvas()
-AbstractRenderer : <color:blue> draw_structure()
-AbstractRenderer : <color:blue> collect_agent_data(space, agent_portrayal, default_size)
-AbstractRenderer : <color:blue> draw_agents()
-AbstractRenderer : <color:blue> draw_propertylayer(space, property_layers, propertylayer_portrayal)
+AbstractRenderer : initialize_canvas()
+AbstractRenderer : draw_structure()
+AbstractRenderer : collect_agent_data(space, agent_portrayal, default_size)
+AbstractRenderer : draw_agents()
+AbstractRenderer : draw_propertylayer(space, property_layers, propertylayer_portrayal)
 
 
 class AltairBackend
@@ -40,7 +40,7 @@ AgentPortrayalStyle <-- SpaceRenderer
 PropertyLayerStyle <-- SpaceRenderer
 
 abstract class BaseSpaceDrawer
-BaseSpaceDrawer : <color:blue> get_viz_limits()
+BaseSpaceDrawer : get_viz_limits()
 
 AbstractRenderer --> BaseSpaceDrawer
 
@@ -50,16 +50,16 @@ class NetworkSpaceDrawer
 class ContinuousSpaceDrawer
 class VoronoiSpaceDrawer
 
-HexSpaceDrawer : <color:blue> draw_matplotlib()
-HexSpaceDrawer : <color:blue> draw_altair()
-OrthogonalSpaceDrawer : <color:blue> draw_matplotlib()
-OrthogonalSpaceDrawer : <color:blue> draw_altair()
-NetworkSpaceDrawer : <color:blue> draw_matplotlib()
-NetworkSpaceDrawer : <color:blue> draw_altair()
-ContinuousSpaceDrawer : <color:blue> draw_matplotlib()
-ContinuousSpaceDrawer : <color:blue> draw_altair()
-VoronoiSpaceDrawer : <color:blue> draw_matplotlib()
-VoronoiSpaceDrawer : <color:blue> draw_altair()
+HexSpaceDrawer : draw_matplotlib()
+HexSpaceDrawer : draw_altair()
+OrthogonalSpaceDrawer : draw_matplotlib()
+OrthogonalSpaceDrawer : draw_altair()
+NetworkSpaceDrawer : draw_matplotlib()
+NetworkSpaceDrawer : draw_altair()
+ContinuousSpaceDrawer : draw_matplotlib()
+ContinuousSpaceDrawer : draw_altair()
+VoronoiSpaceDrawer : draw_matplotlib()
+VoronoiSpaceDrawer : draw_altair()
 
 BaseSpaceDrawer <|-- HexSpaceDrawer
 BaseSpaceDrawer <|-- OrthogonalSpaceDrawer
@@ -70,14 +70,14 @@ BaseSpaceDrawer <|-- VoronoiSpaceDrawer
 class SpaceRenderer
 SpaceRenderer : model
 SpaceRenderer : backend
-SpaceRenderer : <color:blue> setup_structure()
-SpaceRenderer : <color:blue> setup_agents(agent_portrayal:Callable)
-SpaceRenderer : <color:blue> setup_propertylayer(propertylayer_portrayal: Callable)
-SpaceRenderer : <color:blue> draw_structure()
-SpaceRenderer : <color:blue> draw_agents(agent_portrayal:Callable)
-SpaceRenderer : <color:blue> draw_propertylayer(propertylayer_portrayal: Callable)
-SpaceRenderer : <color:blue> render(agent_portrayal, propertylayer_portrayal)
-SpaceRenderer : <color:blue> post_process
+SpaceRenderer : setup_structure()
+SpaceRenderer : setup_agents(agent_portrayal:Callable)
+SpaceRenderer : setup_propertylayer(propertylayer_portrayal: Callable)
+SpaceRenderer : draw_structure()
+SpaceRenderer : draw_agents(agent_portrayal:Callable)
+SpaceRenderer : draw_propertylayer(propertylayer_portrayal: Callable)
+SpaceRenderer : render(agent_portrayal, propertylayer_portrayal)
+SpaceRenderer : post_process
 
 SpaceRenderer -> AbstractRenderer
 BaseSpaceDrawer --> SpaceRenderer
@@ -97,18 +97,21 @@ Slider -|> UserParam
 
 
 class ComponentCreation
-ComponentCreation : <color:red> create_space_component(SpaceRenderer)
-ComponentCreation : <color:red> make_space_component(agent_portrayal, propertylayer_portrayal, post_process, backend)
-ComponentCreation : <color:red> make_altair_space(agent_portrayal, propertylayer_portrayal, post_process)
-ComponentCreation : <color:red> make_mpl_space_component(agent_portrayal, propertylayer_portrayal, post_process)
-ComponentCreation : <color:red> make_plot_component(measure, post_process, backend, page)
-ComponentCreation : <color:red> make_mpl_plot_component(measure, post_process, page)
+ComponentCreation : create_space_component(SpaceRenderer)
+ComponentCreation : make_space_component(agent_portrayal, propertylayer_portrayal, post_process, backend)
+ComponentCreation : make_altair_space(agent_portrayal, propertylayer_portrayal, post_process)
+ComponentCreation : make_mpl_space_component(agent_portrayal, propertylayer_portrayal, post_process)
+ComponentCreation : make_plot_component(measure, post_process, backend, page)
+ComponentCreation : make_mpl_plot_component(measure, post_process, page)
 
 OrthogonalSpaceDrawer -[hidden]-> ComponentCreation
 ComponentCreation -[hidden]-> SolaraViz
 
-class SolaraViz
-SolaraViz : <color:red> SolaraViz(model, renderer, components, play_interval, render_interval, simulator, model_params, name, use_threads)
+ComponentCreation .> SpaceRenderer
 
+class SolaraViz
+SolaraViz : SolaraViz(model, renderer, components, play_interval, render_interval, simulator, model_params, name, use_threads)
+
+SolaraViz .> SpaceRenderer
 
 @enduml

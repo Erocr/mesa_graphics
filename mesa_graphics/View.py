@@ -15,7 +15,7 @@ ComponentsView handles the page system, and the components.
 
 
 The important functions:
-- View._creat_ui  (called in View.__init__, describes where are placed each UIElement)
+- View._create_ui  (called in View.__init__, describes where are placed each UIElement)
 - ComponentsView.create_ui
 - UserParamView.create_ui
 - View.add_UIElement
@@ -56,7 +56,6 @@ class View:
 
         self.buttons = {}  # Provide fast and easy access to buttons
         self.ui_elements = []  # List of UI
-        self.up_bar_shadow = None  # The up bar shadow have to be changed when you toggle / untoggle the left bar
         self.ui_focused = None  # UI element focused, the other are not interactive while one is focused
         # Only the sliders can be focused yet.
 
@@ -137,11 +136,9 @@ class View:
 
     def _create_up_bar(self, name: str) -> None:
         """ Creates the blue bar on top of the screen, and write the name into it. """
-        self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), color=2)
-        self.up_bar_shadow = self.add_UIElement(Shadow, pg.Vector2(295, 37), pg.Vector2(1280, 37),
-                                                pg.Vector2(0, 1), 5, curved_border_1=True)
-        text = self.add_UIElement(Text, pg.Vector2(0, 0), name, self.fonts["basic15"])
-        text.set_pos(pg.Vector2(40, 20 - text.image.get_height() / 2))   # noqa
+        self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), color=BLUE)
+        text = self.add_UIElement(Text, pg.Vector2(0, 0), name, self.fonts["basic15"], color=WHITE)
+        text.set_pos(pg.Vector2(40, 20 - text.image.get_height() / 2))  # noqa
         self._create_remove_controls_button()
         self._create_reset_start_step_buttons()
 
@@ -149,13 +146,13 @@ class View:
         """ Creates the button that toggle or untoggle the control bar. """
 
         def custom_draw(button, screen):
-            bg_color = 3 if button.hover else 2
-            pg.draw.rect(screen, palette[bg_color], pg.Rect(button.pos, button.size), border_radius=10)
+            bg_color = LIGHT2_BLUE if button.hover else BLUE
+            pg.draw.rect(screen, bg_color, pg.Rect(button.pos, button.size), border_radius=10)
 
             offset = pg.Vector2(5, 5)
-            pg.draw.rect(screen, palette[1], pg.Rect(button.pos + offset, button.size - 2 * offset),
+            pg.draw.rect(screen, WHITE, pg.Rect(button.pos + offset, button.size - 2 * offset),
                          border_radius=5, width=3)
-            pg.draw.line(screen, palette[1], button.pos + offset + pg.Vector2(8, 0),
+            pg.draw.line(screen, WHITE, button.pos + offset + pg.Vector2(8, 0),
                          button.pos + offset + pg.Vector2(8, button.size.y - 2 * offset.y - 3), width=3)
 
         button = self.add_UIElement(Button, pg.Vector2(0, 0), "",
@@ -171,17 +168,16 @@ class View:
         names = ("RESET", "START/STOP", "STEP")
 
         def custom_draw(b, screen):
-            bg_color = 3 if b.hover else 1
-            pos = b.pos + pg.Vector2(5, 5)
-            size = pg.Vector2(55, 27)
-            pg.draw.rect(screen, palette[bg_color], pg.Rect(pos, size), border_radius=10)
-            b.text.pos = pos + size / 2 - pg.Vector2(*b.text.image.get_size()) / 2
+            b.size = pg.Vector2(60, 31)
+            bg_color = LIGHT1_BLUE if b.hover else BLUE
+            pg.draw.rect(screen, bg_color, pg.Rect(b.pos, b.size), border_radius=5)
+            b.text.pos = b.pos + b.size / 2 - pg.Vector2(*b.text.image.get_size()) / 2
             b.text.draw(screen)
 
         for i in range(3):
-            self.add_UIElement(Button, pg.Vector2(x, 0), texts[i], self.fonts["basic15"], name=names[i],
-                               custom_draw=custom_draw)
-            x += 60
+            self.add_UIElement(Button, pg.Vector2(x, 3), texts[i], self.fonts["basic15"], name=names[i],
+                               custom_draw=custom_draw, font_color=(255, 255, 255))
+            x += 65
 
     def draw_debug(self):
         """
@@ -226,7 +222,7 @@ class ComponentsView:
         self.max_page_scrolling_y = self.page_scrolling_y = 0
         self.page = 0  # Showed page
         self.min_page = self.max_page = 0  # The minimal page and maximal page existing
-        self.min_visible_page = 0  # The minimal switch-page button showed
+        self.min_visible_page = 0  # The minimal switch-page button shown
         self.components = {0: []}
         if components is not None:
             self._store_components(components)
@@ -304,21 +300,21 @@ class ComponentsView:
 
         def custom_page_draw(button, screen):
             if button.locked:
-                pg.draw.rect(screen, palette[5], pg.Rect(button.pos, button.size),
+                pg.draw.rect(screen, WHITE, pg.Rect(button.pos, button.size),
                              border_top_left_radius=10, border_top_right_radius=10)
-                pg.draw.rect(screen, palette[5], pg.Rect(button.pos + pg.Vector2(-10, button.size.y - 10),
-                                                         pg.Vector2(10, 10)))
-                pg.draw.rect(screen, palette[5],
+                pg.draw.rect(screen, WHITE, pg.Rect(button.pos + pg.Vector2(-10, button.size.y - 10),
+                                                    pg.Vector2(10, 10)))
+                pg.draw.rect(screen, WHITE,
                              pg.Rect(button.pos + pg.Vector2(button.size.x, button.size.y - 10), pg.Vector2(10, 10)))
-                pg.draw.circle(screen, palette[2], button.pos + pg.Vector2(-10, button.size.y - 10), 10,
+                pg.draw.circle(screen, BLUE, button.pos + pg.Vector2(-10, button.size.y - 10), 10,
                                draw_bottom_right=True)
-                pg.draw.circle(screen, palette[2],
+                pg.draw.circle(screen, BLUE,
                                button.pos + pg.Vector2(button.size.x + 10, button.size.y - 10), 10,
                                draw_bottom_left=True)
             elif button.hover:
-                pg.draw.rect(screen, (180, 180, 180),
+                pg.draw.rect(screen, LIGHT2_BLUE,
                              pg.Rect(button.pos + pg.Vector2(5, 5),
-                                     button.size - pg.Vector2(10, 10)),
+                                     button.size - pg.Vector2(10, 12)),
                              border_radius=10)
             button.text.draw(screen)
 
@@ -326,7 +322,7 @@ class ComponentsView:
             for i in range(self.min_page, self.max_page + 1):
                 buttons.append(
                     self.view.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.view.fonts["basic15"],
-                                            custom_draw=custom_page_draw))
+                                            custom_draw=custom_page_draw, font_color=WHITE))
             size_x = sum([button.size.x for button in buttons])
             x = (1050 + 300) // 2 - size_x // 2
             for button in buttons:
@@ -339,7 +335,8 @@ class ComponentsView:
                 warnings.warn("There are to many pages, the visualisation could not support it.")
             for i in range(self.min_page, self.max_page + 1):
                 buttons.append(self.view.add_UIElement(Button, pg.Vector2(0, 0), f"{i}", self.view.fonts["basic15"],
-                                                       custom_draw=custom_page_draw, name=f"PAGE {i}"))
+                                                       custom_draw=custom_page_draw, name=f"PAGE {i}",
+                                                       font_color=WHITE))
                 x = 310
                 button_size_x = (1040 - 310) // len(buttons)
                 for button in buttons:
@@ -348,13 +345,19 @@ class ComponentsView:
                     button.text.pos = button.pos + button.size // 2 - pg.Vector2(button.text.image.get_size()) // 2
                     x += button_size_x
 
-        self.view.buttons[f"PAGE {self.page}"].lock()
+        self.switch_page(self.page)
 
     def switch_page(self, new_page):
         """ Change the current page """
         self.view.buttons[f"PAGE {self.page}"].unlock()
+        self.view.buttons[f"PAGE {self.page}"].modify_text(f"PAGE {self.page}", color=(255, 255, 255))
+        self.view.buttons[f"PAGE {self.page}"].size.y = 37
         self.page = new_page
         self.view.buttons[f"PAGE {self.page}"].lock()
+        self.view.buttons[f"PAGE {self.page}"].modify_text(f"PAGE {self.page}", color=(0, 0, 0))
+        self.view.buttons[f"PAGE {self.page}"].size.y = 37  # Changer le texte change aussi la taille du bouton,
+        # on doit la remodifier manuellement
+
         self.page_scrolling_y = 0
 
     def _page_scroll_clamp(self):
@@ -391,11 +394,12 @@ class UserParamView:
         This function creates the grey column in the left part of the screen, and fills it with the user parameters.
         It creates also the 3 buttons RESET, START/STOP, and STEP
         """
-        rect = self.view.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), 4)
+        rect = self.view.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), color=LIGHT_GRAY)
         self.hideable_elements.append(rect)
-        l = 5
-        shadow = self.view.add_UIElement(Shadow, pg.Vector2(300 - l, 37), pg.Vector2(300 - l, 740), pg.Vector2(1, 0), l,
-                                    curved_border_1=True)
+        width = 5
+        shadow = self.view.add_UIElement(Shadow, pg.Vector2(300 - width, 37), pg.Vector2(300 - width, 740),
+                                         pg.Vector2(1, 0),
+                                         width, curved_border_1=True)
         self.hideable_elements.append(shadow)
         self._create_flow_control_entries(play_interval, render_interval)
         if model_params is not None:
@@ -403,8 +407,6 @@ class UserParamView:
 
     def toggle_untoggle_control_bar(self):
         self.show_control_bar = not self.show_control_bar
-        self.view.up_bar_shadow.p1 = pg.Vector2(295 * self.show_control_bar, 37)
-        self.view.up_bar_shadow.curved_border_1 = self.show_control_bar
         for elt in self.hideable_elements:
             elt.visible = self.show_control_bar
 
@@ -437,7 +439,7 @@ class UserParamView:
         text = None
         for label in labels:
             if text is not None: y += text.image.get_height()
-            text = self.view.add_UIElement(Text, pg.Vector2(10, y), label, self.view.fonts["basic20"])
+            text = self.view.add_UIElement(Text, pg.Vector2(10, y), label, self.view.fonts["basic20"], color=BLACK)
             self.hideable_elements.append(text)
             self.scrollable_elements.append(text)
         return text.image.get_width() + 20, y + text.image.get_height() / 2, text  # noqa
@@ -473,18 +475,32 @@ class UserParamView:
         res.append(r[:-1])
         return res
 
+    def shadowed_card(self, in_position: pg.Vector2, in_size: pg.Vector2, color_in, width: int = 5, *args, **kwargs):
+        start_col = pg.Vector3(100, 100, 100)
+        end_col = pg.Vector3(*LIGHT_GRAY)
+        res = []
+        for i in range(width):
+            I = pg.Vector2(i, i)
+            color = start_col + (end_col - start_col) * i / width
+            res.append(self.view.add_UIElement(Rectangle, in_position-I+pg.Vector2(3, 3), in_size + 2*I - pg.Vector2(3, 3), color, width=2, *args, **kwargs))
+        res.insert(0, self.view.add_UIElement(Rectangle, in_position, in_size, color_in, *args, **kwargs))
+        return res
+
     def _create_model_params_entries(self, model_params) -> None:
         """
         Create the tweakable user parameters in the left column, which describe how to re-instantiate the model using
         the RESET button.
         """
         starting_y = y = 300
-        rect = self.view.add_UIElement(Rectangle, pg.Vector2(5, y-10), pg.Vector2(285, 10), 5, border_radius=10)
-        self.scrollable_elements.append(rect)
-        self.hideable_elements.append(rect)
+        rects = self.shadowed_card(pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
         for param_name in model_params:
             y = self._create_user_param(param_name, model_params[param_name], y)
-        rect.size.y = y - starting_y
+        for i in range(len(rects)):
+            rect = rects[i]
+            self.scrollable_elements.append(rect)
+            self.hideable_elements.append(rect)
+            rect.size.y = y - starting_y + 2 * i - 3
+        rects[0].size.y = y - starting_y
         self.max_param_scrolling_y = max(y - 700, 0)
 
     def _create_user_param(self, param_name: str, model_param, y: int) -> int:
@@ -506,14 +522,16 @@ class UserParamView:
                 label = param.pop("label")
 
             x, y, lastUiElement = self._add_model_param_label(label, y)
-            x = 10
+            x = 15
             y += lastUiElement.image.get_height()
             args = self._compute_args_for_user_params_creation(type, x, y)
             elem = self.view.add_UIElement(type, *args, **param)
             self.hideable_elements.append(elem)
             self.scrollable_elements.append(elem)
 
-        return y + 30
+            y += 30
+
+        return y
 
     def _create_flow_control_entries(self, play_interval: int, render_interval: int) -> None:
         """
@@ -522,9 +540,10 @@ class UserParamView:
         :param render_interval: The starting value of the render_interval's slider
         """
         starting_y = y = 90
-        rect = self.view.add_UIElement(Rectangle, pg.Vector2(5, y - 10), pg.Vector2(285, 10), 5, border_radius=10)
-        self.scrollable_elements.append(rect)
-        self.hideable_elements.append(rect)
+        rects = self.shadowed_card(pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
+        for rect in rects:
+            self.scrollable_elements.append(rect)
+            self.hideable_elements.append(rect)
         play_interval_params = {
             "type": "SliderInt",
             "min": 0,
@@ -548,7 +567,9 @@ class UserParamView:
             "model_param": False
         }
         y = self._create_user_param("render_interval", render_interval_params, y)
-        rect.size.y = y - starting_y
+        rects[0].size.y = y - starting_y
+        for i in range(1, len(rects)):
+            rects[i].size.y = y - starting_y + 2*i - 3
 
     def _user_input_params_extraction(self, param, param_name: str) -> tuple[type[UserParam], dict]:
         """

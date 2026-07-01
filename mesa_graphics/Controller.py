@@ -168,7 +168,7 @@ class ButtonsController:
 
         def start_or_stop_action():
             self.model.is_playing = not self.model.is_playing
-            self.view.buttons["START/STOP"].modify_text(("START", "STOP")[self.model.is_playing])
+            self.view.buttons["START/STOP"].modify_text(("START", "STOP")[self.model.is_playing], color=(255, 255, 255))
 
         def reset_action():
             self.model.reset = True
