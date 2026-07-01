@@ -218,9 +218,6 @@ class Slider(UserParam):
         self.max = max
         self.length = length
         self.set_value(value)
-        self.min_image = Text(self.pos, str(self.min), Slider.FONT)
-        self.max_image = Text(self.pos+pg.Vector2(self.length, 0), str(self.max), Slider.FONT)
-        self.max_image.set_pos(self.max_image.pos - pg.Vector2(self.max_image.image.get_width(), 0))
         self.hover = False
         self.type = t
 
@@ -240,16 +237,12 @@ class Slider(UserParam):
             image = font.render(text, True, (255, 255, 255), (0, 0, 0, 125))
             screen.blit(image, pg.Vector2(self.selectedPosX-image.get_width()/2,
                                           self.pos.y-self.CIRCLE_RADIUS-image.get_height()))
-        self.min_image.draw(screen)
-        self.max_image.draw(screen)
 
-    def secondary_draw(self):
+    def secondary_draw(self, screen):
         pass
 
     def set_pos(self, new_pos):
         self.pos = new_pos
-        self.min_image.pos = new_pos
-        self.max_image.pos = new_pos + pg.Vector2(self.length - self.max_image.image.get_width(), 0)
 
     def compute_precision(self) -> int:
         return int(max(-log10(self.max - self.min) + 2, 1))
@@ -314,7 +307,7 @@ class Select(UserParam):
         default_path = pg.font.get_default_font()
         font = pg.font.Font(default_path, 15)
         self.values_images = []
-        self.size = pg.Vector2(250 - 2 * self.pos.x, 15)
+        self.size = pg.Vector2(250 - 2 * self.pos.x, 20)
         self.toggle_size = pg.Vector2(250 - 2 * self.pos.x, 30)
         for value in values:
             image = font.render(str(value), True, (0, 0, 0))
@@ -326,25 +319,64 @@ class Select(UserParam):
             self.values_images.append(_image)
 
     def draw(self, screen: pg.Surface):
-        if not self.is_toggled:
-            pg.draw.line(screen, (200, 200, 200), self.pos+pg.Vector2(0, self.size.y), self.pos+self.size, 2)
-            p1 = self.pos + pg.Vector2(self.size.x - 15, 5)
-            p2 = self.pos + pg.Vector2(self.size.x - 10, 12)
-            p3 = self.pos + pg.Vector2(self.size.x - 5, 5)
-            pg.draw.polygon(screen, (200, 200, 200), (p1, p2, p3))
-            screen.blit(self.values_images[self.index_value], self.pos + pg.Vector2(5, 2))
-        else:
-            self.secondary_draw(screen)
+        rect = pg.Rect(self.pos, self.size)
+
+        # Fond
+        pg.draw.rect(screen, (250, 250, 250), rect, border_radius=6)
+
+        # Bordure
+        pg.draw.rect(screen, (180, 180, 180), rect, width=2, border_radius=6)
+
+        # Image
+        screen.blit(self.values_images[self.index_value],
+                    self.pos + pg.Vector2(8, 3))
+
+        # Flèche
+        cx = self.pos.x + self.size.x - 15
+        cy = self.pos.y + self.size.y / 2
+        points = [
+            (cx - 5, cy - 3),
+            (cx, cy + 3),
+            (cx + 5, cy - 3)
+        ]
+        pg.draw.polygon(screen, (90, 90, 90), points)
 
     def secondary_draw(self, screen: pg.Surface):
         """ The secondary_draw function draws above the other elements. It draws the toggled version. """
-        pg.draw.rect(screen, (255, 255, 255), pg.Rect(self.pos, pg.Vector2(self.size.x, 30*len(self.values))))
-        pg.draw.rect(screen, (200, 200, 200), pg.Rect(self.pos, pg.Vector2(self.size.x, 30*len(self.values))), width=2)
-        y = 0
-        for im in self.values_images:
-            screen.blit(im, self.pos + pg.Vector2(5, y+5))
-            pg.draw.line(screen, (200, 200, 200), self.pos + pg.Vector2(0, y), self.pos + pg.Vector2(self.size.x, y), width=2)
-            y += self.toggle_size.y
+        rect = pg.Rect(
+            self.pos,
+            (self.size.x, self.toggle_size.y * len(self.values))
+        )
+
+        # Ombre
+        shadow = rect.move(3, 3)
+        pg.draw.rect(screen, (180, 180, 180), shadow, border_radius=6)
+
+        # Fond
+        pg.draw.rect(screen, (252, 252, 252), rect, border_radius=6)
+
+        # Bordure
+        pg.draw.rect(screen, (170, 170, 170), rect, width=2, border_radius=6)
+
+        for i, image in enumerate(self.values_images):
+
+            y = i * self.toggle_size.y
+
+            item = pg.Rect(
+                self.pos.x + 2,
+                self.pos.y + y,
+                self.toggle_size.x - 4,
+                self.toggle_size.y
+            )
+
+            # Valeur sélectionnée
+            if i == self.index_value:
+                pg.draw.rect(screen, (220, 235, 255), item, border_radius=6)
+
+            # Séparateur
+            if i:
+                pg.draw.line(screen, (220, 220, 220), (item.left + 5, item.top), (item.right - 5, item.top), 1)
+            screen.blit(image, (item.x + 8, item.y + 5))
 
     def set_value(self, value):
         self.value = value
