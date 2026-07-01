@@ -255,7 +255,7 @@ def make_price_changes_line_chart(model):
             line_color = agent_colors.get(column, "black")
 
             ax.plot(
-                model_data.index,
+                model_data.cursor_pos,
                 model_data[column],
                 label=f"Store {store_id}",
                 color=line_color,
@@ -291,7 +291,7 @@ def make_market_share_line_chart(model):
             line_color = agent_colors.get(column, "black")
 
             ax.plot(
-                model_data.index,
+                model_data.cursor_pos,
                 model_data[column],
                 label=f"Store {store_id}",
                 color=line_color,
@@ -327,7 +327,7 @@ def make_revenue_line_chart(model):
             line_color = agent_colors.get(column, "black")
 
             ax.plot(
-                model_data.index,
+                model_data.cursor_pos,
                 model_data[column],
                 label=f"Store {store_id}",
                 color=line_color,

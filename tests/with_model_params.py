@@ -77,6 +77,10 @@ model_params = {
         "max": 40,
         "step": 1,
     },
+    "text": {
+        "type": "InputText",
+        "value": "hello"
+    },
     "capacity": 50,
 }
 

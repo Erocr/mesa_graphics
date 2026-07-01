@@ -449,7 +449,7 @@ class UserParamView:
 
     def _split_label(self, label: str):
         """ Split the labels so that only max_number_chars characters are in any line. """
-        max_number_chars = 24
+        max_number_chars = 26
         res = []
         words = label.split(" ")
         i = -1
@@ -498,6 +498,7 @@ class UserParamView:
         rects = self.shadowed_card(pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
         for param_name in model_params:
             y = self._create_user_param(param_name, model_params[param_name], y)
+        y += 15
         for i in range(len(rects)):
             rect = rects[i]
             self.scrollable_elements.append(rect)
@@ -593,6 +594,8 @@ class UserParamView:
                 return Checkbox, param
             elif t == "Select":
                 return Select, param
+            elif t == "InputText":
+                return InputText, param
             raise NotImplementedError(f"The type {t} has not been implemented")
         elif isinstance(param, mesa_user_param.Slider):
             res = {
@@ -617,4 +620,6 @@ class UserParamView:
         elif t == Checkbox:
             return (pg.Vector2(x, y - Checkbox.SIZE.y / 2),)
         elif t == Select:
+            return (pg.Vector2(x, y),)
+        elif t == InputText:
             return (pg.Vector2(x, y),)

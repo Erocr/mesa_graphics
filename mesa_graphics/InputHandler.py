@@ -85,6 +85,16 @@ class InputHandler:
         else:
             raise Exception(f"key {key} does not exist")
 
+    def get_duration(self, key: int | str):
+        """ Returns the number of frame since the user started to press the key.
+        It returns -1 if this key is not pressed
+        """
+        key = self.key_id(key)
+        if key in self.events:
+            return self.events[key].duration
+        else:
+            return -1
+
     def pressed(self, key: int | str):
         """ Returns True only during the frame in which the user presse the key. """
         key = self.key_id(key)

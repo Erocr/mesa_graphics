@@ -68,7 +68,7 @@ def AgentTrajectoriesPlot(model):
     ax = fig.add_subplot()
     for agent_id in opinions.columns:
         ax.plot(
-            opinions.index,
+            opinions.cursor_pos,
             opinions[agent_id],
             linewidth=1.0,
             alpha=0.8,

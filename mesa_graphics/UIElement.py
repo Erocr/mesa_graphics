@@ -307,8 +307,8 @@ class Select(UserParam):
         default_path = pg.font.get_default_font()
         font = pg.font.Font(default_path, 15)
         self.values_images = []
-        self.size = pg.Vector2(250 - 2 * self.pos.x, 20)
-        self.toggle_size = pg.Vector2(250 - 2 * self.pos.x, 30)
+        self.size = pg.Vector2(280 - self.pos.x, 20)
+        self.toggle_size = pg.Vector2(280 - self.pos.x, 30)
         for value in values:
             image = font.render(str(value), True, (0, 0, 0))
             new_size = (min(image.get_width(), self.size.x - 2 * 5),
@@ -322,7 +322,7 @@ class Select(UserParam):
         rect = pg.Rect(self.pos, self.size)
 
         # Fond
-        pg.draw.rect(screen, (250, 250, 250), rect, border_radius=6)
+        pg.draw.rect(screen, WHITE, rect, border_radius=6)
 
         # Bordure
         pg.draw.rect(screen, (180, 180, 180), rect, width=2, border_radius=6)
@@ -353,7 +353,7 @@ class Select(UserParam):
         pg.draw.rect(screen, (180, 180, 180), shadow, border_radius=6)
 
         # Fond
-        pg.draw.rect(screen, (252, 252, 252), rect, border_radius=6)
+        pg.draw.rect(screen, WHITE, rect, border_radius=6)
 
         # Bordure
         pg.draw.rect(screen, (170, 170, 170), rect, width=2, border_radius=6)
@@ -381,3 +381,69 @@ class Select(UserParam):
     def set_value(self, value):
         self.value = value
         self.index_value = self.values.index(value)
+
+
+class InputText(UserParam):
+    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, value=None, *args, **kwargs):
+        super().__init__(pos, param_name, model_param, value)
+        if self.value is None: self.value = ""
+        self.cursor_pos = len(self.value)
+        default_path = pg.font.get_default_font()
+        self.size = pg.Vector2(280 - self.pos.x, 20)
+        self.font = pg.font.Font(default_path, 15)
+        self.text_im = None
+        self.compute_text_im()
+        self.is_focused = False
+        self.gap = 0
+
+    def draw(self, screen):
+        rect = pg.Rect(self.pos, self.size)
+        # Fond
+        pg.draw.rect(screen, WHITE, rect, border_radius=6)
+
+        # Bordure
+        pg.draw.rect(screen, (180, 180, 180), rect, width=2, border_radius=6)
+
+        screen.blit(self.text_im, self.pos+pg.Vector2(8, self.size.y/2 - self.text_im.get_height()/2))
+        if self.is_focused:
+            im = self.font.render(self.value[:self.cursor_pos], True, (0, 0, 0))
+            cursor_pos = im.get_width() + self.gap
+            pg.draw.line(screen, (0, 0, 0), self.pos+pg.Vector2(8+cursor_pos, 3),
+                         self.pos+pg.Vector2(8+cursor_pos, self.size.y-4), 3)
+
+    def write(self, letter):
+        self.value = self.value[:self.cursor_pos] + letter + self.value[self.cursor_pos:]
+        self.move_cursor(1)
+        self.compute_text_im()
+
+    def remove(self):
+        if self.cursor_pos == 0:
+            return
+        self.value = self.value[:self.cursor_pos-1] + self.value[self.cursor_pos:]
+        self.move_cursor(-1)
+        self.compute_text_im()
+
+    def move_cursor(self, amount):
+        self.cursor_pos = min(max(self.cursor_pos + amount, 0), len(self.value))
+        im = self.font.render(self.value[:self.cursor_pos], True, (0, 0, 0))
+        cursor_pos = im.get_width() + self.gap
+        if cursor_pos > self.size.x - 16:
+            self.gap -= cursor_pos - self.size.x + 16
+        if cursor_pos < (self.size.x - 16) * 0.2:
+            self.gap += (self.size.x - 16) * 0.2 - cursor_pos
+            if self.gap > 0: self.gap = 0
+        self.compute_text_im()
+
+    def compute_text_im(self):
+        self.text_im = self.font.render(self.value, True, (0, 0, 0))
+        if self.text_im.get_width() > self.size.x - 16:
+            im = pg.Surface((self.size.x, self.text_im.get_height())).convert_alpha()
+            im.fill((0, 0, 0, 0))
+            # self.gap = self.size.x - 16 - self.text_im.get_width()
+            im.blit(self.text_im, (self.gap, 0))
+            self.text_im = im
+
+    def secondary_draw(self, screen):
+        pass
+
+

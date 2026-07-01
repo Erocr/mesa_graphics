@@ -1,7 +1,7 @@
 import mesa.visualization
 
 from .InputHandler import InputHandler
-from .UIElement import Button, Slider, UserParam, Checkbox, Select
+from .UIElement import Button, Slider, UserParam, Checkbox, Select, InputText
 from pygame import K_d
 from .Model import Model
 from .View import View
@@ -34,8 +34,6 @@ class Controller:
         self.update_counters()
         self.inputHandler.update()
         self._update_ui()
-        if self.inputHandler.pressed(K_d):
-            self.model.debug = not self.model.debug
         self.scroll()
 
     def scroll(self):
@@ -138,6 +136,30 @@ class UserParamController:
                         if 0 <= i < len(userParam.values):
                             userParam.set_value(userParam.values[i])
                     userParam.is_toggled = False
+                    self.view.ui_focused = None
+        elif isinstance(userParam, InputText):
+            if not userParam.is_focused:
+                hover = (userParam.pos.x <= mousePos.x <= userParam.pos.x + userParam.size.x and
+                         userParam.pos.y - 5 <= mousePos.y <= userParam.pos.y + userParam.size.y)
+                if hover and self.inputHandler.pressed("mouse_left"):
+                    userParam.is_focused = True
+                    self.view.ui_focused = userParam
+            else:
+                for k in list("abcdefghijklmnoprstuvwxyz"):
+                    if self.inputHandler.pressed(k) or self.inputHandler.get_duration(k) > 50:
+                        userParam.write(k)
+                if self.inputHandler.pressed("SPACE") or self.inputHandler.get_duration("SPACE") > 50:
+                    userParam.write(" ")
+                if self.inputHandler.pressed("BACKSPACE") or self.inputHandler.get_duration("BACKSPACE") > 50:
+                    userParam.remove()
+                if self.inputHandler.pressed("RIGHT") or self.inputHandler.get_duration("RIGHT") > 50:
+                    userParam.move_cursor(1)
+                if self.inputHandler.pressed("LEFT") or self.inputHandler.get_duration("LEFT") > 50:
+                    userParam.move_cursor(-1)
+                if self.inputHandler.pressed("RETURN"):
+                    print(userParam.value)
+                if self.inputHandler.pressed("mouse_left"):
+                    userParam.is_focused = False
                     self.view.ui_focused = None
         else:
             raise NotImplementedError()
