@@ -243,6 +243,9 @@ class Slider(UserParam):
         self.min_image.draw(screen)
         self.max_image.draw(screen)
 
+    def secondary_draw(self):
+        pass
+
     def set_pos(self, new_pos):
         self.pos = new_pos
         self.min_image.pos = new_pos
@@ -286,3 +289,63 @@ class Checkbox(UserParam):
 
     def switch(self):
         self.value = not self.value
+
+
+class Select(UserParam):
+    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, value=None, values=None, *args, **kwargs):
+        """
+        This class handle the logic to draw a selection between different values.
+
+        :param pos: The position on the screen (top left)
+        :param param_name: The name (an identification to recognize it)
+        :param model_param: Set to True if it is used a parameter to put for the re-instantiation of the user's Model.
+        :param value: The default value.
+        :param values: The different values it can take.
+        :param args: They will be ignored
+        :param kwargs: Thy will be ignored
+        """
+        super().__init__(pos, param_name, model_param, value)
+        if values is None:
+            values = [value]
+        self.values = values
+        assert self.value in self.values, "The default value must be in proposed values"
+        self.index_value = self.values.index(value)
+        self.is_toggled = False
+        default_path = pg.font.get_default_font()
+        font = pg.font.Font(default_path, 15)
+        self.values_images = []
+        self.size = pg.Vector2(250 - 2 * self.pos.x, 15)
+        self.toggle_size = pg.Vector2(250 - 2 * self.pos.x, 30)
+        for value in values:
+            image = font.render(str(value), True, (0, 0, 0))
+            new_size = (min(image.get_width(), self.size.x - 2 * 5),
+                        min(image.get_height(), self.size.y))
+            _image = pg.Surface(new_size).convert_alpha()
+            _image.fill((255, 255, 255, 0))
+            _image.blit(image, (0, 0))
+            self.values_images.append(_image)
+
+    def draw(self, screen: pg.Surface):
+        if not self.is_toggled:
+            pg.draw.line(screen, (200, 200, 200), self.pos+pg.Vector2(0, self.size.y), self.pos+self.size, 2)
+            p1 = self.pos + pg.Vector2(self.size.x - 15, 5)
+            p2 = self.pos + pg.Vector2(self.size.x - 10, 12)
+            p3 = self.pos + pg.Vector2(self.size.x - 5, 5)
+            pg.draw.polygon(screen, (200, 200, 200), (p1, p2, p3))
+            screen.blit(self.values_images[self.index_value], self.pos + pg.Vector2(5, 2))
+        else:
+            self.secondary_draw(screen)
+
+    def secondary_draw(self, screen: pg.Surface):
+        """ The secondary_draw function draws above the other elements. It draws the toggled version. """
+        pg.draw.rect(screen, (255, 255, 255), pg.Rect(self.pos, pg.Vector2(self.size.x, 30*len(self.values))))
+        pg.draw.rect(screen, (200, 200, 200), pg.Rect(self.pos, pg.Vector2(self.size.x, 30*len(self.values))), width=2)
+        y = 0
+        for im in self.values_images:
+            screen.blit(im, self.pos + pg.Vector2(5, y+5))
+            pg.draw.line(screen, (200, 200, 200), self.pos + pg.Vector2(0, y), self.pos + pg.Vector2(self.size.x, y), width=2)
+            y += self.toggle_size.y
+
+    def set_value(self, value):
+        self.value = value
+        self.index_value = self.values.index(value)

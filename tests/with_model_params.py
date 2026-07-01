@@ -64,6 +64,11 @@ GiniPlot = make_mpl_plot_component("Gini", page=1)
 
 
 model_params = {
+    "selection": {
+        "type": "Select",
+        "value": "hello",
+        "values": ["hello", 3, None, True]
+    },
     "n": {
         "type": "SliderInt",
         "value": 5,

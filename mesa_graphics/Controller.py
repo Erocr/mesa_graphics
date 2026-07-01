@@ -1,7 +1,7 @@
 import mesa.visualization
 
 from .InputHandler import InputHandler
-from .UIElement import Button, Slider, UserParam, Checkbox
+from .UIElement import Button, Slider, UserParam, Checkbox, Select
 from pygame import K_d
 from .Model import Model
 from .View import View
@@ -123,6 +123,22 @@ class UserParamController:
                      userParam.pos.y - 5 <= mousePos.y <= userParam.pos.y + Checkbox.SIZE.y)
             if hover and self.inputHandler.pressed("mouse_left"):
                 userParam.switch()
+        elif isinstance(userParam, Select):
+            if not userParam.is_toggled:
+                hover = (userParam.pos.x <= mousePos.x <= userParam.pos.x + userParam.size.x and
+                         userParam.pos.y - 5 <= mousePos.y <= userParam.pos.y + userParam.size.y)
+                if hover and self.inputHandler.pressed("mouse_left"):
+                    userParam.is_toggled = True
+                    self.view.ui_focused = userParam
+            else:
+                if self.inputHandler.pressed("mouse_left"):
+                    if userParam.pos.x <= mousePos.x <= userParam.pos.x + userParam.toggle_size.x:
+                        i = int((mousePos.y - userParam.pos.y) // userParam.toggle_size.y)
+                        print(i)
+                        if 0 <= i < len(userParam.values):
+                            userParam.set_value(userParam.values[i])
+                    userParam.is_toggled = False
+                    self.view.ui_focused = None
         else:
             raise NotImplementedError()
         if not userParam.model_param:

@@ -57,7 +57,7 @@ class View:
         self.buttons = {}  # Provide fast and easy access to buttons
         self.ui_elements = []  # List of UI
         self.ui_focused = None  # UI element focused, the other are not interactive while one is focused
-        # Only the sliders can be focused yet.
+        # Only the sliders, and the Selects can be focused yet.
 
         if name is None:
             name = type(self.model).__name__
@@ -82,6 +82,9 @@ class View:
         for ui in self.ui_elements:
             if ui.visible:
                 ui.draw(self.screen)
+
+        if self.ui_focused is not None:
+            self.ui_focused.secondary_draw(self.screen)
 
         # Draw the debug message (if debug is enabled)
         if self.model.debug: self.draw_debug()
@@ -588,6 +591,8 @@ class UserParamView:
                 return Slider, param
             elif t == "Checkbox":
                 return Checkbox, param
+            elif t == "Select":
+                return Select, param
             raise NotImplementedError(f"The type {t} has not been implemented")
         elif isinstance(param, mesa_user_param.Slider):
             res = {
@@ -611,3 +616,5 @@ class UserParamView:
             return pg.Vector2(x, y), 280 - x
         elif t == Checkbox:
             return (pg.Vector2(x, y - Checkbox.SIZE.y / 2),)
+        elif t == Select:
+            return (pg.Vector2(x, y),)
