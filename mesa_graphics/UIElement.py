@@ -423,6 +423,12 @@ class InputText(UserParam):
         self.move_cursor(-1)
         self.compute_text_im()
 
+    def suppr(self):
+        if self.cursor_pos == len(self.value):
+            return
+        self.value = self.value[:self.cursor_pos] + self.value[self.cursor_pos+1:]
+        self.compute_text_im()
+
     def move_cursor(self, amount):
         self.cursor_pos = min(max(self.cursor_pos + amount, 0), len(self.value))
         im = self.font.render(self.value[:self.cursor_pos], True, (0, 0, 0))

@@ -152,6 +152,8 @@ class UserParamController:
                     userParam.write(" ")
                 if self.inputHandler.pressed("BACKSPACE") or self.inputHandler.get_duration("BACKSPACE") > 50:
                     userParam.remove()
+                if self.inputHandler.pressed("DELETE") or self.inputHandler.get_duration("DELETE") > 50:
+                    userParam.suppr()
                 if self.inputHandler.pressed("RIGHT") or self.inputHandler.get_duration("RIGHT") > 50:
                     userParam.move_cursor(1)
                 if self.inputHandler.pressed("LEFT") or self.inputHandler.get_duration("LEFT") > 50:
