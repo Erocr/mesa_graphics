@@ -49,10 +49,12 @@ class View:
         """
         self.fonts = {}
         self.init_fonts()
-        self.screen = pg.display.set_mode((1280, 740), pg.RESIZABLE)
+        self.screen_size = pg.Vector2(1280, 740)
+        self.screen = pg.display.set_mode(self.screen_size, pg.RESIZABLE)
         self.model = model
         self.componentsView = ComponentsView(self, components, renderer)
         self.userParamView = UserParamView(self)
+        self.ratio = pg.Vector2(1, 1)
 
         self.buttons = {}  # Provide fast and easy access to buttons
         self.ui_elements = []  # List of UI
@@ -126,6 +128,15 @@ class View:
         """ End the visualization """
         pg.quit()
 
+    def resize(self, new_size: pg.Vector2):
+        ratio = pg.Vector2(new_size.x / self.screen_size.x, new_size.y / self.screen_size.y)
+        for ui in self.ui_elements:
+            ui.resize(ratio)
+        self.userParamView.correct_resizing(ratio)
+
+        self.ratio = mul(ratio, self.ratio)
+        self.screen_size = new_size
+
     def _create_ui(self, name: str, model_params, play_interval: int, render_interval: int) -> None:
         """
         Instantiate the UI.
@@ -152,7 +163,7 @@ class View:
             bg_color = LIGHT2_BLUE if button.hover else BLUE
             pg.draw.rect(screen, bg_color, pg.Rect(button.pos, button.size), border_radius=10)
 
-            offset = pg.Vector2(5, 5)
+            offset = mul(pg.Vector2(5, 5), button.ratio)
             pg.draw.rect(screen, WHITE, pg.Rect(button.pos + offset, button.size - 2 * offset),
                          border_radius=5, width=3)
             pg.draw.line(screen, WHITE, button.pos + offset + pg.Vector2(8, 0),
@@ -161,8 +172,8 @@ class View:
         button = self.add_UIElement(Button, pg.Vector2(0, 0), "",
                                     self.fonts["basic15"], name="remove control bar",
                                     custom_draw=custom_draw)
-        button.size = pg.Vector2(33, 33)
-        button.set_pos(pg.Vector2(2, 2))
+        button.size = mul(pg.Vector2(33, 33), button.ratio)
+        button.set_pos(mul(pg.Vector2(2, 2), button.ratio))
 
     def _create_reset_start_step_buttons(self):
         """ Creates the three buttons in the up bar : RESET, START/STOP and STEP """
@@ -171,7 +182,7 @@ class View:
         names = ("RESET", "START/STOP", "STEP")
 
         def custom_draw(b, screen):
-            b.size = pg.Vector2(60, 31)
+            b.size = mul(pg.Vector2(60, 31), b.ratio)
             bg_color = LIGHT1_BLUE if b.hover else BLUE
             pg.draw.rect(screen, bg_color, pg.Rect(b.pos, b.size), border_radius=5)
             b.text.pos = b.pos + b.size / 2 - pg.Vector2(*b.text.image.get_size()) / 2
@@ -239,23 +250,23 @@ class ComponentsView:
         """
         This function draws all the components in the current page.
         """
-        y = 135 - self.page_scrolling_y
+        y = (135 - self.page_scrolling_y) * self.view.ratio.y
         next_y = y - 55
-        default_x = (0, 300)[self.view.userParamView.show_control_bar]
+        default_x = (0, 300)[self.view.userParamView.show_control_bar] * self.view.ratio.x
         x = default_x
         for component in self.components[self.page]:
             image = component.image
             if image is None:
                 continue
             size = image.get_size()
-            if size[0] + x > 1280:
+            if size[0] + x > 1280 * self.view.ratio.x:
                 y = next_y + 10
                 next_y = y
                 x = default_x
             next_y = max(next_y, y + size[1])
             self.view.screen.blit(image, (x, y))
             x += size[0] + 10
-        self.max_page_scrolling_y = max(next_y - 700 + self.page_scrolling_y, 0)
+        self.max_page_scrolling_y = max(next_y - 700 * self.view.ratio.y + self.page_scrolling_y * self.view.ratio.y, 0)
         self._page_scroll_clamp()
 
     def _store_components(self, components: list[tuple[Callable, int] | Callable]):
@@ -354,20 +365,20 @@ class ComponentsView:
         """ Change the current page """
         self.view.buttons[f"PAGE {self.page}"].unlock()
         self.view.buttons[f"PAGE {self.page}"].modify_text(f"PAGE {self.page}", color=(255, 255, 255))
-        self.view.buttons[f"PAGE {self.page}"].size.y = 37
+        self.view.buttons[f"PAGE {self.page}"].size.y = 37 * self.view.buttons[f"PAGE {self.page}"].ratio.y
         self.page = new_page
         self.view.buttons[f"PAGE {self.page}"].lock()
         self.view.buttons[f"PAGE {self.page}"].modify_text(f"PAGE {self.page}", color=(0, 0, 0))
-        self.view.buttons[f"PAGE {self.page}"].size.y = 37  # Changer le texte change aussi la taille du bouton,
-        # on doit la remodifier manuellement
+        self.view.buttons[f"PAGE {self.page}"].size.y = 37 * self.view.buttons[f"PAGE {self.page}"].ratio.y
+        # Changer le texte change aussi la taille du bouton, on doit la remodifier manuellement
 
         self.page_scrolling_y = 0
 
     def _page_scroll_clamp(self):
         if self.page_scrolling_y <= 0:
             self.page_scrolling_y = 0
-        elif self.page_scrolling_y >= self.max_page_scrolling_y:
-            self.page_scrolling_y = self.max_page_scrolling_y
+        elif self.page_scrolling_y >= self.max_page_scrolling_y / self.view.ratio.y:
+            self.page_scrolling_y = self.max_page_scrolling_y / self.view.ratio.y
 
     def render(self):
         """
@@ -413,6 +424,13 @@ class UserParamView:
         for elt in self.hideable_elements:
             elt.visible = self.show_control_bar
 
+    def correct_resizing(self, ratio):
+        for elt in self.scrollable_elements:
+            p = elt.pos + pg.Vector2(0, self.param_scrolling_y * ratio.y)
+            elt.set_pos(p)
+
+        self.param_scrolling_y = 0
+
     def scroll_params(self, amount: int):
         """
         Scroll through the parameters if there are to many parameters.
@@ -428,8 +446,8 @@ class UserParamView:
     def _param_scroll_clamp(self):
         if self.param_scrolling_y <= 0:
             self.param_scrolling_y = 0
-        elif self.param_scrolling_y >= self.max_param_scrolling_y:
-            self.param_scrolling_y = self.max_param_scrolling_y
+        elif self.param_scrolling_y >= self.max_param_scrolling_y * self.view.ratio.y:
+            self.param_scrolling_y = self.max_param_scrolling_y * self.view.ratio.y
 
     def _add_model_param_label(self, label: str, y: int) -> tuple[int | float, int | float, Text]:
         """
@@ -618,7 +636,7 @@ class UserParamView:
         if t == Slider:
             return pg.Vector2(x, y), 280 - x
         elif t == Checkbox:
-            return (pg.Vector2(x, y - Checkbox.SIZE.y / 2),)
+            return (pg.Vector2(x, y - Checkbox.SIZE.y / 2 * self.view.ratio.y),)
         elif t == Select:
             return (pg.Vector2(x, y),)
         elif t == InputText:

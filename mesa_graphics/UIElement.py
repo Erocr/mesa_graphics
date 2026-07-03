@@ -12,6 +12,9 @@ LIGHT_GRAY = (230, 230, 230)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
+def mul(v1: pg.Vector2, v2: pg.Vector2):
+    return pg.Vector2(v1.x * v2.x, v1.y * v2.y)
+
 
 class UIElement:
     def __init__(self, pos: pg.Vector2, visible=True):
@@ -34,6 +37,9 @@ class UIElement:
     def set_pos(self, new_pos):
         self.pos = new_pos
 
+    def resize(self, ratio):
+        self.pos =mul(self.pos, ratio)
+
 
 class Rectangle(UIElement):
     def __init__(self, pos: pg.Vector2, size: pg.Vector2, color=5, *args, **kwargs):
@@ -52,6 +58,10 @@ class Rectangle(UIElement):
 
     def draw(self, screen: pg.Surface):
         pg.draw.rect(screen, self.color, pg.Rect(self.pos, self.size), *self.args, **self.kwargs)
+
+    def resize(self, ratio):
+        super().resize(ratio)
+        self.size = mul(self.size, ratio)
 
 
 class Shadow(UIElement):
@@ -80,9 +90,14 @@ class Shadow(UIElement):
         self.p1 = new_pos
         self.p2 = new_pos + v
 
+    def resize(self, ratio):
+        super().resize(ratio)
+        self.p1 = mul(self.p1, ratio)
+        self.p2 = mul(self.p2, ratio)
+
 
 class Text(UIElement):
-    def __init__(self, pos: pg.Vector2, text: str, font: pg.font.Font, color=(0, 0, 0)):
+    def __init__(self, pos: pg.Vector2, text: str, font: pg.font.Font, color=(0, 0, 0), ratio=pg.Vector2(1, 1)):
         """
         :param pos: The top-left corner position. It must be a pg.Vector2
         :param text: The string shown
@@ -90,13 +105,21 @@ class Text(UIElement):
         """
         super().__init__(pos)
         self.font = font
-        self.image = font.render(text, True, color)
+        self.full_image = font.render(text, True, color)
+        self.image = self.full_image
+        self.ratio = pg.Vector2(1, 1)
+        self.resize(ratio)
 
     def draw(self, screen: pg.Surface):
         screen.blit(self.image, self.pos)
 
     def set_pos(self, pos: pg.Vector2):
         self.pos = pos
+
+    def resize(self, ratio):
+        super().resize(ratio)
+        self.ratio = mul(ratio, self.ratio)
+        self.image = pg.transform.scale_by(self.full_image, self.ratio)
 
 
 class Button(UIElement):
@@ -131,6 +154,7 @@ class Button(UIElement):
             name = new_name
         self.name = name
         self.locked = False
+        self.ratio = pg.Vector2(1, 1)
 
     def draw(self, screen: pg.Surface):
         if self.custom_draw:
@@ -153,7 +177,7 @@ class Button(UIElement):
             font = self.font
         else:
             self.font = font
-        self.text = Text(self.pos + pg.Vector2(10, 10), new_text, font, color=color)
+        self.text = Text(self.pos + pg.Vector2(10, 10), new_text, font, color=color, ratio=self.ratio)
         self.size = pg.Vector2(self.text.image.get_size()) + pg.Vector2(20, 20)
 
     def set_pos(self, pos: pg.Vector2):
@@ -169,6 +193,12 @@ class Button(UIElement):
 
     def get_size(self):
         return self.size
+
+    def resize(self, ratio):
+        super().resize(ratio)
+        self.size = mul(self.size, ratio)
+        self.text.resize(ratio)
+        self.ratio = mul(self.ratio, ratio)
 
 
 class UserParam(UIElement):
@@ -252,10 +282,15 @@ class Slider(UserParam):
         self.selectedPosX = (value - self.min) / (self.max - self.min) * self.length + self.pos.x
         self.value = value
 
+    def resize(self, ratio):
+        super().resize(ratio)
+        self.length *= ratio.x
+        self.selectedPosX *= ratio.x
+
 
 class Checkbox(UserParam):
-    SIZE = pg.Vector2(20, 20)
     WIDTH = 2
+    SIZE = pg.Vector2(20, 20)
 
     def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, value=None, *args, **kwargs):
         """
@@ -270,11 +305,12 @@ class Checkbox(UserParam):
         """
         if len(args) != 0 or len(kwargs) != 0: print(f"Warning: some the arguments have been ignored")
         super().__init__(pos, param_name, model_param, value)
+        self.size = pg.Vector2(20, 20)
 
     def draw(self, screen: pg.Surface):
-        pg.draw.rect(screen, color=0, rect=pg.Rect(self.pos, self.SIZE), width=self.WIDTH)
+        pg.draw.rect(screen, color=0, rect=pg.Rect(self.pos, self.size), width=self.WIDTH)
         if self.value:
-            size = pg.Vector2(self.SIZE.x-self.WIDTH, self.SIZE.y-self.WIDTH)
+            size = pg.Vector2(self.size.x-self.WIDTH, self.size.y-self.WIDTH)
             pg.draw.line(screen, (0, 0, 0), self.pos, self.pos + size, Checkbox.WIDTH)
             pg.draw.line(screen, (0, 0, 0),
                          self.pos+pg.Vector2(size.x, 0),
@@ -282,6 +318,10 @@ class Checkbox(UserParam):
 
     def switch(self):
         self.value = not self.value
+
+    def resize(self, ratio):
+        super().resize(ratio)
+        self.size = mul(self.size, ratio)
 
 
 class Select(UserParam):
@@ -382,12 +422,18 @@ class Select(UserParam):
         self.value = value
         self.index_value = self.values.index(value)
 
+    def resize(self, ratio):
+        super().resize(ratio)
+        self.size = mul(self.size, ratio)
+        self.toggle_size = mul(self.toggle_size, ratio)
+
 
 class InputText(UserParam):
     def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, value=None, *args, **kwargs):
         super().__init__(pos, param_name, model_param, value)
         if self.value is None: self.value = ""
         self.cursor_pos = len(self.value)
+        self.ratio = pg.Vector2(1, 1)
         default_path = pg.font.get_default_font()
         self.size = pg.Vector2(280 - self.pos.x, 20)
         self.font = pg.font.Font(default_path, 15)
@@ -407,7 +453,7 @@ class InputText(UserParam):
         screen.blit(self.text_im, self.pos+pg.Vector2(8, self.size.y/2 - self.text_im.get_height()/2))
         if self.is_focused:
             im = self.font.render(self.value[:self.cursor_pos], True, (0, 0, 0))
-            cursor_pos = im.get_width() + self.gap
+            cursor_pos = im.get_width() * self.ratio.x + self.gap
             pg.draw.line(screen, (0, 0, 0), self.pos+pg.Vector2(8+cursor_pos, 3),
                          self.pos+pg.Vector2(8+cursor_pos, self.size.y-4), 3)
 
@@ -432,7 +478,7 @@ class InputText(UserParam):
     def move_cursor(self, amount):
         self.cursor_pos = min(max(self.cursor_pos + amount, 0), len(self.value))
         im = self.font.render(self.value[:self.cursor_pos], True, (0, 0, 0))
-        cursor_pos = im.get_width() + self.gap
+        cursor_pos = im.get_width() * self.ratio.x + self.gap
         if cursor_pos > self.size.x - 16:
             self.gap -= cursor_pos - self.size.x + 16
         if cursor_pos < (self.size.x - 16) * 0.2:
@@ -442,6 +488,7 @@ class InputText(UserParam):
 
     def compute_text_im(self):
         self.text_im = self.font.render(self.value, True, (0, 0, 0))
+        self.text_im = pg.transform.scale_by(self.text_im, self.ratio)
         if self.text_im.get_width() > self.size.x - 16:
             im = pg.Surface((self.size.x, self.text_im.get_height())).convert_alpha()
             im.fill((0, 0, 0, 0))
@@ -451,5 +498,12 @@ class InputText(UserParam):
 
     def secondary_draw(self, screen):
         pass
+
+    def resize(self, ratio):
+        super().resize(ratio)
+        self.size = mul(self.size, ratio)
+        self.ratio = mul(ratio, self.ratio)
+        self.gap *= self.ratio.x
+        self.move_cursor(0)
 
 

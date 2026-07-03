@@ -34,6 +34,8 @@ class Controller:
         self.update_counters()
         self.inputHandler.update()
         self._update_ui()
+        if self.inputHandler.resize():
+            self.view.resize(self.inputHandler.resize())
         self.scroll()
 
     def scroll(self):
@@ -84,6 +86,8 @@ class UserParamController:
         self.set_default_model_params(model_params)
 
     def set_default_model_params(self, model_params):
+        if model_params is None:
+            return
         for param in model_params:
             if isinstance(model_params[param], dict) or isinstance(model_params[param], mesa.visualization.Slider):
                 pass
