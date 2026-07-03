@@ -30,6 +30,7 @@ class InputHandler:
         self.quit = False
         self._mouse_pos = pg.Vector2(0, 0)
         self._scroll_direction = pg.Vector2(0, 0)
+        self.resized = None
 
     def _pg_events(self):
         """ Associate in `self.keys` the pygame keys constants to a string describing the key """
@@ -55,6 +56,7 @@ class InputHandler:
         """
         self._mouse_pos = pg.Vector2(*pg.mouse.get_pos())
         self._scroll_direction = pg.Vector2(0, 0)
+        self.resized = None
 
         for evt in pg.event.get():
             if evt.type == pg.KEYDOWN:
@@ -67,8 +69,10 @@ class InputHandler:
                 self.events[-evt.button] = Key()
             elif evt.type == pg.MOUSEBUTTONUP:
                 self.events.pop(-evt.button)
-            if evt.type == pg.MOUSEWHEEL:
+            elif evt.type == pg.MOUSEWHEEL:
                 self._scroll_direction = pg.Vector2(evt.x, evt.y)
+            elif evt.type == pg.VIDEORESIZE:
+                self.resized = pg.Vector2(evt.w, evt.h)
 
     def key_id(self, key: int | str):
         """
@@ -94,6 +98,9 @@ class InputHandler:
             return self.events[key].duration
         else:
             return -1
+
+    def resize(self) -> pg.Vector2 | None:
+        return self.resized
 
     def pressed(self, key: int | str):
         """ Returns True only during the frame in which the user presse the key. """

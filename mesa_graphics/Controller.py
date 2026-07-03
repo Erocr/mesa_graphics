@@ -34,6 +34,8 @@ class Controller:
         self.update_counters()
         self.inputHandler.update()
         self._update_ui()
+        if self.inputHandler.resize():
+            self.view.resize(self.inputHandler.resize())
         self.scroll()
 
     def scroll(self):

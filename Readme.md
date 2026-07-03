@@ -6,8 +6,6 @@ through Pygame.
 
 ![screenshot](doc/screenshot.png)
 
-**The project is a work in progress, so everything could change.**
-
 ## Why MesaGraphics?
 
 MesaGraphics provides a local visualization backend for Mesa models.
@@ -18,6 +16,19 @@ Compared to Solara-based visualization:
 - Runs entirely locally through Pygame
 - Simple migration path from existing Solara visualizations
 - Suitable for desktop applications and teaching environments
+
+## Table of Contents
+
+1. [Installation](#installation)
+2. [Tutorial](#tutorial)
+   1. [Prerequisites](#prerequisites)
+   2. [Basic Model](#basic-model)
+   3. [Important note for MesaGraphics users](#important-note-for-mesagraphics-users)
+   4. [Adding Visualization](#adding-visualization)
+   5. [Grid Visualization](#grid-visualization)
+   6. [Components Visualization](#components-visualization)
+   7. [User Parameters](#user-parameters)
+3. [Solara -> MesaGraphics migration tutorial](#migration-tutorial)
 
 ## Installation
 
@@ -64,7 +75,7 @@ If git is not installed on your computer, or you have problems, you can go direc
 [the github page](https://github.com/Erocr/mesa_graphics), then click on the green Code button, download ZIP, and 
 extract the ZIP file in your project folder.
 
-## How to use it
+## Tutorial
 
 The visualization works very similarly to the Mesa's one. In fact, MesaGraphics was designed to make migration from 
 Solara visualizations as straightforward as possible. In most cases, migrating an existing visualization only requires 
@@ -74,7 +85,19 @@ You can find tutorials for the Solara visualization [here](https://mesa.readthed
 
 We propose the same tutorial, but for our library.
 
-### Import Dependencies
+### Prerequisites
+
+This is a tutorial that explain the visualization of mesa's models, and not how mesa work. So, start by taking a look 
+of the Mesa's tutorial to understand how mesa work. It is recommended to do this tutorials first :
+- [Creating Your First Model](https://mesa.readthedocs.io/stable/tutorials/0_first_model.html)
+- [AgentSet](https://mesa.readthedocs.io/stable/tutorials/1_agentset.html)
+- [Agent Activation](https://mesa.readthedocs.io/stable/tutorials/2_agent_activation.html)
+- [Adding Space](https://mesa.readthedocs.io/stable/tutorials/4_adding_space.html)
+- [Collecting Data](https://mesa.readthedocs.io/stable/tutorials/5_collecting_data.html)
+
+We will continue using the models created in this chapters
+
+### Basic Model
 
 This includes importing of dependencies needed for the tutorial.
 
@@ -97,9 +120,6 @@ from mesa.visualization.components import AgentPortrayalStyle
 from mesa_graphics import FigureMatplotlib
 from matplotlib.figure import Figure
 ```
-
-
-### Basic Model
 
 The following is the basic model we will be using to build the dashboard. This is the same model seen in tutorials 0-3 
 of mesa.
@@ -270,14 +290,20 @@ There are 3 main buttons (we will discuss the play interval, render interval and
 - **the play button**, which advances the model indefinitely until it is paused
 - **the pause button**, which pauses the model
 
-To reset the model, the order of operations are important :
+To reset the model :
 
 1. Update the parameters (e.g. move the sliders)  
 2. Press reset
 
-### SpaceRenderer
+### Components Visualization
+
+The right part of the screen contains the components. Components are views that shows what is happening in runtime. 
+They can be plots, spaces, or even custom components, made by the user.
+
+#### SpaceRenderer
+
 This is the Python object used to visualize the grid, agents, and property layers associated with the space and the 
-model and is passed to the `MesaGraphics` function.
+model and is passed to the `MesaGraphics` function. It is considered as a component in the 0-th page. 
 
 We initialize the SpaceRenderer with a model instance (e.g., `money_model` in this case) and specify the rendering 
 backend. The available backends are `matplotlib`(default) and `altair` (not implemented yet).
@@ -292,8 +318,6 @@ both agents and property layers.
 
 > Note:
 > You can make the small window full screen by clicking the button in the top-right corner of the bar.
-
-### Page Tab View
 
 #### Plot Components
 
@@ -312,7 +336,7 @@ following will display the plot component on page 1:
 plot_comp = make_plot_component("encoding", page=1)
 ```
 
-### Custom Components
+#### Custom Components
 
 If you want a custom component to appear on a specific page, you must pass it as a tuple containing the component and 
 the page number.
@@ -336,7 +360,8 @@ def Histogram(model):
 ```
 
 > Note :  
-> Your custom component function can be any function that take the model and returns a pygame.Surface.
+> Your custom component function can be any function that take the model and returns a pygame.Surface. If you know 
+> pygame, you can have fun making complicated stuff. 
 
 Now we create the model and initialize the visualization
 
@@ -347,7 +372,7 @@ money_model = MoneyModel(n=50, width=10, height=10)
 SpaceGraph = make_space_component(agent_portrayal)
 GiniPlot = make_plot_component("Gini", page=1)
 
-page = SolaraViz(
+page = MesaGraphics(
     money_model,
     components=[SpaceGraph, GiniPlot, (Histogram, 2)],
     model_params=model_params,
@@ -355,8 +380,30 @@ page = SolaraViz(
 )
 ```
 
+### User Parameters
 
+Above we gave an example of user parameters definition :
+`````python
+model_params = {
+    "n": {
+        "type": "SliderInt",
+        "value": 50,
+        "label": "Number of agents:",
+        "min": 10,
+        "max": 100,
+        "step": 1,
+    },
+    "width": 10,
+    "height": 10,
+}
+`````
 
+Actually, you have a lot more choices. You have :
+- SliderInt: slider with integers. The parameters are **value / label / min / max / step**
+- SliderFloat: slider with floats. The parameters are **value / label / min / max / step**
+- CheckBox: a box that can be checked (True) or empty (False). The parameters are **value / label**
+- Select: a drop-down button that permit to chose between multiple possibilities. The parameters are **value / label / values**
+- InputText: A box where user can write text. The parameters are **value / label**
 
 
 
