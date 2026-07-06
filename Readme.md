@@ -24,10 +24,9 @@ Compared to Solara-based visualization:
    1. [Prerequisites](#prerequisites)
    2. [Basic Model](#basic-model)
    3. [Important note for MesaGraphics users](#important-note-for-mesagraphics-users)
-   4. [Adding Visualization](#adding-visualization)
-   5. [Grid Visualization](#grid-visualization)
-   6. [Components Visualization](#components-visualization)
-   7. [User Parameters](#user-parameters)
+   4. [Grid Visualization](#grid-visualization)
+   5. [Components Visualization](#components-visualization)
+   6. [User Parameters](#user-parameters)
 3. [Solara -> MesaGraphics migration tutorial](#migration-tutorial)
 
 ## Installation

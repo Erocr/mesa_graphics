@@ -250,7 +250,7 @@ class ComponentsView:
         """
         This function draws all the components in the current page.
         """
-        y = (135 - self.page_scrolling_y) * self.view.ratio.y
+        y = (40 - self.page_scrolling_y) * self.view.ratio.y
         next_y = y - 55
         default_x = (0, 300)[self.view.userParamView.show_control_bar] * self.view.ratio.x
         x = default_x
