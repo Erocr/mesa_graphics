@@ -358,6 +358,8 @@ class Select(UserParam):
             _image.fill((255, 255, 255, 0))
             _image.blit(image, (0, 0))
             self.values_images.append(_image)
+        self.values_images_original = self.values_images.copy()
+        self.ratio = pg.Vector2(1, 1)
 
     def draw(self, screen: pg.Surface):
         rect = pg.Rect(self.pos, self.size)
@@ -427,6 +429,9 @@ class Select(UserParam):
         super().resize(ratio)
         self.size = mul(self.size, ratio)
         self.toggle_size = mul(self.toggle_size, ratio)
+        self.ratio = mul(ratio, self.ratio)
+        for i in range(len(self.values_images)):
+            self.values_images[i] = pg.transform.scale_by(self.values_images_original[i], self.ratio)
 
 
 class InputText(UserParam):
