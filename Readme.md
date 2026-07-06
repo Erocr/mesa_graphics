@@ -27,6 +27,7 @@ Compared to Solara-based visualization:
    4. [Grid Visualization](#grid-visualization)
    5. [Components Visualization](#components-visualization)
    6. [User Parameters](#user-parameters)
+   7. [Custom Method Calls](#custom-method-calls)
 3. [Solara -> MesaGraphics migration tutorial](#migration-tutorial)
 
 ## Installation
@@ -404,8 +405,37 @@ Actually, you have a lot more choices. You have :
 - Select: a drop-down button that permit to chose between multiple possibilities. The parameters are **value / label / values**
 - InputText: A box where user can write text. The parameters are **value / label**
 
+### Custom Method Calls
 
+This feature does not exist in mesa.visualization. It allows users to modify the Model during runtime. It is useful in 
+order to debug you program for example.
 
+We will continue with the previous model (MoneyModel). We start by adding a method `tax` into MoneyModel :
+```python
+class MoneyModel(mesa.Model):
+   ...
+   
+   
+    def tax(self, amount=1):
+        for agent in self.agents:
+            agent.wealth = max(0, agent.wealth - amount)
+```
+This function removes `amount` of money to every agent in the Model.
+Then, we specify the parameters (modifiable by the user or not). 
+```python
+custom_buttons = {
+    "tax": {
+        "amount": {
+            "type": "SliderInt",
+            "value": 1,
+            "min": 1,
+            "max": 5,
+            "step": 1
+        }
+    }
+}
+```
+The syntax is really similar to `model_params`. We associate to each method name the parameters.
 
 
 
