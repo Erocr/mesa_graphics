@@ -28,7 +28,7 @@ class View:
     SCROLL_SENSIBILITY = 15
 
     def __init__(self, model, renderer=None, components=None, play_interval=100, render_interval=1, model_params=None,
-                 name=None):
+                 custom_method_call=None, name=None):
         """ View class.
         /!\\ The user must not use this class, use MesaGraphics instead /!\\
 
@@ -63,7 +63,7 @@ class View:
 
         if name is None:
             name = type(self.model).__name__
-        self._create_ui(name, model_params, play_interval, render_interval)
+        self._create_ui(name, model_params, custom_method_call, play_interval, render_interval)
 
     def render(self):
         """
@@ -137,14 +137,14 @@ class View:
         self.ratio = mul(ratio, self.ratio)
         self.screen_size = new_size
 
-    def _create_ui(self, name: str, model_params, play_interval: int, render_interval: int) -> None:
+    def _create_ui(self, name: str, model_params, custom_method_call, play_interval: int, render_interval: int) -> None:
         """
         Instantiate the UI.
         This function creates all the UIElements. This function describe where each element is placed.
         Moreover, the order of creation describe which element is above. The drawer draws them in the order of creation.
         So the last UIElement is the one above the others, and the first one is the one beyond the others.
         """
-        self.userParamView.create_ui(model_params, play_interval, render_interval)
+        self.userParamView.create_ui(model_params, custom_method_call, play_interval, render_interval)
         self._create_up_bar(name)
         self.componentsView.create_ui()
 
@@ -403,7 +403,7 @@ class UserParamView:
         self.userTweakableEntries = {}
         self.show_control_bar = True
 
-    def create_ui(self, model_params, play_interval: int, render_interval: int) -> None:
+    def create_ui(self, model_params, custom_method_call, play_interval: int, render_interval: int) -> None:
         """
         This function creates the grey column in the left part of the screen, and fills it with the user parameters.
         It creates also the 3 buttons RESET, START/STOP, and STEP
@@ -416,8 +416,11 @@ class UserParamView:
                                          width, curved_border_1=True)
         self.hideable_elements.append(shadow)
         self._create_flow_control_entries(play_interval, render_interval)
+        y = 260
         if model_params is not None:
-            self._create_model_params_entries(model_params)
+            y = self._create_model_params_entries(model_params) + 50
+        if custom_method_call is not None:
+            self._create_custom_method_call_entries(custom_method_call, y)
 
     def toggle_untoggle_control_bar(self):
         self.show_control_bar = not self.show_control_bar
@@ -507,12 +510,13 @@ class UserParamView:
         res.insert(0, self.view.add_UIElement(Rectangle, in_position, in_size, color_in, *args, **kwargs))
         return res
 
-    def _create_model_params_entries(self, model_params) -> None:
+    def _create_model_params_entries(self, model_params) -> int:
         """
         Create the tweakable user parameters in the left column, which describe how to re-instantiate the model using
         the RESET button.
+        Returns the y position of the bottom of the model param entries.
         """
-        starting_y = y = 300
+        starting_y = y = 260
         rects = self.shadowed_card(pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
         for param_name in model_params:
             y = self._create_user_param(param_name, model_params[param_name], y)
@@ -522,6 +526,28 @@ class UserParamView:
             self.scrollable_elements.append(rect)
             self.hideable_elements.append(rect)
             rect.size.y = y - starting_y + 2 * i - 3
+        rects[0].size.y = y - starting_y
+        self.max_param_scrolling_y = max(y - 700, 0)
+        return y
+
+    def _create_custom_method_call_entries(self, custom_method_call, starting_y) -> None:
+        y = starting_y
+        rects = self.shadowed_card(pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
+        for method_name in custom_method_call:
+            button = self.view.add_UIElement(Button, pg.Vector2(15, y), method_name, self.view.fonts["basic15"],
+                                             name=f"method_call-{method_name}")
+            y += button.size.y + 5
+            params = custom_method_call[method_name]
+            for param_name in params:
+                params[param_name]["model_param"] = False
+                params[param_name]["associated_method"] = method_name
+                y = self._create_user_param(param_name, params[param_name], y)
+            y += 15
+            for i in range(len(rects)):
+                rect = rects[i]
+                self.scrollable_elements.append(rect)
+                self.hideable_elements.append(rect)
+                rect.size.y = y - starting_y + 2 * i - 3
         rects[0].size.y = y - starting_y
         self.max_param_scrolling_y = max(y - 700, 0)
 

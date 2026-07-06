@@ -125,7 +125,7 @@ class Text(UIElement):
 class Button(UIElement):
     alreadyUsed = set()
 
-    def __init__(self, pos, text: str, font, name=None, custom_draw: Callable = None, font_color=(0, 0, 0)):
+    def __init__(self, pos, text: str, font, name=None, custom_draw: Callable = None, font_color=WHITE):
         """
         The logic for drawing a clickable button.
 
@@ -160,10 +160,10 @@ class Button(UIElement):
         if self.custom_draw:
             self.custom_draw(self, screen)
         else:
-            bg_color = 4 if self.hover else 3
+            bg_color = LIGHT1_BLUE if self.hover else BLUE
             if self.locked:
-                bg_color = 1
-            pg.draw.rect(screen, bg_color, pg.Rect(self.pos, self.size))
+                bg_color = WHITE
+            pg.draw.rect(screen, bg_color, pg.Rect(self.pos, self.size), border_radius=8)
             self.text.draw(screen)
 
     def modify_text(self, new_text: str, font=None, color=(0, 0, 0)):
@@ -202,7 +202,7 @@ class Button(UIElement):
 
 
 class UserParam(UIElement):
-    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, value=None):
+    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, associated_method=None, value=None):
         """
         A Tweakable object.
         :param pos: His position
@@ -215,6 +215,7 @@ class UserParam(UIElement):
         self.name = param_name
         self.value = value
         self.model_param = model_param
+        self.associated_method = associated_method
 
 
 class Slider(UserParam):
@@ -222,8 +223,8 @@ class Slider(UserParam):
     BAR_HEIGHT = 2
     FONT = None
 
-    def __init__(self, pos: pg.Vector2, length: int, t: str, param_name: str, model_param=True, value=None, min=0,
-                 max=10, step=0.01):
+    def __init__(self, pos: pg.Vector2, length: int, t: str, param_name: str, model_param=True, associated_method=None,
+                 value=None, min=0, max=10, step=0.01):
         """
         This class handle the logic for drawing a slider.
 
@@ -241,7 +242,7 @@ class Slider(UserParam):
         assert min <= max, "min shall be less than max"
         assert t in ("SliderInt", "SliderFloat"), f"type {t} is unknown"
         if value is None: value = (min + max) / 2
-        super().__init__(pos, param_name, model_param, value)
+        super().__init__(pos, param_name, model_param, associated_method, value)
         self.selectedPosX = 0
         self.step = step
         self.min = min
@@ -292,7 +293,7 @@ class Checkbox(UserParam):
     WIDTH = 2
     SIZE = pg.Vector2(20, 20)
 
-    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, value=None, *args, **kwargs):
+    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, associated_method=None, value=None, *args, **kwargs):
         """
         The class handle the logic for drawing a check box.
 
@@ -304,7 +305,7 @@ class Checkbox(UserParam):
         :param kwargs: Thy will be ignored
         """
         if len(args) != 0 or len(kwargs) != 0: print(f"Warning: some the arguments have been ignored")
-        super().__init__(pos, param_name, model_param, value)
+        super().__init__(pos, param_name, model_param, associated_method, value)
         self.size = pg.Vector2(20, 20)
 
     def draw(self, screen: pg.Surface):
@@ -325,7 +326,7 @@ class Checkbox(UserParam):
 
 
 class Select(UserParam):
-    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, value=None, values=None, *args, **kwargs):
+    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, associated_method=None, value=None, values=None, *args, **kwargs):
         """
         This class handle the logic to draw a selection between different values.
 
@@ -337,7 +338,7 @@ class Select(UserParam):
         :param args: They will be ignored
         :param kwargs: Thy will be ignored
         """
-        super().__init__(pos, param_name, model_param, value)
+        super().__init__(pos, param_name, model_param, associated_method, value)
         if values is None:
             values = [value]
         self.values = values
@@ -429,8 +430,8 @@ class Select(UserParam):
 
 
 class InputText(UserParam):
-    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, value=None, *args, **kwargs):
-        super().__init__(pos, param_name, model_param, value)
+    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, associated_method=None, value=None, *args, **kwargs):
+        super().__init__(pos, param_name, model_param, associated_method, value)
         if self.value is None: self.value = ""
         self.cursor_pos = len(self.value)
         self.ratio = pg.Vector2(1, 1)

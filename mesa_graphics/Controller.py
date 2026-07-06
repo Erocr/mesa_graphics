@@ -181,9 +181,17 @@ class UserParamController:
             res[param] = self.view.userParamView.userTweakableModelParams[param].value
         return res
 
+    def get_method_params(self, method_name):
+        res = {}
+        for param_name in self.view.userParamView.userTweakableEntries:
+            param = self.view.userParamView.userTweakableEntries[param_name]
+            if param.associated_method == method_name:
+                res[param_name] = param.value
+        return res
+
 
 class ButtonsController:
-    def __init__(self, model: Model, view: View, inputHandler: InputHandler, sliderController: UserParamController):
+    def __init__(self, model: Model, view: View, inputHandler: InputHandler, userParamController: UserParamController):
         """
         This class handles the logic behind the buttons.
 
@@ -191,12 +199,12 @@ class ButtonsController:
         the user's on.
         :param view: The View class.
         :param inputHandler: The Controller's inputHandler, to access more easily the user's inputs.
-        :param sliderController: The Controller's sliderController.
+        :param userParamController: The Controller's sliderController.
         """
         self.model = model
         self.view = view
         self.inputHandler = inputHandler
-        self.userParamController = sliderController
+        self.userParamController = userParamController
         self.button_actions = {}
         self._initialize_button_actions()
 
@@ -204,6 +212,7 @@ class ButtonsController:
         """ Initialize the actions to apply when the user click on the buttons. """
         self._initialize_control_buttons()
         self._initialize_switch_page_buttons()
+        self._initialize_method_call_buttons()
 
     def _initialize_control_buttons(self):
         """ Initialize the actions of the 3 buttons: RESET, START/STOP, STEP """
@@ -236,6 +245,22 @@ class ButtonsController:
             return res
         for i in range(self.view.componentsView.min_page, self.view.componentsView.max_page+1):
             self.button_actions[f"PAGE {i}"] = switch_page(i)
+
+    def _initialize_method_call_buttons(self):
+        def action(method_name):
+            def res():
+                method = getattr(self.model.mesa_model, method_name)
+                if method is None:
+                    raise RuntimeError(f"The method {method_name} doesn't exist")
+                params = self.userParamController.get_method_params(method_name)
+                method(**params)
+            return res
+
+        for button_name in self.view.buttons:
+            button = self.view.buttons[button_name]
+            if button.name[:12] == "method_call-":
+                method_name = button.name[12:]
+                self.button_actions[button.name] = action(method_name)
 
     def update(self, button: Button):
         """
