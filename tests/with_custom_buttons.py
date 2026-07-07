@@ -57,6 +57,18 @@ class MoneyModel(mesa.Model):
         for agent in self.agents:
             agent.wealth = max(0, agent.wealth - amount)
 
+    def redistribute(self, amount=1):
+        wealth = sum_money(self)
+        moy = int(wealth / len(self.agents))
+        self.tax(amount)
+        wealth_after = sum_money(self)
+        community_money = wealth - wealth_after
+        for agent in self.agents:
+            if agent.wealth < moy:
+                to_give = min(moy - agent.wealth, community_money)
+                agent.wealth += to_give
+                community_money -= to_give
+
 
 money_model = MoneyModel()
 
@@ -96,6 +108,16 @@ model_params = {
 
 custom_buttons = {
     "tax": {
+        "amount": {
+            "type": "SliderInt",
+            "value": 1,
+            "min": 1,
+            "max": 5,
+            "step": 1
+        }
+    },
+
+    "redistribute": {
         "amount": {
             "type": "SliderInt",
             "value": 1,

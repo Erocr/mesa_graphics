@@ -532,10 +532,13 @@ class UserParamView:
 
     def _create_custom_method_call_entries(self, custom_method_call, starting_y) -> None:
         y = starting_y
-        rects = self.shadowed_card(pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
         for method_name in custom_method_call:
+            starting_y = y
+            rects = self.shadowed_card(pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
             button = self.view.add_UIElement(Button, pg.Vector2(15, y), method_name, self.view.fonts["basic15"],
                                              name=f"method_call-{method_name}")
+            self.hideable_elements.append(button)
+            self.scrollable_elements.append(button)
             y += button.size.y + 5
             params = custom_method_call[method_name]
             for param_name in params:
@@ -548,6 +551,8 @@ class UserParamView:
                 self.scrollable_elements.append(rect)
                 self.hideable_elements.append(rect)
                 rect.size.y = y - starting_y + 2 * i - 3
+            y += 50
+        y -= 50
         rects[0].size.y = y - starting_y
         self.max_param_scrolling_y = max(y - 700, 0)
 
