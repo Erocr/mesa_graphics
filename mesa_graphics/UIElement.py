@@ -37,8 +37,8 @@ class UIElement:
     def set_pos(self, new_pos):
         self.pos = new_pos
 
-    def resize(self, ratio):
-        self.pos =mul(self.pos, ratio)
+    def resize(self, relative_ratio, global_ratio):
+        self.pos = mul(self.pos, relative_ratio)
 
 
 class Rectangle(UIElement):
@@ -59,9 +59,9 @@ class Rectangle(UIElement):
     def draw(self, screen: pg.Surface):
         pg.draw.rect(screen, self.color, pg.Rect(self.pos, self.size), *self.args, **self.kwargs)
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.size = mul(self.size, ratio)
+    def resize(self, relative_ratio, global_ratio):
+        super().resize(relative_ratio, global_ratio)
+        self.size = mul(self.size, relative_ratio)
 
 
 class Shadow(UIElement):
@@ -90,10 +90,11 @@ class Shadow(UIElement):
         self.p1 = new_pos
         self.p2 = new_pos + v
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.p1 = mul(self.p1, ratio)
-        self.p2 = mul(self.p2, ratio)
+    def resize(self, relative_ratio, global_ratio):
+        super().resize(relative_ratio, global_ratio)
+        self.p1 = mul(self.p1, relative_ratio)
+        self.p2 = mul(self.p2, relative_ratio)
+        self.length = int(self.length * self.dir * relative_ratio)
 
 
 class Text(UIElement):
@@ -106,9 +107,8 @@ class Text(UIElement):
         super().__init__(pos)
         self.font = font
         self.full_image = font.render(text, True, color)
-        self.image = self.full_image
-        self.ratio = pg.Vector2(1, 1)
-        self.resize(ratio)
+        self.image = pg.transform.scale_by(self.full_image, 0.5)
+        self.resize(ratio, ratio)
 
     def draw(self, screen: pg.Surface):
         screen.blit(self.image, self.pos)
@@ -116,10 +116,9 @@ class Text(UIElement):
     def set_pos(self, pos: pg.Vector2):
         self.pos = pos
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.ratio = mul(ratio, self.ratio)
-        self.image = pg.transform.scale_by(self.full_image, self.ratio)
+    def resize(self, relative_ratio, global_ratio):
+        super().resize(relative_ratio, global_ratio)
+        self.image = pg.transform.scale_by(self.full_image, mul(global_ratio, pg.Vector2(0.5)))
 
 
 class Button(UIElement):
@@ -177,13 +176,13 @@ class Button(UIElement):
             font = self.font
         else:
             self.font = font
-        self.text = Text(self.pos + pg.Vector2(10, 10), new_text, font, color=color, ratio=self.ratio)
-        self.size = pg.Vector2(self.text.image.get_size()) + pg.Vector2(20, 20)
+        self.text = Text(mul(self.pos, pg.Vector2(1/self.ratio.x, 1/self.ratio.y)) + pg.Vector2(10, 10), new_text, font, color=color, ratio=self.ratio)
+        self.size.x = self.text.image.get_width() + 20 * self.ratio.x
 
     def set_pos(self, pos: pg.Vector2):
         """ Change the position of the button. """
         self.pos = pos
-        self.text.set_pos(pos+pg.Vector2(10, 10))
+        self.text.set_pos(pos+mul(pg.Vector2(10, 10), self.ratio))
 
     def lock(self):
         self.locked = True
@@ -194,11 +193,10 @@ class Button(UIElement):
     def get_size(self):
         return self.size
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.size = mul(self.size, ratio)
-        self.text.resize(ratio)
-        self.ratio = mul(self.ratio, ratio)
+    def resize(self, relative_ratio, global_ratio):
+        super().resize(relative_ratio, global_ratio)
+        self.size = mul(self.size, relative_ratio)
+        self.text.resize(relative_ratio, global_ratio)
 
 
 class UserParam(UIElement):
@@ -283,10 +281,10 @@ class Slider(UserParam):
         self.selectedPosX = (value - self.min) / (self.max - self.min) * self.length + self.pos.x
         self.value = value
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.length *= ratio.x
-        self.selectedPosX *= ratio.x
+    def resize(self, relative_ratio, global_ratio):
+        super().resize(relative_ratio, global_ratio)
+        self.length *= relative_ratio.x
+        self.selectedPosX *= relative_ratio.x
 
 
 class Checkbox(UserParam):
@@ -320,9 +318,9 @@ class Checkbox(UserParam):
     def switch(self):
         self.value = not self.value
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.size = mul(self.size, ratio)
+    def resize(self, relative_ratio, global_ratio):
+        super().resize(relative_ratio, global_ratio)
+        self.size = mul(self.size, relative_ratio)
 
 
 class Select(UserParam):
@@ -359,7 +357,6 @@ class Select(UserParam):
             _image.blit(image, (0, 0))
             self.values_images.append(_image)
         self.values_images_original = self.values_images.copy()
-        self.ratio = pg.Vector2(1, 1)
 
     def draw(self, screen: pg.Surface):
         rect = pg.Rect(self.pos, self.size)
@@ -425,13 +422,12 @@ class Select(UserParam):
         self.value = value
         self.index_value = self.values.index(value)
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.size = mul(self.size, ratio)
-        self.toggle_size = mul(self.toggle_size, ratio)
-        self.ratio = mul(ratio, self.ratio)
+    def resize(self, relative_ratio, global_ratio):
+        super().resize(relative_ratio, global_ratio)
+        self.size = mul(self.size, relative_ratio)
+        self.toggle_size = mul(self.toggle_size, relative_ratio)
         for i in range(len(self.values_images)):
-            self.values_images[i] = pg.transform.scale_by(self.values_images_original[i], self.ratio)
+            self.values_images[i] = pg.transform.scale_by(self.values_images_original[i], global_ratio)
 
 
 class InputText(UserParam):
@@ -496,20 +492,18 @@ class InputText(UserParam):
         self.text_im = self.font.render(self.value, True, (0, 0, 0))
         self.text_im = pg.transform.scale_by(self.text_im, self.ratio)
         if self.text_im.get_width() > self.size.x - 16:
-            im = pg.Surface((self.size.x, self.text_im.get_height())).convert_alpha()
+            im = pg.Surface((self.size.x - 16, self.text_im.get_height())).convert_alpha()
             im.fill((0, 0, 0, 0))
-            # self.gap = self.size.x - 16 - self.text_im.get_width()
             im.blit(self.text_im, (self.gap, 0))
             self.text_im = im
 
     def secondary_draw(self, screen):
         pass
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.size = mul(self.size, ratio)
-        self.ratio = mul(ratio, self.ratio)
-        self.gap *= self.ratio.x
+    def resize(self, relative_ratio, global_ratio):
+        super().resize(relative_ratio, global_ratio)
+        self.size = mul(self.size, relative_ratio)
+        self.gap *= global_ratio.x
         self.move_cursor(0)
 
 

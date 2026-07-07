@@ -121,8 +121,10 @@ class View:
         """
         pg.font.init()
         default_path = pg.font.get_default_font()
-        self.fonts["basic15"] = pg.font.Font(default_path, 15)
-        self.fonts["basic20"] = pg.font.Font(default_path, 20)
+        self.fonts["basic30"] = pg.font.Font(default_path, 15)
+        self.fonts["basic40"] = pg.font.Font(default_path, 20)
+        self.fonts["basic30"] = pg.font.Font(default_path, 30)
+        self.fonts["basic40"] = pg.font.Font(default_path, 40)
 
     def quit(self):
         """ End the visualization """
@@ -130,11 +132,11 @@ class View:
 
     def resize(self, new_size: pg.Vector2):
         ratio = pg.Vector2(new_size.x / self.screen_size.x, new_size.y / self.screen_size.y)
+        self.ratio = mul(ratio, self.ratio)
         for ui in self.ui_elements:
-            ui.resize(ratio)
+            ui.resize(ratio, self.ratio)
         self.userParamView.correct_resizing(ratio)
 
-        self.ratio = mul(ratio, self.ratio)
         self.screen_size = new_size
 
     def _create_ui(self, name: str, model_params, custom_method_call, play_interval: int, render_interval: int) -> None:
@@ -151,7 +153,7 @@ class View:
     def _create_up_bar(self, name: str) -> None:
         """ Creates the blue bar on top of the screen, and write the name into it. """
         self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), color=BLUE)
-        text = self.add_UIElement(Text, pg.Vector2(0, 0), name, self.fonts["basic15"], color=WHITE)
+        text = self.add_UIElement(Text, pg.Vector2(0, 0), name, self.fonts["basic30"], color=WHITE)
         text.set_pos(pg.Vector2(40, 20 - text.image.get_height() / 2))  # noqa
         self._create_remove_controls_button()
         self._create_reset_start_step_buttons()
@@ -170,7 +172,7 @@ class View:
                          button.pos + offset + pg.Vector2(8, button.size.y - 2 * offset.y - 3), width=3)
 
         button = self.add_UIElement(Button, pg.Vector2(0, 0), "",
-                                    self.fonts["basic15"], name="remove control bar",
+                                    self.fonts["basic30"], name="remove control bar",
                                     custom_draw=custom_draw)
         button.size = mul(pg.Vector2(33, 33), button.ratio)
         button.set_pos(mul(pg.Vector2(2, 2), button.ratio))
@@ -189,7 +191,7 @@ class View:
             b.text.draw(screen)
 
         for i in range(3):
-            self.add_UIElement(Button, pg.Vector2(x, 3), texts[i], self.fonts["basic15"], name=names[i],
+            self.add_UIElement(Button, pg.Vector2(x, 3), texts[i], self.fonts["basic30"], name=names[i],
                                custom_draw=custom_draw, font_color=(255, 255, 255))
             x += 65
 
@@ -203,7 +205,7 @@ class View:
             texts.append(info + ": " + str(self.model.debug_infos[info]))
         y = 0
         for text in texts:
-            image = self.fonts["basic15"].render(text, False, (255, 255, 255), (0, 0, 0, 125))
+            image = self.fonts["basic30"].render(text, False, (255, 255, 255), (0, 0, 0, 125))
             self.screen.blit(image, pg.Vector2(0, y))
             y += image.get_height()
 
@@ -335,7 +337,7 @@ class ComponentsView:
         if self.max_page + 1 - self.min_page <= 10:
             for i in range(self.min_page, self.max_page + 1):
                 buttons.append(
-                    self.view.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.view.fonts["basic15"],
+                    self.view.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.view.fonts["basic30"],
                                             custom_draw=custom_page_draw, font_color=WHITE))
             size_x = sum([button.size.x for button in buttons])
             x = (1050 + 300) // 2 - size_x // 2
@@ -348,7 +350,7 @@ class ComponentsView:
             if 30 < -self.min_page + self.max_page + 1:
                 warnings.warn("There are to many pages, the visualisation could not support it.")
             for i in range(self.min_page, self.max_page + 1):
-                buttons.append(self.view.add_UIElement(Button, pg.Vector2(0, 0), f"{i}", self.view.fonts["basic15"],
+                buttons.append(self.view.add_UIElement(Button, pg.Vector2(0, 0), f"{i}", self.view.fonts["basic30"],
                                                        custom_draw=custom_page_draw, name=f"PAGE {i}",
                                                        font_color=WHITE))
                 x = 310
@@ -413,7 +415,7 @@ class UserParamView:
         width = 5
         shadow = self.view.add_UIElement(Shadow, pg.Vector2(300 - width, 37), pg.Vector2(300 - width, 740),
                                          pg.Vector2(1, 0),
-                                         width, curved_border_1=True)
+                                         width)
         self.hideable_elements.append(shadow)
         self._create_flow_control_entries(play_interval, render_interval)
         y = 260
@@ -463,7 +465,7 @@ class UserParamView:
         text = None
         for label in labels:
             if text is not None: y += text.image.get_height()
-            text = self.view.add_UIElement(Text, pg.Vector2(10, y), label, self.view.fonts["basic20"], color=BLACK)
+            text = self.view.add_UIElement(Text, pg.Vector2(10, y), label, self.view.fonts["basic40"], color=BLACK)
             self.hideable_elements.append(text)
             self.scrollable_elements.append(text)
         return text.image.get_width() + 20, y + text.image.get_height() / 2, text  # noqa
@@ -535,7 +537,7 @@ class UserParamView:
         for method_name in custom_method_call:
             starting_y = y
             rects = self.shadowed_card(pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
-            button = self.view.add_UIElement(Button, pg.Vector2(15, y), method_name, self.view.fonts["basic15"],
+            button = self.view.add_UIElement(Button, pg.Vector2(15, y), method_name, self.view.fonts["basic30"],
                                              name=f"method_call-{method_name}")
             self.hideable_elements.append(button)
             self.scrollable_elements.append(button)
