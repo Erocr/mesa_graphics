@@ -501,17 +501,6 @@ class UserParamView:
         res.append(r[:-1])
         return res
 
-    def shadowed_card(self, in_position: pg.Vector2, in_size: pg.Vector2, color_in, width: int = 5, *args, **kwargs):
-        start_col = pg.Vector3(100, 100, 100)
-        end_col = pg.Vector3(*LIGHT_GRAY)
-        res = []
-        for i in range(width):
-            I = pg.Vector2(i, i)
-            color = start_col + (end_col - start_col) * i / width
-            res.append(self.view.add_UIElement(Rectangle, in_position-I+pg.Vector2(3, 3), in_size + 2*I - pg.Vector2(3, 3), color, width=2, *args, **kwargs))
-        res.insert(0, self.view.add_UIElement(Rectangle, in_position, in_size, color_in, *args, **kwargs))
-        return res
-
     def _create_model_params_entries(self, model_params) -> int:
         """
         Create the tweakable user parameters in the left column, which describe how to re-instantiate the model using
@@ -519,16 +508,15 @@ class UserParamView:
         Returns the y position of the bottom of the model param entries.
         """
         starting_y = y = 260
-        rects = self.shadowed_card(pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
+        card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
         for param_name in model_params:
             y = self._create_user_param(param_name, model_params[param_name], y)
         y += 15
-        for i in range(len(rects)):
-            rect = rects[i]
-            self.scrollable_elements.append(rect)
-            self.hideable_elements.append(rect)
-            rect.size.y = y - starting_y + 2 * i - 3
-        rects[0].size.y = y - starting_y
+
+        self.scrollable_elements.append(card)
+        self.hideable_elements.append(card)
+        card.set_size(pg.Vector2(285, y - starting_y))
+
         self.max_param_scrolling_y = max(y - 700, 0)
         return y
 
@@ -536,7 +524,7 @@ class UserParamView:
         y = starting_y
         for method_name in custom_method_call:
             starting_y = y
-            rects = self.shadowed_card(pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
+            card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
             button = self.view.add_UIElement(Button, pg.Vector2(15, y), method_name, self.view.fonts["basic30"],
                                              name=f"method_call-{method_name}")
             self.hideable_elements.append(button)
@@ -548,14 +536,12 @@ class UserParamView:
                 params[param_name]["associated_method"] = method_name
                 y = self._create_user_param(param_name, params[param_name], y)
             y += 15
-            for i in range(len(rects)):
-                rect = rects[i]
-                self.scrollable_elements.append(rect)
-                self.hideable_elements.append(rect)
-                rect.size.y = y - starting_y + 2 * i - 3
+
+            card.set_size(pg.Vector2(285, y - starting_y))
+            self.hideable_elements.append(card)
+            self.scrollable_elements.append(card)
             y += 50
         y -= 50
-        rects[0].size.y = y - starting_y
         self.max_param_scrolling_y = max(y - 700, 0)
 
     def _create_user_param(self, param_name: str, model_param, y: int) -> int:
@@ -595,10 +581,9 @@ class UserParamView:
         :param render_interval: The starting value of the render_interval's slider
         """
         starting_y = y = 90
-        rects = self.shadowed_card(pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
-        for rect in rects:
-            self.scrollable_elements.append(rect)
-            self.hideable_elements.append(rect)
+        card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
+        self.scrollable_elements.append(card)
+        self.hideable_elements.append(card)
         play_interval_params = {
             "type": "SliderInt",
             "min": 0,
@@ -622,9 +607,7 @@ class UserParamView:
             "model_param": False
         }
         y = self._create_user_param("render_interval", render_interval_params, y)
-        rects[0].size.y = y - starting_y
-        for i in range(1, len(rects)):
-            rects[i].size.y = y - starting_y + 2*i - 3
+        card.set_size(pg.Vector2(285, y - starting_y))
 
     def _user_input_params_extraction(self, param, param_name: str) -> tuple[type[UserParam], dict]:
         """

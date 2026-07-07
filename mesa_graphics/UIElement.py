@@ -42,7 +42,7 @@ class UIElement:
 
 
 class Rectangle(UIElement):
-    def __init__(self, pos: pg.Vector2, size: pg.Vector2, color=5, *args, **kwargs):
+    def __init__(self, pos: pg.Vector2, size: pg.Vector2, color, *args, **kwargs):
         """
         :param pos: The top-left corner position. It must be a pg.Vector2.
         :param size: The size of the rectangle. It must be a pg.Vector2.
@@ -62,6 +62,39 @@ class Rectangle(UIElement):
     def resize(self, relative_ratio, global_ratio):
         super().resize(relative_ratio, global_ratio)
         self.size = mul(self.size, relative_ratio)
+
+
+class ShadowedCard(UIElement):
+    def __init__(self, in_position: pg.Vector2, in_size: pg.Vector2, color_in, width: int = 5, *args, **kwargs):
+        super().__init__(in_position)
+        start_col = pg.Vector3(100, 100, 100)
+        end_col = pg.Vector3(*LIGHT_GRAY)
+        self.rects = []
+        for i in range(width):
+            I = pg.Vector2(i, i)
+            color = start_col + (end_col - start_col) * i / width
+            self.rects.append(Rectangle(in_position-I+pg.Vector2(3, 3), in_size + 2*I - pg.Vector2(3, 3), color, width=2, *args, **kwargs))
+        self.rects.insert(0, Rectangle(in_position, in_size, color_in, *args, **kwargs))
+
+    def draw(self, screen: pg.Surface):
+        for rect in self.rects:
+            rect.draw(screen)
+        self.rects[0].draw(screen)
+
+    def resize(self, relative_ratio, global_ratio):
+        for rect in self.rects:
+            rect.resize(relative_ratio, global_ratio)
+
+    def set_size(self, new_in_size):
+        for i in range(1, len(self.rects)):
+            rect = self.rects[i]
+            rect.size = new_in_size + 2 * pg.Vector2(i) - pg.Vector2(3)
+        self.rects[0].size = new_in_size
+
+    def set_pos(self, pos):
+        v = pos - self.pos
+        for rect in self.rects:
+            rect.set_pos(rect.pos + v)
 
 
 class Shadow(UIElement):
