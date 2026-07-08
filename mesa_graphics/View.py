@@ -56,10 +56,11 @@ class View:
         self.userParamView = UserParamView(self)
         self.ratio = pg.Vector2(1, 1)
 
-        self.buttons = {}  # Provide fast and easy access to buttons
         self.ui_elements = []  # List of UI
+        self.buttons = {}  # Provide fast and easy access to buttons
         self.ui_focused = None  # UI element focused, the other are not interactive while one is focused
         # Only the sliders, and the Selects can be focused yet.
+        self.reset_start_step_buttons = []
 
         if name is None:
             name = type(self.model).__name__
@@ -131,8 +132,11 @@ class View:
     def resize(self, new_size: pg.Vector2):
         ratio = pg.Vector2(new_size.x / self.screen_size.x, new_size.y / self.screen_size.y)
         self.ratio = mul(ratio, self.ratio)
-
         self.screen_size = new_size
+
+        self.componentsView.update_switch_buttons()
+        self.update_reset_start_step_buttons()
+
 
     def _create_ui(self, name: str, model_params, custom_method_call, play_interval: int, render_interval: int) -> None:
         """
@@ -174,7 +178,7 @@ class View:
 
     def _create_reset_start_step_buttons(self):
         """ Creates the three buttons in the up bar : RESET, START/STOP and STEP """
-        x = 1090
+        x = 1280 - 190
         texts = ("RESET", "START", "STEP")
         names = ("RESET", "START/STOP", "STEP")
 
@@ -186,8 +190,16 @@ class View:
             b.text.draw(screen)
 
         for i in range(3):
-            self.add_UIElement(Button, pg.Vector2(x, 3), texts[i], self.fonts["basic15"], name=names[i],
+            button = self.add_UIElement(Button, pg.Vector2(x, 3), texts[i], self.fonts["basic15"], name=names[i],
                                custom_draw=custom_draw, font_color=(255, 255, 255))
+            self.reset_start_step_buttons.append(button)
+            x += 65
+
+    def update_reset_start_step_buttons(self):
+        """ Update the position of the RESET/START/STEP buttons according to the size of the screen """
+        x = self.screen_size.x - 190
+        for button in self.reset_start_step_buttons:
+            button.set_pos(pg.Vector2(x, button.pos.y))
             x += 65
 
     def draw_debug(self):
@@ -238,6 +250,9 @@ class ComponentsView:
             self._store_components(components)
         if renderer is not None:
             self.components[0].insert(0, Component(self.view.model, create_space_component(renderer)))
+        self.switch_page_buttons = []  # Provide fast and easy access to specifically buttons for switching pages
+        self.full_switch_page_button_width = 0  # The width of a switch page button, when it has the full name
+        self.buttons_full = True  # If the switch page buttons have the full name
 
     def create_ui(self) -> None:
         self.create_switch_page_buttons()
@@ -308,7 +323,6 @@ class ComponentsView:
         This function creates the buttons on top of the screen which allow to change the page.
         They are aligned. If there are too many pages, they will be smaller.
         """
-        buttons = []
 
         def custom_page_draw(button, screen):
             if button.locked:
@@ -330,34 +344,53 @@ class ComponentsView:
                              border_radius=10)
             button.text.draw(screen)
 
-        if self.max_page + 1 - self.min_page <= 10:
-            for i in range(self.min_page, self.max_page + 1):
-                buttons.append(
-                    self.view.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.view.fonts["basic15"],
-                                            custom_draw=custom_page_draw, font_color=WHITE))
-            size_x = sum([button.size.x for button in buttons])
-            x = (1050 + 300) // 2 - size_x // 2
-            for button in buttons:
+        for i in range(self.min_page, self.max_page + 1):
+            self.switch_page_buttons.append(
+                self.view.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.view.fonts["basic15"],
+                                        custom_draw=custom_page_draw, font_color=WHITE))
+        self.full_switch_page_button_width = self.switch_page_buttons[0].size.x
+
+        self.update_switch_buttons()
+        self.switch_page(self.page)
+
+    def update_switch_buttons(self):
+        """ This function update the positions of the switch buttons """
+
+        size_x_full = self.full_switch_page_button_width * (self.max_page - self.min_page + 1)
+
+        right_pos = self.view.screen_size.x - 190
+        left_pos = 300 if self.view.userParamView.show_control_bar else 0
+        disponible_size = right_pos - left_pos
+
+        if size_x_full < disponible_size:
+            if not self.buttons_full:
+                for i in range(len(self.switch_page_buttons)):
+                    button = self.switch_page_buttons[i]
+                    page = i + self.min_page
+                    button.modify_text(f"PAGE {page}")
+                    button.size.y = 37
+                self.buttons_full = True
+
+            x = (right_pos + left_pos) // 2 - size_x_full // 2
+            for button in self.switch_page_buttons:
                 button.set_pos(pg.Vector2(x, 0))
                 x += button.size.x
-                button.size.y = 37
-
         else:
-            if 30 < -self.min_page + self.max_page + 1:
-                warnings.warn("There are to many pages, the visualisation could not support it.")
-            for i in range(self.min_page, self.max_page + 1):
-                buttons.append(self.view.add_UIElement(Button, pg.Vector2(0, 0), f"{i}", self.view.fonts["basic15"],
-                                                       custom_draw=custom_page_draw, name=f"PAGE {i}",
-                                                       font_color=WHITE))
-                x = 310
-                button_size_x = (1040 - 310) // len(buttons)
-                for button in buttons:
-                    button.set_pos(pg.Vector2(x, 0))
-                    button.size = pg.Vector2(button_size_x, 37)
-                    button.text.pos = button.pos + button.size // 2 - pg.Vector2(button.text.image.get_size()) // 2
-                    x += button_size_x
+            if self.buttons_full:
+                for i in range(len(self.switch_page_buttons)):
+                    button = self.switch_page_buttons[i]
+                    page = i + self.min_page
+                    button.modify_text(f"{page}")
+                    button.size.y = 37
+                self.buttons_full = False
 
-        self.switch_page(self.page)
+            x = left_pos
+            button_size_x = disponible_size // len(self.switch_page_buttons)
+            for button in self.switch_page_buttons:
+                button.set_pos(pg.Vector2(x, 0))
+                button.size = pg.Vector2(button_size_x, 37)
+                button.text.pos = button.pos + button.size // 2 - pg.Vector2(button.text.image.get_size()) // 2
+                x += button_size_x
 
     def switch_page(self, new_page):
         """ Change the current page """
@@ -520,7 +553,8 @@ class UserParamView:
         Returns the y position of the bottom of the model param entries.
         """
         starting_y = y = 260
-        card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
+        card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3,
+                                       border_radius=10)
         for param_name in model_params:
             y = self._create_user_param(param_name, model_params[param_name], y)
         y += 15
@@ -536,7 +570,8 @@ class UserParamView:
         y = starting_y
         for method_name in custom_method_call:
             starting_y = y
-            card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
+            card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3,
+                                           border_radius=10)
             button = self.view.add_UIElement(Button, pg.Vector2(15, y), method_name, self.view.fonts["basic15"],
                                              name=f"method_call-{method_name}")
             self.hideable_elements.append(button)
@@ -593,7 +628,8 @@ class UserParamView:
         :param render_interval: The starting value of the render_interval's slider
         """
         starting_y = y = 90
-        card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
+        card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3,
+                                       border_radius=10)
         self.scrollable_elements.append(card)
         self.hideable_elements.append(card)
         play_interval_params = {
