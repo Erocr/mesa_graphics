@@ -37,9 +37,6 @@ class UIElement:
     def set_pos(self, new_pos):
         self.pos = new_pos
 
-    def resize(self, relative_ratio, global_ratio):
-        self.pos = mul(self.pos, relative_ratio)
-
 
 class Rectangle(UIElement):
     def __init__(self, pos: pg.Vector2, size: pg.Vector2, color, *args, **kwargs):
@@ -59,10 +56,6 @@ class Rectangle(UIElement):
     def draw(self, screen: pg.Surface):
         pg.draw.rect(screen, self.color, pg.Rect(self.pos, self.size), *self.args, **self.kwargs)
 
-    def resize(self, relative_ratio, global_ratio):
-        super().resize(relative_ratio, global_ratio)
-        self.size = mul(self.size, relative_ratio)
-
 
 class ShadowedCard(UIElement):
     def __init__(self, in_position: pg.Vector2, in_size: pg.Vector2, color_in, width: int = 5, *args, **kwargs):
@@ -80,10 +73,6 @@ class ShadowedCard(UIElement):
         for rect in self.rects:
             rect.draw(screen)
         self.rects[0].draw(screen)
-
-    def resize(self, relative_ratio, global_ratio):
-        for rect in self.rects:
-            rect.resize(relative_ratio, global_ratio)
 
     def set_size(self, new_in_size):
         for i in range(1, len(self.rects)):
@@ -123,12 +112,6 @@ class Shadow(UIElement):
         self.p1 = new_pos
         self.p2 = new_pos + v
 
-    def resize(self, relative_ratio, global_ratio):
-        super().resize(relative_ratio, global_ratio)
-        self.p1 = mul(self.p1, relative_ratio)
-        self.p2 = mul(self.p2, relative_ratio)
-        self.length = int(self.length * self.dir * relative_ratio)
-
 
 class Text(UIElement):
     def __init__(self, pos: pg.Vector2, text: str, font: pg.font.Font, color=(0, 0, 0), ratio=pg.Vector2(1, 1)):
@@ -139,19 +122,13 @@ class Text(UIElement):
         """
         super().__init__(pos)
         self.font = font
-        self.full_image = font.render(text, True, color)
-        self.image = pg.transform.scale_by(self.full_image, 0.5)
-        self.resize(ratio, ratio)
+        self.image = font.render(text, True, color)
 
     def draw(self, screen: pg.Surface):
         screen.blit(self.image, self.pos)
 
     def set_pos(self, pos: pg.Vector2):
         self.pos = pos
-
-    def resize(self, relative_ratio, global_ratio):
-        super().resize(relative_ratio, global_ratio)
-        self.image = pg.transform.scale_by(self.full_image, mul(global_ratio, pg.Vector2(0.5)))
 
 
 class Button(UIElement):
@@ -225,11 +202,6 @@ class Button(UIElement):
 
     def get_size(self):
         return self.size
-
-    def resize(self, relative_ratio, global_ratio):
-        super().resize(relative_ratio, global_ratio)
-        self.size = mul(self.size, relative_ratio)
-        self.text.resize(relative_ratio, global_ratio)
 
 
 class UserParam(UIElement):
@@ -314,11 +286,6 @@ class Slider(UserParam):
         self.selectedPosX = (value - self.min) / (self.max - self.min) * self.length + self.pos.x
         self.value = value
 
-    def resize(self, relative_ratio, global_ratio):
-        super().resize(relative_ratio, global_ratio)
-        self.length *= relative_ratio.x
-        self.selectedPosX *= relative_ratio.x
-
 
 class Checkbox(UserParam):
     WIDTH = 2
@@ -350,10 +317,6 @@ class Checkbox(UserParam):
 
     def switch(self):
         self.value = not self.value
-
-    def resize(self, relative_ratio, global_ratio):
-        super().resize(relative_ratio, global_ratio)
-        self.size = mul(self.size, relative_ratio)
 
 
 class Select(UserParam):
@@ -455,13 +418,6 @@ class Select(UserParam):
         self.value = value
         self.index_value = self.values.index(value)
 
-    def resize(self, relative_ratio, global_ratio):
-        super().resize(relative_ratio, global_ratio)
-        self.size = mul(self.size, relative_ratio)
-        self.toggle_size = mul(self.toggle_size, relative_ratio)
-        for i in range(len(self.values_images)):
-            self.values_images[i] = pg.transform.scale_by(self.values_images_original[i], global_ratio)
-
 
 class InputText(UserParam):
     def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, associated_method=None, value=None, *args, **kwargs):
@@ -532,11 +488,5 @@ class InputText(UserParam):
 
     def secondary_draw(self, screen):
         pass
-
-    def resize(self, relative_ratio, global_ratio):
-        super().resize(relative_ratio, global_ratio)
-        self.size = mul(self.size, relative_ratio)
-        self.gap *= global_ratio.x
-        self.move_cursor(0)
 
 

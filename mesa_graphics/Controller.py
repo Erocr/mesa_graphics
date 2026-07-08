@@ -39,7 +39,7 @@ class Controller:
         self.scroll()
 
     def scroll(self):
-        if self.inputHandler.mouse_pos.x > 300 * self.view.ratio.x:
+        if self.inputHandler.mouse_pos.x > 300:
             self.view.scroll_page(-self.inputHandler.scroll_direction.y)
         else:
             self.view.userParamView.scroll_params(-self.inputHandler.scroll_direction.y)

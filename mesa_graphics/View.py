@@ -121,10 +121,8 @@ class View:
         """
         pg.font.init()
         default_path = pg.font.get_default_font()
-        self.fonts["basic30"] = pg.font.Font(default_path, 15)
-        self.fonts["basic40"] = pg.font.Font(default_path, 20)
-        self.fonts["basic30"] = pg.font.Font(default_path, 30)
-        self.fonts["basic40"] = pg.font.Font(default_path, 40)
+        self.fonts["basic15"] = pg.font.Font(default_path, 15)
+        self.fonts["basic20"] = pg.font.Font(default_path, 20)
 
     def quit(self):
         """ End the visualization """
@@ -133,9 +131,6 @@ class View:
     def resize(self, new_size: pg.Vector2):
         ratio = pg.Vector2(new_size.x / self.screen_size.x, new_size.y / self.screen_size.y)
         self.ratio = mul(ratio, self.ratio)
-        for ui in self.ui_elements:
-            ui.resize(ratio, self.ratio)
-        self.userParamView.correct_resizing(ratio)
 
         self.screen_size = new_size
 
@@ -153,7 +148,7 @@ class View:
     def _create_up_bar(self, name: str) -> None:
         """ Creates the blue bar on top of the screen, and write the name into it. """
         self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), color=BLUE)
-        text = self.add_UIElement(Text, pg.Vector2(0, 0), name, self.fonts["basic30"], color=WHITE)
+        text = self.add_UIElement(Text, pg.Vector2(0, 0), name, self.fonts["basic15"], color=WHITE)
         text.set_pos(pg.Vector2(40, 20 - text.image.get_height() / 2))  # noqa
         self._create_remove_controls_button()
         self._create_reset_start_step_buttons()
@@ -172,7 +167,7 @@ class View:
                          button.pos + offset + pg.Vector2(8, button.size.y - 2 * offset.y - 3), width=3)
 
         button = self.add_UIElement(Button, pg.Vector2(0, 0), "",
-                                    self.fonts["basic30"], name="remove control bar",
+                                    self.fonts["basic15"], name="remove control bar",
                                     custom_draw=custom_draw)
         button.size = mul(pg.Vector2(33, 33), button.ratio)
         button.set_pos(mul(pg.Vector2(2, 2), button.ratio))
@@ -191,7 +186,7 @@ class View:
             b.text.draw(screen)
 
         for i in range(3):
-            self.add_UIElement(Button, pg.Vector2(x, 3), texts[i], self.fonts["basic30"], name=names[i],
+            self.add_UIElement(Button, pg.Vector2(x, 3), texts[i], self.fonts["basic15"], name=names[i],
                                custom_draw=custom_draw, font_color=(255, 255, 255))
             x += 65
 
@@ -205,7 +200,7 @@ class View:
             texts.append(info + ": " + str(self.model.debug_infos[info]))
         y = 0
         for text in texts:
-            image = self.fonts["basic30"].render(text, False, (255, 255, 255), (0, 0, 0, 125))
+            image = self.fonts["basic15"].render(text, False, (255, 255, 255), (0, 0, 0, 125))
             self.screen.blit(image, pg.Vector2(0, y))
             y += image.get_height()
 
@@ -238,7 +233,6 @@ class ComponentsView:
         self.max_page_scrolling_y = self.page_scrolling_y = 0
         self.page = 0  # Showed page
         self.min_page = self.max_page = 0  # The minimal page and maximal page existing
-        self.min_visible_page = 0  # The minimal switch-page button shown
         self.components = {0: []}
         if components is not None:
             self._store_components(components)
@@ -254,13 +248,15 @@ class ComponentsView:
         """
         y = (40 - self.page_scrolling_y) * self.view.ratio.y
         next_y = y - 55
-        default_x = (0, 300)[self.view.userParamView.show_control_bar] * self.view.ratio.x
+        default_x = 300 if self.view.userParamView.show_control_bar else 0
         x = default_x
         for component in self.components[self.page]:
             image = component.image
             if image is None:
                 continue
             size = image.get_size()
+
+            # If it goes off the page, it is drawn under the previous one
             if size[0] + x > 1280 * self.view.ratio.x:
                 y = next_y + 10
                 next_y = y
@@ -337,7 +333,7 @@ class ComponentsView:
         if self.max_page + 1 - self.min_page <= 10:
             for i in range(self.min_page, self.max_page + 1):
                 buttons.append(
-                    self.view.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.view.fonts["basic30"],
+                    self.view.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.view.fonts["basic15"],
                                             custom_draw=custom_page_draw, font_color=WHITE))
             size_x = sum([button.size.x for button in buttons])
             x = (1050 + 300) // 2 - size_x // 2
@@ -350,7 +346,7 @@ class ComponentsView:
             if 30 < -self.min_page + self.max_page + 1:
                 warnings.warn("There are to many pages, the visualisation could not support it.")
             for i in range(self.min_page, self.max_page + 1):
-                buttons.append(self.view.add_UIElement(Button, pg.Vector2(0, 0), f"{i}", self.view.fonts["basic30"],
+                buttons.append(self.view.add_UIElement(Button, pg.Vector2(0, 0), f"{i}", self.view.fonts["basic15"],
                                                        custom_draw=custom_page_draw, name=f"PAGE {i}",
                                                        font_color=WHITE))
                 x = 310
@@ -429,13 +425,6 @@ class UserParamView:
         for elt in self.hideable_elements:
             elt.visible = self.show_control_bar
 
-    def correct_resizing(self, ratio):
-        for elt in self.scrollable_elements:
-            p = elt.pos + pg.Vector2(0, self.param_scrolling_y * ratio.y)
-            elt.set_pos(p)
-
-        self.param_scrolling_y = 0
-
     def scroll_params(self, amount: int):
         """
         Scroll through the parameters if there are to many parameters.
@@ -449,10 +438,33 @@ class UserParamView:
             element.set_pos(element.pos - pg.Vector2(0, amount))
 
     def _param_scroll_clamp(self):
+        max_scroll = self.compute_max_param_scroll()
         if self.param_scrolling_y <= 0:
             self.param_scrolling_y = 0
-        elif self.param_scrolling_y >= self.max_param_scrolling_y * self.view.ratio.y:
-            self.param_scrolling_y = self.max_param_scrolling_y * self.view.ratio.y
+        elif 0 < max_scroll <= self.param_scrolling_y:
+            self.param_scrolling_y = max_scroll
+
+    def compute_max_param_scroll(self):
+        """ Returns the max_param_scrolling_y, according to the size of the screen """
+
+        # Let y_screen : the original screen height
+        # Let y_scroll : the max_param_scrolling_y
+        # Let r : the ratio for the height of the screen
+        # Let size = y_screen + y_scroll : the size of the scrollable part (constant, it is not resized)
+        #      ____
+        #     |    |<-- y_screen
+        #     |____|
+        #     |    |
+        #     |    |<--- y_scroll
+        #     |____|
+        #
+        # When r != 0, we have size = y_screen * r + y_screen * (1 - r) + y_scroll
+        # By identification, we get that max_param_scroll is y_screen * (1 - r) + y_scroll
+
+        y_screen = 740 - 37  # We remove the up_bar
+        r = self.view.ratio.y
+        y_scroll = self.max_param_scrolling_y
+        return y_scroll + y_screen * (1 - r)
 
     def _add_model_param_label(self, label: str, y: int) -> tuple[int | float, int | float, Text]:
         """
@@ -465,7 +477,7 @@ class UserParamView:
         text = None
         for label in labels:
             if text is not None: y += text.image.get_height()
-            text = self.view.add_UIElement(Text, pg.Vector2(10, y), label, self.view.fonts["basic40"], color=BLACK)
+            text = self.view.add_UIElement(Text, pg.Vector2(10, y), label, self.view.fonts["basic20"], color=BLACK)
             self.hideable_elements.append(text)
             self.scrollable_elements.append(text)
         return text.image.get_width() + 20, y + text.image.get_height() / 2, text  # noqa
@@ -525,7 +537,7 @@ class UserParamView:
         for method_name in custom_method_call:
             starting_y = y
             card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
-            button = self.view.add_UIElement(Button, pg.Vector2(15, y), method_name, self.view.fonts["basic30"],
+            button = self.view.add_UIElement(Button, pg.Vector2(15, y), method_name, self.view.fonts["basic15"],
                                              name=f"method_call-{method_name}")
             self.hideable_elements.append(button)
             self.scrollable_elements.append(button)
