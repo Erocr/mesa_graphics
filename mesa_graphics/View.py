@@ -62,6 +62,7 @@ class View:
         self.ui_focused = None  # UI element focused, the other are not interactive while one is focused
         # Only the sliders, and the Selects can be focused yet.
         self.reset_start_step_buttons = []
+        self.up_bar = None
 
         if name is None:
             name = type(self.model).__name__
@@ -149,6 +150,8 @@ class View:
         self.update_reset_start_step_buttons()
         self.userParamView.resize()
 
+        self.up_bar.size.x = new_size.x
+
     def _create_ui(self, name: str, model_params, custom_method_call, play_interval: int, render_interval: int) -> None:
         """
         Instantiate the UI.
@@ -162,7 +165,7 @@ class View:
 
     def _create_up_bar(self, name: str) -> None:
         """ Creates the blue bar on top of the screen, and write the name into it. """
-        self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), color=BLUE)
+        self.up_bar = self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), color=BLUE)
         text = self.add_UIElement(Text, pg.Vector2(0, 0), name, self.fonts["basic15"], color=WHITE)
         text.set_pos(pg.Vector2(40, 20 - text.image.get_height() / 2))  # noqa
         self._create_remove_controls_button()
@@ -450,23 +453,27 @@ class UserParamView:
         self.userTweakableEntries = {}
         self.show_control_bar = True
         self.scrollingSlider = None
+        self.rect = None
+        self.shadow = None
 
     def resize(self):
         self.scrollingSlider.resize(self.view.screen_size.y - 37)
+        self.rect.size.y = self.view.screen_size.y - 37
+        self.shadow.p2.y = self.view.screen_size.y
 
     def create_ui(self, model_params, custom_method_call, play_interval: int, render_interval: int) -> None:
         """
         This function creates the grey column in the left part of the screen, and fills it with the user parameters.
         It creates also the 3 buttons RESET, START/STOP, and STEP
         """
-        rect = self.view.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), color=LIGHT2_GRAY)
-        self.hideable_elements.append(rect)
+        self.rect = self.view.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), color=LIGHT2_GRAY)
+        self.hideable_elements.append(self.rect)
         width = 5
-        shadow = self.view.add_UIElement(Shadow, pg.Vector2(300 - width, 37), pg.Vector2(300 - width, 740),
+        self.shadow = self.view.add_UIElement(Shadow, pg.Vector2(300 - width, 37), pg.Vector2(300 - width, 740),
                                          pg.Vector2(1, 0), width)
         # Pay attention, we change the size of the card at the end of the function
 
-        self.hideable_elements.append(shadow)
+        self.hideable_elements.append(self.shadow)
         self._create_flow_control_entries(play_interval, render_interval)
         y = 260
         if model_params is not None:
