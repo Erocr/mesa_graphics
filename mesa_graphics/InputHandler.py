@@ -29,6 +29,7 @@ class InputHandler:
         self.events = {}
         self.quit = False
         self._mouse_pos = pg.Vector2(0, 0)
+        self._prev_mouse_pos = pg.Vector2(0, 0)
         self._scroll_direction = pg.Vector2(0, 0)
         self.resized = None
 
@@ -54,6 +55,7 @@ class InputHandler:
         Analyse the new events sent by pygame, and write them in a more understandable way
         This method shall be called once per frame
         """
+        self._prev_mouse_pos = self._mouse_pos
         self._mouse_pos = pg.Vector2(*pg.mouse.get_pos())
         self._scroll_direction = pg.Vector2(0, 0)
         self.resized = None
@@ -121,6 +123,10 @@ class InputHandler:
     def mouse_pos(self):
         """ Get the mouse position. """
         return self._mouse_pos
+
+    @property
+    def mouse_movement(self):
+        return self._mouse_pos - self._prev_mouse_pos
 
     @property
     def scroll_direction(self):

@@ -1,10 +1,12 @@
 import mesa.visualization
 
 from .InputHandler import InputHandler
-from .UIElement import Button, Slider, UserParam, Checkbox, Select, InputText
+from .UIElement import Button, Slider, UserParam, Checkbox, Select, InputText, ScrollingSlider
 from pygame import K_d
 from .Model import Model
 from .View import View
+
+from pygame import Vector2
 
 
 class Controller:
@@ -41,6 +43,7 @@ class Controller:
     def scroll(self):
         if self.inputHandler.mouse_pos.x > 300:
             self.view.scroll_page(-self.inputHandler.scroll_direction.y)
+            self.view.userParamView.scroll_params(0)
         else:
             self.view.userParamView.scroll_params(-self.inputHandler.scroll_direction.y)
 
@@ -136,7 +139,6 @@ class UserParamController:
                 if self.inputHandler.pressed("mouse_left"):
                     if userParam.pos.x <= mousePos.x <= userParam.pos.x + userParam.toggle_size.x:
                         i = int((mousePos.y - userParam.pos.y) // userParam.toggle_size.y)
-                        print(i)
                         if 0 <= i < len(userParam.values):
                             userParam.set_value(userParam.values[i])
                     userParam.is_toggled = False
@@ -149,7 +151,7 @@ class UserParamController:
                     userParam.is_focused = True
                     self.view.ui_focused = userParam
             else:
-                for k in list("abcdefghijklmnoprstuvwxyz"):
+                for k in list("abcdefghijklmnopqrstuvwxyz"):
                     if self.inputHandler.pressed(k) or self.inputHandler.get_duration(k) > 50:
                         userParam.write(k)
                 if self.inputHandler.pressed("SPACE") or self.inputHandler.get_duration("SPACE") > 50:
@@ -162,11 +164,27 @@ class UserParamController:
                     userParam.move_cursor(1)
                 if self.inputHandler.pressed("LEFT") or self.inputHandler.get_duration("LEFT") > 50:
                     userParam.move_cursor(-1)
-                if self.inputHandler.pressed("RETURN"):
-                    print(userParam.value)
                 if self.inputHandler.pressed("mouse_left"):
                     userParam.is_focused = False
                     self.view.ui_focused = None
+        elif isinstance(userParam, ScrollingSlider):
+            if focused:
+                userParam.move_pointer_pos(self.inputHandler.mouse_movement)
+                if self.view.ui_focused == userParam and not self.inputHandler.holding("mouse_left"):
+                    self.view.ui_focused = None
+            else:
+                userParam.hover = (userParam.pos.x <= mousePos.x <= userParam.pos.x + userParam.size.x and
+                                   userParam.pos.y <= mousePos.y <= userParam.pos.y + userParam.size.y)
+                pointer_pos = userParam.get_pointer_pos() - Vector2(2, 2)
+                hover_pointer = (userParam.hover and pointer_pos.x <= mousePos.x <= pointer_pos.x + userParam.pointer_size.x + 4
+                                 and pointer_pos.y <= mousePos.y <= pointer_pos.y + userParam.pointer_size.y + 4)
+                if self.inputHandler.pressed("mouse_left"):
+                    if hover_pointer:
+                        self.view.ui_focused = userParam
+                    elif userParam.hover:
+                        userParam.move_pointer_pos(self.inputHandler.mouse_pos -
+                                                   (userParam.get_pointer_pos() + userParam.pointer_size / 2))
+
         else:
             raise NotImplementedError()
         if not userParam.model_param:

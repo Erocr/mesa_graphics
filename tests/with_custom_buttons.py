@@ -117,8 +117,52 @@ custom_buttons = {
         }
     },
 
+"tax1": {
+        "amount": {
+            "type": "SliderInt",
+            "value": 1,
+            "min": 1,
+            "max": 5,
+            "step": 1
+        }
+    },
+
+"tax2": {
+        "amount": {
+            "type": "SliderInt",
+            "value": 1,
+            "min": 1,
+            "max": 5,
+            "step": 1
+        }
+    },
+
+"tax3": {
+        "amount": {
+            "type": "SliderInt",
+            "value": 1,
+            "min": 1,
+            "max": 5,
+            "step": 1
+        }
+    },
+
     "redistribute": {
         "amount": {
+            "type": "SliderInt",
+            "value": 1,
+            "min": 1,
+            "max": 5,
+            "step": 1
+        },
+        "amount1": {
+            "type": "SliderInt",
+            "value": 1,
+            "min": 1,
+            "max": 5,
+            "step": 1
+        },
+        "amount2": {
             "type": "SliderInt",
             "value": 1,
             "min": 1,

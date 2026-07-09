@@ -5,10 +5,13 @@ from math import log10
 import pygame as pg
 
 
+DARK1_BLUE = (12, 60, 180)
 BLUE = (24, 118, 210)
 LIGHT1_BLUE = (100, 150, 255)
 LIGHT2_BLUE = (120, 180, 255)
-LIGHT_GRAY = (230, 230, 230)
+LIGHT2_GRAY = (230, 230, 230)
+LIGHT1_GRAY = (190, 190, 190)
+GRAY = (125, 125, 125)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
@@ -61,7 +64,7 @@ class ShadowedCard(UIElement):
     def __init__(self, in_position: pg.Vector2, in_size: pg.Vector2, color_in, width: int = 5, *args, **kwargs):
         super().__init__(in_position)
         start_col = pg.Vector3(100, 100, 100)
-        end_col = pg.Vector3(*LIGHT_GRAY)
+        end_col = pg.Vector3(*LIGHT2_GRAY)
         self.rects = []
         for i in range(width):
             I = pg.Vector2(i, i)
@@ -226,14 +229,13 @@ class Slider(UserParam):
     BAR_HEIGHT = 2
     FONT = None
 
-    def __init__(self, pos: pg.Vector2, length: int, t: str, param_name: str, model_param=True, associated_method=None,
+    def __init__(self, pos: pg.Vector2, t: str, param_name: str, model_param=True, associated_method=None,
                  value=None, min=0, max=10, step=0.01):
         """
         This class handle the logic for drawing a slider.
 
         :param t: The type of the slider, it can be "SliderInt" or "SliderFloat"
         :param pos: A pg.Vector2 describing the left position of the slider.
-        :param length: The length of the bar of the slider.
         :param value: The initial value. If None, value is initialized with the middle value.
         :param min: The minimum value it can take.
         :param max: The maximum value it can take.
@@ -250,7 +252,7 @@ class Slider(UserParam):
         self.step = step
         self.min = min
         self.max = max
-        self.length = length
+        self.length = 270 - pos.x
         self.set_value(value)
         self.hover = False
         self.type = t
@@ -342,8 +344,8 @@ class Select(UserParam):
         default_path = pg.font.get_default_font()
         font = pg.font.Font(default_path, 15)
         self.values_images = []
-        self.size = pg.Vector2(280 - self.pos.x, 20)
-        self.toggle_size = pg.Vector2(280 - self.pos.x, 30)
+        self.size = pg.Vector2(270 - self.pos.x, 20)
+        self.toggle_size = pg.Vector2(270 - self.pos.x, 30)
         for value in values:
             image = font.render(str(value), True, (0, 0, 0))
             new_size = (min(image.get_width(), self.size.x - 2 * 5),
@@ -426,7 +428,7 @@ class InputText(UserParam):
         self.cursor_pos = len(self.value)
         self.ratio = pg.Vector2(1, 1)
         default_path = pg.font.get_default_font()
-        self.size = pg.Vector2(280 - self.pos.x, 20)
+        self.size = pg.Vector2(270 - self.pos.x, 20)
         self.font = pg.font.Font(default_path, 15)
         self.text_im = None
         self.compute_text_im()
@@ -490,3 +492,90 @@ class InputText(UserParam):
         pass
 
 
+class ScrollingSlider(UserParam):
+    def __init__(self, pos, is_vert, screen_size_y, scrolling_length_y, name):
+        """
+
+        :param pos: The top left corner position
+        :param is_vert: True if the slider is vertical
+        :param length: The length in pixel of the slider on the screen.
+        :param screen_size_y: The height of the part viewable by the user
+        :param scrolling_length_y: The size where the user can scroll
+        :param name: An id in order to know where it does scroll
+
+         _____
+        |    |<-- screen_size
+        |____|
+        |    |
+        |    |<-- scrolling_length
+        |    |
+        |____|
+        """
+        super().__init__(pos, name, False, value=0)
+        self.hover = False
+        self.is_vert = is_vert
+        if is_vert:
+            self.size = pg.Vector2(10, screen_size_y)
+        else:
+            self.size = pg.Vector2(screen_size_y, 10)
+        self.name = name
+        self.screen_size_y = screen_size_y
+        self.scrolling_length_y = scrolling_length_y
+        self.pointer_size = pg.Vector2(0)
+        self.pointer_length = 0
+        self.update_pointer_size()
+
+    def update_pointer_size(self):
+        # self.screen_size_y / (self.screen_size_y + self.scrolling_length_y) is between 0 and 1, it is the ratio
+        # of the size of the screen.
+        # Finally, we multiply by self.screen_size_y which is the size of the scrolling bar.
+        self.pointer_length = self.screen_size_y / (self.screen_size_y + self.scrolling_length_y) * self.screen_size_y
+        self.pointer_size = pg.Vector2(self.pointer_length)
+        if self.is_vert:
+            self.pointer_size.x = 6
+        else:
+            self.pointer_size.y = 6
+
+    def draw(self, screen):
+        pointer_color = GRAY if self.hover else LIGHT1_GRAY
+        pg.draw.rect(screen, WHITE, pg.Rect(self.pos, self.size))
+        pg.draw.rect(screen, pointer_color, pg.Rect(self.get_pointer_pos(), self.pointer_size), border_radius=6)
+
+    def get_pointer_pos(self):
+        direction = pg.Vector2(0, 1) if self.is_vert else pg.Vector2(1, 0)
+        # self.value / self.scrolling_length_y is a ratio between 0 and 1 of how much the user scrolled.
+        pos = self.value / self.scrolling_length_y * (self.screen_size_y - self.pointer_length - 2)
+        return self.pos + direction*pos + pg.Vector2(2, 2)
+
+    def resize(self, new_screen_size_y):
+        self.scrolling_length_y = self.screen_size_y + self.scrolling_length_y - new_screen_size_y
+        self.screen_size_y = new_screen_size_y
+        self.update_pointer_size()
+        if self.is_vert:
+            self.size = pg.Vector2(10, self.screen_size_y)
+        else:
+            self.size = pg.Vector2(self.screen_size_y, 10)
+
+    def move_pointer_pos(self, amount: int | float | pg.Vector2):
+        """
+        The amount is in pixels, on the slide.
+
+        pos is the position in his axis.
+        For example, if it is a vertical slider, his axis is vertical.
+        """
+        if isinstance(amount, pg.Vector2):
+            if self.is_vert: amount = amount.y
+            else: amount = amount.x
+
+        self.value += amount / (self.screen_size_y - self.pointer_length - 2) * self.scrolling_length_y
+        self.clamp_value()
+
+    def clamp_value(self):
+        if self.value < 0: self.value = 0
+        if self.value > self.scrolling_length_y: self.value = self.scrolling_length_y
+
+    def is_above_pointer(self, point: pg.Vector2):
+        if self.is_vert:
+            return point.y < self.get_pointer_pos().y
+        else:
+            return point.x < self.get_pointer_pos().x

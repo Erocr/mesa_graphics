@@ -49,6 +49,7 @@ class View:
         """
         self.fonts = {}
         self.init_fonts()
+        self.min_window_size = pg.Vector2(500, 300)
         self.screen_size = pg.Vector2(1280, 740)
         self.screen = pg.display.set_mode(self.screen_size, pg.RESIZABLE)
         self.model = model
@@ -87,7 +88,9 @@ class View:
                 ui.draw(self.screen)
 
         if self.ui_focused is not None:
-            self.ui_focused.secondary_draw(self.screen)
+            secondary_draw = getattr(self.ui_focused, "secondary_draw", None)
+            if secondary_draw is not None:
+                secondary_draw(self.screen)
 
         # Draw the debug message (if debug is enabled)
         if self.model.debug: self.draw_debug()
@@ -130,13 +133,21 @@ class View:
         pg.quit()
 
     def resize(self, new_size: pg.Vector2):
-        ratio = pg.Vector2(new_size.x / self.screen_size.x, new_size.y / self.screen_size.y)
-        self.ratio = mul(ratio, self.ratio)
+        new_size_clamped = pg.Vector2(
+            max(new_size.x, self.min_window_size.x),
+            max(new_size.y, self.min_window_size.y))
+        if new_size_clamped.x != new_size.x or new_size_clamped.y != new_size.y:
+            self.screen = pg.display.set_mode(new_size_clamped, pg.RESIZABLE)
+
+        new_size = new_size_clamped
+
+        ratio = pg.Vector2(new_size.x / self.screen_size.x, new_size.y / self.screen_size.y)  # ratio is the relative ratio
+        self.ratio = mul(ratio, self.ratio)  # self.ratio is the global ratio
         self.screen_size = new_size
 
         self.componentsView.update_switch_buttons()
         self.update_reset_start_step_buttons()
-
+        self.userParamView.resize()
 
     def _create_ui(self, name: str, model_params, custom_method_call, play_interval: int, render_interval: int) -> None:
         """
@@ -344,6 +355,8 @@ class ComponentsView:
                              border_radius=10)
             button.text.draw(screen)
 
+        self.view.min_window_size.x = min(1280, 500 + (self.max_page - self.min_page + 1) * 30)
+
         for i in range(self.min_page, self.max_page + 1):
             self.switch_page_buttons.append(
                 self.view.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.view.fonts["basic15"],
@@ -368,12 +381,12 @@ class ComponentsView:
                     button = self.switch_page_buttons[i]
                     page = i + self.min_page
                     button.modify_text(f"PAGE {page}")
-                    button.size.y = 37
                 self.buttons_full = True
 
             x = (right_pos + left_pos) // 2 - size_x_full // 2
             for button in self.switch_page_buttons:
                 button.set_pos(pg.Vector2(x, 0))
+                button.size.y = 37
                 x += button.size.x
         else:
             if self.buttons_full:
@@ -381,7 +394,6 @@ class ComponentsView:
                     button = self.switch_page_buttons[i]
                     page = i + self.min_page
                     button.modify_text(f"{page}")
-                    button.size.y = 37
                 self.buttons_full = False
 
             x = left_pos
@@ -394,13 +406,17 @@ class ComponentsView:
 
     def switch_page(self, new_page):
         """ Change the current page """
+        text1 = f"PAGE {self.page}" if self.buttons_full else str(self.page)
+        size1 = self.view.buttons[f"PAGE {self.page}"].size
         self.view.buttons[f"PAGE {self.page}"].unlock()
-        self.view.buttons[f"PAGE {self.page}"].modify_text(f"PAGE {self.page}", color=(255, 255, 255))
-        self.view.buttons[f"PAGE {self.page}"].size.y = 37 * self.view.buttons[f"PAGE {self.page}"].ratio.y
+        self.view.buttons[f"PAGE {self.page}"].modify_text(text1, color=(255, 255, 255))
+        self.view.buttons[f"PAGE {self.page}"].size = size1
         self.page = new_page
+        text2 = f"PAGE {self.page}" if self.buttons_full else str(self.page)
+        size2 = self.view.buttons[f"PAGE {self.page}"].size
         self.view.buttons[f"PAGE {self.page}"].lock()
-        self.view.buttons[f"PAGE {self.page}"].modify_text(f"PAGE {self.page}", color=(0, 0, 0))
-        self.view.buttons[f"PAGE {self.page}"].size.y = 37 * self.view.buttons[f"PAGE {self.page}"].ratio.y
+        self.view.buttons[f"PAGE {self.page}"].modify_text(text2, color=(0, 0, 0))
+        self.view.buttons[f"PAGE {self.page}"].size = size2
         # Changer le texte change aussi la taille du bouton, on doit la remodifier manuellement
 
         self.page_scrolling_y = 0
@@ -433,18 +449,23 @@ class UserParamView:
         self.userTweakableModelParams = {}  # Provide fast and easy access to user's Model parameters
         self.userTweakableEntries = {}
         self.show_control_bar = True
+        self.scrollingSlider = None
+
+    def resize(self):
+        self.scrollingSlider.resize(self.view.screen_size.y - 37)
 
     def create_ui(self, model_params, custom_method_call, play_interval: int, render_interval: int) -> None:
         """
         This function creates the grey column in the left part of the screen, and fills it with the user parameters.
         It creates also the 3 buttons RESET, START/STOP, and STEP
         """
-        rect = self.view.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), color=LIGHT_GRAY)
+        rect = self.view.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), color=LIGHT2_GRAY)
         self.hideable_elements.append(rect)
         width = 5
         shadow = self.view.add_UIElement(Shadow, pg.Vector2(300 - width, 37), pg.Vector2(300 - width, 740),
-                                         pg.Vector2(1, 0),
-                                         width)
+                                         pg.Vector2(1, 0), width)
+        # Pay attention, we change the size of the card at the end of the function
+
         self.hideable_elements.append(shadow)
         self._create_flow_control_entries(play_interval, render_interval)
         y = 260
@@ -453,6 +474,9 @@ class UserParamView:
         if custom_method_call is not None:
             self._create_custom_method_call_entries(custom_method_call, y)
 
+        self.scrollingSlider = self.view.add_UIElement(ScrollingSlider, pg.Vector2(285, 37), True, 740-37,
+                                                       self.max_param_scrolling_y, "userParamScroll")
+
     def toggle_untoggle_control_bar(self):
         self.show_control_bar = not self.show_control_bar
         for elt in self.hideable_elements:
@@ -460,15 +484,18 @@ class UserParamView:
 
     def scroll_params(self, amount: int):
         """
-        Scroll through the parameters if there are to many parameters.
+        Scroll through the parameters if there are to many parameters of the amount given.
+        Moreover, if the user scrolled touching the scrolling slider, it is taken into account in this function
         :param amount: how much the user is scrolling.
         """
+        diff = self.scrollingSlider.value - self.param_scrolling_y + amount * self.view.SCROLL_SENSIBILITY
         prev_param_scrolling_y = self.param_scrolling_y
-        self.param_scrolling_y += amount * self.view.SCROLL_SENSIBILITY
+        self.param_scrolling_y += diff
         self._param_scroll_clamp()
         amount = self.param_scrolling_y - prev_param_scrolling_y
         for element in self.scrollable_elements:
             element.set_pos(element.pos - pg.Vector2(0, amount))
+        self.scrollingSlider.value = self.param_scrolling_y
 
     def _param_scroll_clamp(self):
         max_scroll = self.compute_max_param_scroll()
@@ -553,15 +580,17 @@ class UserParamView:
         Returns the y position of the bottom of the model param entries.
         """
         starting_y = y = 260
-        card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3,
+        card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(265, 10), WHITE, 3,
                                        border_radius=10)
+        # Pay attention, we change the size of the card at the end of the function
+
         for param_name in model_params:
             y = self._create_user_param(param_name, model_params[param_name], y)
         y += 15
 
         self.scrollable_elements.append(card)
         self.hideable_elements.append(card)
-        card.set_size(pg.Vector2(285, y - starting_y))
+        card.set_size(pg.Vector2(275, y - starting_y))
 
         self.max_param_scrolling_y = max(y - 700, 0)
         return y
@@ -570,8 +599,10 @@ class UserParamView:
         y = starting_y
         for method_name in custom_method_call:
             starting_y = y
-            card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3,
+            card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(275, 10), WHITE, 3,
                                            border_radius=10)
+            # Pay attention, we change the size of the card at the end of the function
+
             button = self.view.add_UIElement(Button, pg.Vector2(15, y), method_name, self.view.fonts["basic15"],
                                              name=f"method_call-{method_name}")
             self.hideable_elements.append(button)
@@ -584,7 +615,7 @@ class UserParamView:
                 y = self._create_user_param(param_name, params[param_name], y)
             y += 15
 
-            card.set_size(pg.Vector2(285, y - starting_y))
+            card.set_size(pg.Vector2(275, y - starting_y))
             self.hideable_elements.append(card)
             self.scrollable_elements.append(card)
             y += 50
@@ -628,8 +659,10 @@ class UserParamView:
         :param render_interval: The starting value of the render_interval's slider
         """
         starting_y = y = 90
-        card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3,
+        card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(275, 10), WHITE, 3,
                                        border_radius=10)
+        # Pay attention, we change the size of the card at the end of the function
+
         self.scrollable_elements.append(card)
         self.hideable_elements.append(card)
         play_interval_params = {
@@ -655,7 +688,7 @@ class UserParamView:
             "model_param": False
         }
         y = self._create_user_param("render_interval", render_interval_params, y)
-        card.set_size(pg.Vector2(285, y - starting_y))
+        card.set_size(pg.Vector2(275, y - starting_y))
 
     def _user_input_params_extraction(self, param, param_name: str) -> tuple[type[UserParam], dict]:
         """
@@ -698,7 +731,7 @@ class UserParamView:
         :return: Tuple of positional arguments compatible with add_UIElement().
         """
         if t == Slider:
-            return pg.Vector2(x, y), 280 - x
+            return (pg.Vector2(x, y),)
         elif t == Checkbox:
             return (pg.Vector2(x, y - Checkbox.SIZE.y / 2 * self.view.ratio.y),)
         elif t == Select:
