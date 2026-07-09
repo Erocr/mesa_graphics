@@ -537,15 +537,23 @@ class ScrollingSlider(UserParam):
             self.pointer_size.y = 6
 
     def draw(self, screen):
-        pointer_color = GRAY if self.hover else LIGHT1_GRAY
-        pg.draw.rect(screen, WHITE, pg.Rect(self.pos, self.size))
-        pg.draw.rect(screen, pointer_color, pg.Rect(self.get_pointer_pos(), self.pointer_size), border_radius=6)
+        if self.pointer_length != self.screen_size_y:
+            pointer_color = GRAY if self.hover else LIGHT1_GRAY
+            pg.draw.rect(screen, WHITE, pg.Rect(self.pos, self.size))
+            pg.draw.rect(screen, pointer_color, pg.Rect(self.get_pointer_pos(), self.pointer_size), border_radius=6)
 
     def get_pointer_pos(self):
         direction = pg.Vector2(0, 1) if self.is_vert else pg.Vector2(1, 0)
         # self.value / self.scrolling_length_y is a ratio between 0 and 1 of how much the user scrolled.
-        pos = self.value / self.scrolling_length_y * (self.screen_size_y - self.pointer_length - 2)
+        if self.scrolling_length_y == 0:
+            pos = 0
+        else:
+            pos = self.value / self.scrolling_length_y * (self.screen_size_y - self.pointer_length - 2)
         return self.pos + direction*pos + pg.Vector2(2, 2)
+
+    def update_max_scrolling(self, new_max_scrolling):
+        self.scrolling_length_y = new_max_scrolling
+        self.update_pointer_size()
 
     def resize(self, new_screen_size_y):
         self.scrolling_length_y = self.screen_size_y + self.scrolling_length_y - new_screen_size_y

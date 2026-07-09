@@ -25,7 +25,7 @@ The important functions:
 
 
 class View:
-    SCROLL_SENSIBILITY = 15
+    SCROLL_SENSIBILITY = 30
 
     def __init__(self, model, renderer=None, components=None, play_interval=100, render_interval=1, model_params=None,
                  custom_method_call=None, name=None):
@@ -146,7 +146,7 @@ class View:
         self.ratio = mul(ratio, self.ratio)  # self.ratio is the global ratio
         self.screen_size = new_size
 
-        self.componentsView.update_switch_buttons()
+        self.componentsView.resize()
         self.update_reset_start_step_buttons()
         self.userParamView.resize()
 
@@ -267,8 +267,11 @@ class ComponentsView:
         self.switch_page_buttons = []  # Provide fast and easy access to specifically buttons for switching pages
         self.full_switch_page_button_width = 0  # The width of a switch page button, when it has the full name
         self.buttons_full = True  # If the switch page buttons have the full name
+        self.scrollingSlider = None
 
     def create_ui(self) -> None:
+        self.scrollingSlider = self.view.add_UIElement(ScrollingSlider, pg.Vector2(1270, 37), True, 740 - 37,
+                                                       self.max_page_scrolling_y, "pageScroll")
         self.create_switch_page_buttons()
 
     def draw(self):
@@ -294,7 +297,13 @@ class ComponentsView:
             self.view.screen.blit(image, (x, y))
             x += size[0] + 10
         self.max_page_scrolling_y = max(next_y - 700 * self.view.ratio.y + self.page_scrolling_y * self.view.ratio.y, 0)
+        self.scrollingSlider.update_max_scrolling(self.max_page_scrolling_y)
         self._page_scroll_clamp()
+
+    def resize(self):
+        self.update_switch_buttons()
+        self.scrollingSlider.pos = pg.Vector2(self.view.screen_size.x - 10, 37)
+        self.scrollingSlider.resize(self.view.screen_size.y - 37)
 
     def _store_components(self, components: list[tuple[Callable, int] | Callable]):
         """
@@ -422,7 +431,11 @@ class ComponentsView:
         self.view.buttons[f"PAGE {self.page}"].size = size2
         # Changer le texte change aussi la taille du bouton, on doit la remodifier manuellement
 
-        self.page_scrolling_y = 0
+        self.set_page_scroll(0)
+
+    def set_page_scroll(self, page_scroll):
+        self.page_scrolling_y = page_scroll
+        self.scrollingSlider.value = 0
 
     def _page_scroll_clamp(self):
         if self.page_scrolling_y <= 0:
@@ -439,8 +452,11 @@ class ComponentsView:
             component.render()
 
     def scroll(self, amount: int):
-        self.page_scrolling_y += amount * self.view.SCROLL_SENSIBILITY
+        diff = self.scrollingSlider.value - self.page_scrolling_y + amount * self.view.SCROLL_SENSIBILITY
+
+        self.page_scrolling_y += diff
         self._page_scroll_clamp()
+        self.scrollingSlider.value = self.page_scrolling_y
 
 
 class UserParamView:
