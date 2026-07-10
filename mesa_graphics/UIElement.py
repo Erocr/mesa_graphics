@@ -189,8 +189,8 @@ class Button(UIElement):
             font = self.font
         else:
             self.font = font
-        self.text = Text(mul(self.pos, pg.Vector2(1/self.ratio.x, 1/self.ratio.y)) + pg.Vector2(10, 10), new_text, font, color=color, ratio=self.ratio)
-        self.size.x = self.text.image.get_width() + 20 * self.ratio.x
+        self.text = Text(self.pos + pg.Vector2(10, 10), new_text, font, color=color)
+        self.size.x = self.text.image.get_width() + 20
 
     def set_pos(self, pos: pg.Vector2):
         """ Change the position of the button. """

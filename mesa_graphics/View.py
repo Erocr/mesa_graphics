@@ -413,7 +413,8 @@ class ComponentsView:
                 for i in range(len(self.switch_page_buttons)):
                     button = self.switch_page_buttons[i]
                     page = i + self.min_page
-                    button.modify_text(f"PAGE {page}")
+                    col = BLACK if button.locked else WHITE
+                    button.modify_text(f"PAGE {page}", color=col)
                 self.buttons_full = True
 
             x = (right_pos + left_pos) // 2 - size_x_full // 2
@@ -426,7 +427,8 @@ class ComponentsView:
                 for i in range(len(self.switch_page_buttons)):
                     button = self.switch_page_buttons[i]
                     page = i + self.min_page
-                    button.modify_text(f"{page}")
+                    col = BLACK if button.locked else WHITE
+                    button.modify_text(f"{page}", color=col)
                 self.buttons_full = False
 
             x = left_pos
@@ -440,16 +442,20 @@ class ComponentsView:
     def switch_page(self, new_page):
         """ Change the current page """
         text1 = f"PAGE {self.page}" if self.buttons_full else str(self.page)
-        size1 = self.view.buttons[f"PAGE {self.page}"].size
-        self.view.buttons[f"PAGE {self.page}"].unlock()
-        self.view.buttons[f"PAGE {self.page}"].modify_text(text1, color=(255, 255, 255))
-        self.view.buttons[f"PAGE {self.page}"].size = size1
+        button1 = self.view.buttons[f"PAGE {self.page}"]
+        size1 = button1.size.copy()
+        button1.unlock()
+        button1.modify_text(text1, color=(255, 255, 255))
+        button1.size = size1
+        button1.text.pos = button1.pos + button1.size // 2 - pg.Vector2(button1.text.image.get_size()) // 2
         self.page = new_page
         text2 = f"PAGE {self.page}" if self.buttons_full else str(self.page)
-        size2 = self.view.buttons[f"PAGE {self.page}"].size
-        self.view.buttons[f"PAGE {self.page}"].lock()
-        self.view.buttons[f"PAGE {self.page}"].modify_text(text2, color=(0, 0, 0))
-        self.view.buttons[f"PAGE {self.page}"].size = size2
+        button2 = self.view.buttons[f"PAGE {self.page}"]
+        size2 = button2.size.copy()
+        button2.lock()
+        button2.modify_text(text2, color=(0, 0, 0))
+        button2.size = size2
+        button2.text.pos = button2.pos + button2.size // 2 - pg.Vector2(button2.text.image.get_size()) // 2
         # Changer le texte change aussi la taille du bouton, on doit la remodifier manuellement
 
         self.set_page_scroll(pg.Vector2(0))
