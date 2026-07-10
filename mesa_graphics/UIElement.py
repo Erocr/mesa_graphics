@@ -537,7 +537,7 @@ class ScrollingSlider(UserParam):
             self.pointer_size.y = 6
 
     def draw(self, screen):
-        if self.pointer_length != self.screen_size_y:
+        if self.pointer_length < self.screen_size_y:
             pointer_color = GRAY if self.hover else LIGHT1_GRAY
             pg.draw.rect(screen, WHITE, pg.Rect(self.pos, self.size))
             pg.draw.rect(screen, pointer_color, pg.Rect(self.get_pointer_pos(), self.pointer_size), border_radius=6)

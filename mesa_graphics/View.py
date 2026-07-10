@@ -122,7 +122,6 @@ class View:
         Called in the __init__ of View.
         It initializes the pygame.font module, and creates some fonts
         """
-        pg.font.init()
         default_path = pg.font.get_default_font()
         self.fonts["basic15"] = pg.font.Font(default_path, 15)
         self.fonts["basic20"] = pg.font.Font(default_path, 20)
@@ -315,6 +314,7 @@ class ComponentsView:
 
     def resize(self):
         self.update_switch_buttons()
+        self._page_scroll_clamp()
         self.scrollingSliderY.pos = pg.Vector2(self.view.screen_size.x - 10, 37)
         self.scrollingSliderY.resize(self.view.screen_size.y - 37)
         default_x = 300 if self.view.userParamView.show_control_bar else 0
@@ -524,6 +524,7 @@ class UserParamView:
         self.hideable_elements.append(self.shadow)
         self._create_flow_control_entries(play_interval, render_interval)
         y = 260
+        self.max_param_scrolling_y = y - 700
         if model_params is not None:
             y = self._create_model_params_entries(model_params) + 50
         if custom_method_call is not None:
@@ -560,6 +561,8 @@ class UserParamView:
             self.param_scrolling_y = 0
         elif 0 < max_scroll <= self.param_scrolling_y:
             self.param_scrolling_y = max_scroll
+        elif max_scroll <= 0:
+            self.param_scrolling_y = 0
 
     def compute_max_param_scroll(self):
         """ Returns the max_param_scrolling_y, according to the size of the screen """
@@ -649,7 +652,7 @@ class UserParamView:
         self.hideable_elements.append(card)
         card.set_size(pg.Vector2(275, y - starting_y))
 
-        self.max_param_scrolling_y = max(y - 700, 0)
+        self.max_param_scrolling_y = y - 700
         return y
 
     def _create_custom_method_call_entries(self, custom_method_call, starting_y) -> None:
@@ -677,7 +680,7 @@ class UserParamView:
             self.scrollable_elements.append(card)
             y += 50
         y -= 50
-        self.max_param_scrolling_y = max(y - 700, 0)
+        self.max_param_scrolling_y = y - 700
 
     def _create_user_param(self, param_name: str, model_param, y: int) -> int:
         """

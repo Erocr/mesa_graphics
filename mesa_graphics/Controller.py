@@ -152,11 +152,14 @@ class UserParamController:
                     userParam.is_focused = True
                     self.view.ui_focused = userParam
             else:
-                for k in list("abcdefghijklmnopqrstuvwxyz"):
-                    if self.inputHandler.pressed(k) or self.inputHandler.get_duration(k) > 50:
-                        userParam.write(k)
-                if self.inputHandler.pressed("SPACE") or self.inputHandler.get_duration("SPACE") > 50:
-                    userParam.write(" ")
+                for letter in self.inputHandler.unicode:
+                    print(hex(ord(letter)))
+                    # x08: BACKSPACE
+                    # x0d: ENTER
+                    # x7f: DELETE
+                    # x1f: ` (before becoming the true accent)
+                    if letter not in "\x08\x0d\x7f\x1f":
+                        userParam.write(letter)
                 if self.inputHandler.pressed("BACKSPACE") or self.inputHandler.get_duration("BACKSPACE") > 50:
                     userParam.remove()
                 if self.inputHandler.pressed("DELETE") or self.inputHandler.get_duration("DELETE") > 50:

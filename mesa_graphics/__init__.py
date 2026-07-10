@@ -8,3 +8,6 @@ from .components import (make_mpl_plot_component, make_space_component, make_plo
                          make_mpl_space_component, make_space_matplotlib,
                          create_space_component)
 from .backend_integration import FigureMatplotlib
+
+from pygame import font
+font.init()

@@ -1,7 +1,7 @@
 import mesa
 
 from mesa_graphics.MesaGraphics import MesaGraphics
-from mesa_graphics.components import make_mpl_plot_component
+from mesa_graphics.components import make_mpl_plot_component, make_text_component
 
 
 class MoneyAgent(mesa.Agent):
@@ -42,8 +42,9 @@ class MoneyModel(mesa.Model):
 money_model = MoneyModel()
 
 GiniPlot = make_mpl_plot_component("Gini", page=0)
+TextComp = make_text_component("         This is a test", page=0, font_size=60)
 
 page = MesaGraphics(
     money_model,
-    components=[GiniPlot],
+    components=[TextComp, GiniPlot],
 )
