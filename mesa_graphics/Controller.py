@@ -2,7 +2,7 @@ import mesa.visualization
 
 from .InputHandler import InputHandler
 from .UIElement import Button, Slider, UserParam, Checkbox, Select, InputText, ScrollingSlider
-from pygame import K_d
+from pygame import Vector2
 from .Model import Model
 from .View import View
 
@@ -42,7 +42,8 @@ class Controller:
 
     def scroll(self):
         if self.inputHandler.mouse_pos.x > 300:
-            self.view.scroll_page(-self.inputHandler.scroll_direction.y)
+            self.view.scroll_page(Vector2(self.inputHandler.scroll_direction.x,
+                                          -self.inputHandler.scroll_direction.y))
             self.view.userParamView.scroll_params(0)
         else:
             self.view.userParamView.scroll_params(-self.inputHandler.scroll_direction.y)

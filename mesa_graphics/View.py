@@ -1,5 +1,3 @@
-import warnings
-
 from .Component import Component
 from .UIElement import *
 from .components import create_space_component
@@ -238,7 +236,7 @@ class View:
         """
         self.componentsView.switch_page(new_page)
 
-    def scroll_page(self, amount: int):
+    def scroll_page(self, amount: pg.Vector2):
         """
         Scroll through the components if there are to many components.
         :param amount: how much the user is scrolling.
@@ -256,7 +254,6 @@ class ComponentsView:
         :param renderer: The renderer is optional. It is a SpaceRenderer from mesa.visualization.
         """
         self.view = view
-        self.max_page_scrolling_y = self.page_scrolling_y = 0
         self.page = 0  # Showed page
         self.min_page = self.max_page = 0  # The minimal page and maximal page existing
         self.components = {0: []}
@@ -267,20 +264,30 @@ class ComponentsView:
         self.switch_page_buttons = []  # Provide fast and easy access to specifically buttons for switching pages
         self.full_switch_page_button_width = 0  # The width of a switch page button, when it has the full name
         self.buttons_full = True  # If the switch page buttons have the full name
-        self.scrollingSlider = None
+
+        self.scrollingSliderY = None
+        self.max_page_scrolling_y = self.page_scrolling_y = 0
+
+        self.scrollingSliderX = None
+        self.max_page_scrolling_x = self.page_scrolling_x = 0
 
     def create_ui(self) -> None:
-        self.scrollingSlider = self.view.add_UIElement(ScrollingSlider, pg.Vector2(1270, 37), True, 740 - 37,
-                                                       self.max_page_scrolling_y, "pageScroll")
+        self.scrollingSliderY = self.view.add_UIElement(ScrollingSlider, pg.Vector2(1270, 37), True, 740 - 37,
+                                                        self.max_page_scrolling_y, "pageScrollY")
+        self.scrollingSliderX = self.view.add_UIElement(ScrollingSlider, pg.Vector2(300, 730), False, 1280-300,
+                                                        self.max_page_scrolling_x, "pageScrollX")
         self.create_switch_page_buttons()
 
     def draw(self):
         """
         This function draws all the components in the current page.
         """
-        y = (40 - self.page_scrolling_y) * self.view.ratio.y
-        next_y = y - 55
+        y = (40 - self.page_scrolling_y * self.view.ratio.y)
+        gap_y = 10
+        next_y = y - gap_y
+        max_x = 300
         default_x = 300 if self.view.userParamView.show_control_bar else 0
+        default_x -= self.page_scrolling_x * self.view.ratio.x
         x = default_x
         for component in self.components[self.page]:
             image = component.image
@@ -290,20 +297,34 @@ class ComponentsView:
 
             # If it goes off the page, it is drawn under the previous one
             if size[0] + x > 1280 * self.view.ratio.x:
-                y = next_y + 10
+                y = next_y + gap_y
                 next_y = y
                 x = default_x
+
+            if size[0] + x > max_x:
+                max_x = size[0] + x
+
             next_y = max(next_y, y + size[1])
             self.view.screen.blit(image, (x, y))
             x += size[0] + 10
         self.max_page_scrolling_y = max(next_y - 700 * self.view.ratio.y + self.page_scrolling_y * self.view.ratio.y, 0)
-        self.scrollingSlider.update_max_scrolling(self.max_page_scrolling_y)
+        self.scrollingSliderY.update_max_scrolling(self.max_page_scrolling_y)
+        self.max_page_scrolling_x = max(max_x - 1270 * self.view.ratio.x + self.page_scrolling_x * self.view.ratio.x, 0)
+        self.scrollingSliderX.update_max_scrolling(self.max_page_scrolling_x / self.view.ratio.x)
         self._page_scroll_clamp()
 
     def resize(self):
         self.update_switch_buttons()
-        self.scrollingSlider.pos = pg.Vector2(self.view.screen_size.x - 10, 37)
-        self.scrollingSlider.resize(self.view.screen_size.y - 37)
+        self.scrollingSliderY.pos = pg.Vector2(self.view.screen_size.x - 10, 37)
+        self.scrollingSliderY.resize(self.view.screen_size.y - 37)
+        default_x = 300 if self.view.userParamView.show_control_bar else 0
+        self.scrollingSliderX.pos = pg.Vector2(default_x, self.view.screen_size.y - 10)
+        self.scrollingSliderX.resize(self.view.screen_size.x - default_x - 10 - 3)
+
+    def toggle_untoggle_control_bar(self, toggled):
+        default_x = 300 if toggled else 0
+        self.scrollingSliderX.pos = pg.Vector2(default_x, self.view.screen_size.y - 10)
+        self.scrollingSliderX.resize(self.view.screen_size.x - default_x)
 
     def _store_components(self, components: list[tuple[Callable, int] | Callable]):
         """
@@ -431,17 +452,24 @@ class ComponentsView:
         self.view.buttons[f"PAGE {self.page}"].size = size2
         # Changer le texte change aussi la taille du bouton, on doit la remodifier manuellement
 
-        self.set_page_scroll(0)
+        self.set_page_scroll(pg.Vector2(0))
 
-    def set_page_scroll(self, page_scroll):
-        self.page_scrolling_y = page_scroll
-        self.scrollingSlider.value = 0
+    def set_page_scroll(self, page_scroll: pg.Vector2):
+        self.page_scrolling_x = page_scroll.x
+        self.scrollingSliderX.value = page_scroll.x
+        self.page_scrolling_y = page_scroll.y
+        self.scrollingSliderY.value = page_scroll.y
 
     def _page_scroll_clamp(self):
         if self.page_scrolling_y <= 0:
             self.page_scrolling_y = 0
         elif self.page_scrolling_y >= self.max_page_scrolling_y / self.view.ratio.y:
             self.page_scrolling_y = self.max_page_scrolling_y / self.view.ratio.y
+
+        if self.page_scrolling_x <= 0:
+            self.page_scrolling_x = 0
+        elif self.page_scrolling_x >= self.max_page_scrolling_x / self.view.ratio.x:
+            self.page_scrolling_x = self.max_page_scrolling_x / self.view.ratio.x
 
     def render(self):
         """
@@ -451,12 +479,16 @@ class ComponentsView:
         for component in self.components[self.page]:
             component.render()
 
-    def scroll(self, amount: int):
-        diff = self.scrollingSlider.value - self.page_scrolling_y + amount * self.view.SCROLL_SENSIBILITY
+    def scroll(self, amount: pg.Vector2):
+        diffY = self.scrollingSliderY.value - self.page_scrolling_y + amount.y * self.view.SCROLL_SENSIBILITY
+        self.page_scrolling_y += diffY
 
-        self.page_scrolling_y += diff
+        diffX = self.scrollingSliderX.value - self.page_scrolling_x + amount.x * self.view.SCROLL_SENSIBILITY
+        self.page_scrolling_x += diffX
+
         self._page_scroll_clamp()
-        self.scrollingSlider.value = self.page_scrolling_y
+        self.scrollingSliderY.value = self.page_scrolling_y
+        self.scrollingSliderX.value = self.page_scrolling_x
 
 
 class UserParamView:
@@ -499,11 +531,13 @@ class UserParamView:
 
         self.scrollingSlider = self.view.add_UIElement(ScrollingSlider, pg.Vector2(285, 37), True, 740-37,
                                                        self.max_param_scrolling_y, "userParamScroll")
+        self.hideable_elements.append(self.scrollingSlider)
 
     def toggle_untoggle_control_bar(self):
         self.show_control_bar = not self.show_control_bar
         for elt in self.hideable_elements:
             elt.visible = self.show_control_bar
+        self.view.componentsView.toggle_untoggle_control_bar(self.show_control_bar)
 
     def scroll_params(self, amount: int):
         """
