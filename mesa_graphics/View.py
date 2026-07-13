@@ -307,9 +307,9 @@ class ComponentsView:
 
     def create_ui(self) -> None:
         self.scrollingSliderY = self.view.add_UIElement(ScrollingSlider, pg.Vector2(1270, 37), True, 740 - 37,
-                                                        self.max_page_scrolling_y, "pageScrollY")
+                                                        self.max_page_scrolling_y)
         self.scrollingSliderX = self.view.add_UIElement(ScrollingSlider, pg.Vector2(300, 730), False, 1280-300,
-                                                        self.max_page_scrolling_x, "pageScrollX")
+                                                        self.max_page_scrolling_x)
         self.create_switch_page_buttons()
 
     def draw(self):
@@ -572,7 +572,7 @@ class UserParamView:
             self._create_custom_method_call_entries(custom_method_call, y)
 
         self.scrollingSlider = self.view.add_UIElement(ScrollingSlider, pg.Vector2(285, 37), True, 740-37,
-                                                       self.max_param_scrolling_y, "userParamScroll")
+                                                       self.max_param_scrolling_y)
         self.hideable_elements.append(self.scrollingSlider)
 
     def toggle_untoggle_control_bar(self):

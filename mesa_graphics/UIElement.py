@@ -493,7 +493,7 @@ class InputText(UserParam):
 
 
 class ScrollingSlider(UserParam):
-    def __init__(self, pos, is_vert, screen_size_y, scrolling_length_y, name):
+    def __init__(self, pos, is_vert, screen_size_y, scrolling_length_y, name=""):
         """
 
         :param pos: The top left corner position
