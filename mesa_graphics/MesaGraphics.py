@@ -69,11 +69,11 @@ class MesaGraphics:
                 sleep(0.001)
         except Exception as e:
             self.controller.terminate()
-            ex = e
+            self.view.quit()
+            self.barrier.wait()
+            raise
         self.view.quit()
         self.barrier.wait()
-        if ex is not None:
-            raise ex
 
     def _worker_thread_loop(self):
         """ Worker loop executed in the secondary thread.
@@ -86,6 +86,7 @@ class MesaGraphics:
         Rendering can also be very time-consuming, and user can create custom components, making it possibly even
         slower.
         """
+        ex = None
         try:
             while not self.controller.is_terminated:
                 start = time()
@@ -97,6 +98,8 @@ class MesaGraphics:
                     sleep(self.model.play_interval * 0.001 - d)
         except Exception as ex:
             self.controller.terminate()
-            warnings.warn(f"An error occurred in the worker thread: \n{ex}")
+            self.barrier.wait()
+            raise
         self.barrier.wait()
+
 

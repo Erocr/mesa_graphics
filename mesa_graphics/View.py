@@ -1,7 +1,11 @@
+from mesa import Model
+from mesa.visualization import SpaceRenderer
+
 from .Component import Component
 from .UIElement import *
 from .components import create_space_component
 import mesa.visualization.user_param as mesa_user_param
+from .Model import RESET_MODEL, NOT_RESETTING
 
 """
 This file contains the logic for drawing.
@@ -51,6 +55,7 @@ class View:
         self.screen_size = pg.Vector2(1280, 740)
         self.screen = pg.display.set_mode(self.screen_size, pg.RESIZABLE)
         self.model = model
+        self.renderer = renderer
         self.componentsView = ComponentsView(self, components, renderer)
         self.userParamView = UserParamView(self)
         self.ratio = pg.Vector2(1, 1)
@@ -71,6 +76,11 @@ class View:
         Renders all the component images according to the model state. It stores the images in the components
         themselves. Note that these operations are really heavy.
         """
+        if self.model.reset == RESET_MODEL:
+            if self.renderer is not None:
+                self.renderer = self.copy_renderer(self.renderer, self.model.mesa_model)
+                self.componentsView.modify_renderer(self.renderer)
+        self.model.reset = NOT_RESETTING
         self.componentsView.render()
 
     def draw(self):
@@ -213,6 +223,28 @@ class View:
             button.set_pos(pg.Vector2(x, button.pos.y))
             x += 65
 
+    def copy_renderer(self, renderer: SpaceRenderer, model: Model):
+        """Create a new renderer instance with the same configuration as the original."""
+        new_renderer = type(renderer)(model=model, backend=renderer.backend)
+
+        attributes_to_copy = [
+            "agent_portrayal",
+            "propertylayer_portrayal",
+            "space_kwargs",
+            "agent_kwargs",
+            "space_mesh",
+            "agent_mesh",
+            "propertylayer_mesh",
+            "post_process_func",
+        ]
+
+        for attr in attributes_to_copy:
+            if getattr(renderer, attr, None) is not None:
+                value_to_copy = getattr(renderer, attr)
+                setattr(new_renderer, attr, value_to_copy)
+
+        return new_renderer
+
     def draw_debug(self):
         """
         This function draws debug information to help programmer, or maybe the user.
@@ -269,6 +301,9 @@ class ComponentsView:
 
         self.scrollingSliderX = None
         self.max_page_scrolling_x = self.page_scrolling_x = 0
+
+    def modify_renderer(self, renderer):
+        self.components[0][0] = Component(self.view.model, create_space_component(renderer))
 
     def create_ui(self) -> None:
         self.scrollingSliderY = self.view.add_UIElement(ScrollingSlider, pg.Vector2(1270, 37), True, 740 - 37,
