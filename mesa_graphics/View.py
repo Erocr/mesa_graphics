@@ -327,6 +327,8 @@ class ComponentsView:
             image = component.image
             if image is None:
                 continue
+            # CTRL-F scaling
+            # image = pg.transform.scale_by(image, self.view.ratio)
             size = image.get_size()
 
             # If it goes off the page, it is drawn under the previous one
@@ -342,7 +344,7 @@ class ComponentsView:
             self.view.screen.blit(image, (x, y))
             x += size[0] + 10
         self.max_page_scrolling_y = max(next_y - 700 * self.view.ratio.y + self.page_scrolling_y * self.view.ratio.y, 0)
-        self.scrollingSliderY.update_max_scrolling(self.max_page_scrolling_y)
+        self.scrollingSliderY.update_max_scrolling(self.max_page_scrolling_y / self.view.ratio.y)
         self.max_page_scrolling_x = max(max_x - 1270 * self.view.ratio.x + self.page_scrolling_x * self.view.ratio.x, 0)
         self.scrollingSliderX.update_max_scrolling(self.max_page_scrolling_x / self.view.ratio.x)
         self._page_scroll_clamp()
@@ -611,7 +613,7 @@ class UserParamView:
         # Let y_screen : the original screen height
         # Let y_scroll : the max_param_scrolling_y
         # Let r : the ratio for the height of the screen
-        # Let size = y_screen + y_scroll : the size of the scrollable part (constant, it is not resized)
+        # Let size = y_screen + y_scroll : the size of the scrollable part (constant)
         #      ____
         #     |    |<-- y_screen
         #     |____|

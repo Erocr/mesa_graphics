@@ -528,7 +528,7 @@ class ScrollingSlider(UserParam):
     def update_pointer_size(self):
         # self.screen_size_y / (self.screen_size_y + self.scrolling_length_y) is between 0 and 1, it is the ratio
         # of the size of the screen.
-        # Finally, we multiply by self.screen_size_y which is the size of the scrolling bar.
+        # Finally, we multiply by self.screen_size_y in order to get the size of the scrolling bar.
         self.pointer_length = self.screen_size_y / (self.screen_size_y + self.scrolling_length_y) * self.screen_size_y
         self.pointer_size = pg.Vector2(self.pointer_length)
         if self.is_vert:
