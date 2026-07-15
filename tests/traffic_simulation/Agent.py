@@ -14,12 +14,12 @@ class Car(mesa.discrete_space.CellAgent):
     """An agent with fixed initial wealth."""
     NUM_CAR = 0
 
-    def __init__(self, model, cell):
+    def __init__(self, model, cell, max_speed=5):
         super().__init__(model)
         self.last_turn_time = -1
         self.turn_time = 0
-        self.max_speed = 5
-        self.speed = 1
+        self.max_speed = max_speed
+        self.speed = 0
         self.cell = cell
         self.direction = (1, 0)
         self.num = Car.NUM_CAR
@@ -34,16 +34,15 @@ class Car(mesa.discrete_space.CellAgent):
                 if not c.is_empty:
                     return 0
                 pos = next_pos(self.model.grid, self.cell, self.direction)
-                follow_dir = c.position[0] == pos[0] and c.position[1] == pos[1]
-                if follow_dir:
+                is_forward = c.position[0] == pos[0] and c.position[1] == pos[1]
+                if is_forward:
                     return 2
                 direction = get_direction(self.model.grid, self.cell.position, c.position)
                 if direction[0] < 0:
                     return 0
-                elif direction[0] * self.direction[0] + direction[1] * self.direction [1] >= 0:
-                    return 1
                 else:
-                    return 0
+                    # If the dot product of the directions is negative, it means that the position is behind
+                    return (direction[0] * self.direction[0] + direction[1] * self.direction[1] >= 0) * 1
 
             best_cell = None
             best_utility = 0
@@ -55,19 +54,23 @@ class Car(mesa.discrete_space.CellAgent):
                     best_cell = cell
                     best_utility = utility
 
-            if best_cell is None:
+            if best_utility == 0:
                 self.speed = 0
                 break
-            else:
-                if best_utility == 1:
-                    self.speed = max(self.speed, 2)
-                    self.direction = get_direction(self.model.grid, self.cell.position, best_cell.position)
-                    if i >= self.speed:
-                        break
+
+            if best_utility == 1:
+                self.speed = max(self.speed, 2)
+                self.direction = get_direction(self.model.grid, self.cell.position, best_cell.position)
+                if i >= self.speed:
+                    break
                 self.move_to(best_cell)
-                if self.cell.position[0] == 0 and self.direction[0] == 1:
-                    self.last_turn_time = self.turn_time
-                    self.turn_time = 0
+
+            if best_utility == 2:
+                self.move_to(best_cell)
+
+            if self.cell.position[0] == 0 and self.direction[0] == 1:
+                self.last_turn_time = self.turn_time
+                self.turn_time = 0
 
         self.speed = min(self.speed+1, self.max_speed)
         self.turn_time += 1
