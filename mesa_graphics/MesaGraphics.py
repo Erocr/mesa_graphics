@@ -16,6 +16,7 @@ class MesaGraphics:
                  render_interval: int = 1,
                  simulator=None,
                  model_params=None,
+                 custom_method_call=None,
                  name: str | None = None,
                  use_threads: bool = False):
         """Mesa Graphics component.
@@ -41,7 +42,8 @@ class MesaGraphics:
 
         self.model = Model(model, play_interval, render_interval)
         self.view = View(self.model, renderer=renderer, components=components, play_interval=play_interval,
-                         render_interval=render_interval, model_params=model_params, name=name)
+                         render_interval=render_interval, model_params=model_params,
+                         custom_method_call=custom_method_call, name=name)
         self.controller = Controller(self.model, self.view, model_params=model_params)
         self.barrier = threading.Barrier(2)
         self.update_thread = threading.Thread(target=self._worker_thread_loop)
@@ -67,11 +69,11 @@ class MesaGraphics:
                 sleep(0.001)
         except Exception as e:
             self.controller.terminate()
-            ex = e
+            self.view.quit()
+            self.barrier.wait()
+            raise
         self.view.quit()
         self.barrier.wait()
-        if ex is not None:
-            raise ex
 
     def _worker_thread_loop(self):
         """ Worker loop executed in the secondary thread.
@@ -84,6 +86,7 @@ class MesaGraphics:
         Rendering can also be very time-consuming, and user can create custom components, making it possibly even
         slower.
         """
+        ex = None
         try:
             while not self.controller.is_terminated:
                 start = time()
@@ -95,6 +98,8 @@ class MesaGraphics:
                     sleep(self.model.play_interval * 0.001 - d)
         except Exception as ex:
             self.controller.terminate()
-            warnings.warn(f"An error occurred in the worker thread: \n{ex}")
+            self.barrier.wait()
+            raise
         self.barrier.wait()
+
 

@@ -24,10 +24,10 @@ Compared to Solara-based visualization:
    1. [Prerequisites](#prerequisites)
    2. [Basic Model](#basic-model)
    3. [Important note for MesaGraphics users](#important-note-for-mesagraphics-users)
-   4. [Adding Visualization](#adding-visualization)
-   5. [Grid Visualization](#grid-visualization)
-   6. [Components Visualization](#components-visualization)
-   7. [User Parameters](#user-parameters)
+   4. [Grid Visualization](#grid-visualization)
+   5. [Components Visualization](#components-visualization)
+   6. [User Parameters](#user-parameters)
+   7. [Custom Method Calls](#custom-method-calls)
 3. [Solara -> MesaGraphics migration tutorial](#migration-tutorial)
 
 ## Installation
@@ -380,10 +380,46 @@ page = MesaGraphics(
 )
 ```
 
+### Advanced Rendering with SpaceRenderer
+
+SpaceRenderer is a powerful tool in Mesa for visualizing spatial grids. It goes beyond simply drawing agents — it allows detailed customization of the grid, dynamic styling of agents, and the ability to overlay calculated values as property layers. Property layers effectively act as heatmaps, coloring each grid cell based on model-defined data (more on this in the next tutorial).
+
+In this section, we’ll demonstrate:
+- Styling the grid using setup_structure()
+- Customizing agent appearance with setup_agents()
+- Enhancing the final visualization using the post_process function
+- Applying these techniques to both matplotlib and altair backends
+
+Before we begin, we’ll reuse the agent_portrayal function and money_model defined in the previous tutorial.
+
+```python
+def agent_portrayal(agent):
+    portrayal = AgentPortrayalStyle(size=50, color="orange")
+    if agent.wealth > 0:
+        portrayal.update(("color", "blue"), ("size", 100))
+    return portrayal
+
+# Create initial model instance
+money_model = MoneyModel(n=50, width=10, height=10)
+```
+
+### Drawing the Grid and Agents
+
+We’ll now create a renderer and draw both the grid structure and the agents using the matplotlib backend.
+
+```python
+renderer = SpaceRenderer(model=money_model, backend="matplotlib")
+renderer.setup_structure(lw=2, ls="solid", color="black", alpha=0.1)
+renderer.setup_agents(agent_portrayal)
+renderer.render()
+```
+
+You can pass drawing keyword arguments (kwargs) directly to setup_structure() to customize the grid appearance. See the full list of accepted arguments in the [SpaceDrawer documentation](https://mesa.readthedocs.io/latest/apis/visualization.html#module-mesa.visualization.space_drawers).
+
 ### User Parameters
 
 Above we gave an example of user parameters definition :
-`````python
+```python
 model_params = {
     "n": {
         "type": "SliderInt",
@@ -396,7 +432,7 @@ model_params = {
     "width": 10,
     "height": 10,
 }
-`````
+```
 
 Actually, you have a lot more choices. You have :
 - SliderInt: slider with integers. The parameters are **value / label / min / max / step**
@@ -405,8 +441,37 @@ Actually, you have a lot more choices. You have :
 - Select: a drop-down button that permit to chose between multiple possibilities. The parameters are **value / label / values**
 - InputText: A box where user can write text. The parameters are **value / label**
 
+### Custom Method Calls
 
+This feature does not exist in mesa.visualization. It allows users to call Model's methods during runtime. It is 
+useful in order to debug your program.
 
+We will continue with the previous model (MoneyModel). We start by adding a method `tax` into MoneyModel :
+```python
+class MoneyModel(mesa.Model):
+   ...
+   
+   
+    def tax(self, amount=1):
+        for agent in self.agents:
+            agent.wealth = max(0, agent.wealth - amount)
+```
+This function removes `amount` of money to every agent in the Model.
+Then, we specify the parameters (modifiable by the user or not). 
+```python
+custom_buttons = {
+    "tax": {
+        "amount": {
+            "type": "SliderInt",
+            "value": 1,
+            "min": 1,
+            "max": 5,
+            "step": 1
+        }
+    }
+}
+```
+The syntax is really similar to `model_params`. We associate to each method name the parameters.
 
 
 

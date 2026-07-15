@@ -1,9 +1,11 @@
-import warnings
+from mesa import Model
+from mesa.visualization import SpaceRenderer
 
 from .Component import Component
 from .UIElement import *
 from .components import create_space_component
 import mesa.visualization.user_param as mesa_user_param
+from .Model import RESET_MODEL, NOT_RESETTING
 
 """
 This file contains the logic for drawing.
@@ -25,10 +27,10 @@ The important functions:
 
 
 class View:
-    SCROLL_SENSIBILITY = 15
+    SCROLL_SENSIBILITY = 30
 
     def __init__(self, model, renderer=None, components=None, play_interval=100, render_interval=1, model_params=None,
-                 name=None):
+                 custom_method_call=None, name=None):
         """ View class.
         /!\\ The user must not use this class, use MesaGraphics instead /!\\
 
@@ -49,27 +51,36 @@ class View:
         """
         self.fonts = {}
         self.init_fonts()
+        self.min_window_size = pg.Vector2(500, 300)
         self.screen_size = pg.Vector2(1280, 740)
         self.screen = pg.display.set_mode(self.screen_size, pg.RESIZABLE)
         self.model = model
+        self.renderer = renderer
         self.componentsView = ComponentsView(self, components, renderer)
         self.userParamView = UserParamView(self)
         self.ratio = pg.Vector2(1, 1)
 
-        self.buttons = {}  # Provide fast and easy access to buttons
         self.ui_elements = []  # List of UI
+        self.buttons = {}  # Provide fast and easy access to buttons
         self.ui_focused = None  # UI element focused, the other are not interactive while one is focused
         # Only the sliders, and the Selects can be focused yet.
+        self.reset_start_step_buttons = []
+        self.up_bar = None
 
         if name is None:
             name = type(self.model).__name__
-        self._create_ui(name, model_params, play_interval, render_interval)
+        self._create_ui(name, model_params, custom_method_call, play_interval, render_interval)
 
     def render(self):
         """
         Renders all the component images according to the model state. It stores the images in the components
         themselves. Note that these operations are really heavy.
         """
+        if self.model.reset == RESET_MODEL:
+            if self.renderer is not None:
+                self.renderer = self.copy_renderer(self.renderer, self.model.mesa_model)
+                self.componentsView.modify_renderer(self.renderer)
+        self.model.reset = NOT_RESETTING
         self.componentsView.render()
 
     def draw(self):
@@ -86,7 +97,9 @@ class View:
                 ui.draw(self.screen)
 
         if self.ui_focused is not None:
-            self.ui_focused.secondary_draw(self.screen)
+            secondary_draw = getattr(self.ui_focused, "secondary_draw", None)
+            if secondary_draw is not None:
+                secondary_draw(self.screen)
 
         # Draw the debug message (if debug is enabled)
         if self.model.debug: self.draw_debug()
@@ -119,7 +132,6 @@ class View:
         Called in the __init__ of View.
         It initializes the pygame.font module, and creates some fonts
         """
-        pg.font.init()
         default_path = pg.font.get_default_font()
         self.fonts["basic15"] = pg.font.Font(default_path, 15)
         self.fonts["basic20"] = pg.font.Font(default_path, 20)
@@ -129,28 +141,38 @@ class View:
         pg.quit()
 
     def resize(self, new_size: pg.Vector2):
-        ratio = pg.Vector2(new_size.x / self.screen_size.x, new_size.y / self.screen_size.y)
-        for ui in self.ui_elements:
-            ui.resize(ratio)
-        self.userParamView.correct_resizing(ratio)
+        new_size_clamped = pg.Vector2(
+            max(new_size.x, self.min_window_size.x),
+            max(new_size.y, self.min_window_size.y))
+        if new_size_clamped.x != new_size.x or new_size_clamped.y != new_size.y:
+            self.screen = pg.display.set_mode(new_size_clamped, pg.RESIZABLE)
 
-        self.ratio = mul(ratio, self.ratio)
+        new_size = new_size_clamped
+
+        ratio = pg.Vector2(new_size.x / self.screen_size.x, new_size.y / self.screen_size.y)  # ratio is the relative ratio
+        self.ratio = mul(ratio, self.ratio)  # self.ratio is the global ratio
         self.screen_size = new_size
 
-    def _create_ui(self, name: str, model_params, play_interval: int, render_interval: int) -> None:
+        self.componentsView.resize()
+        self.update_reset_start_step_buttons()
+        self.userParamView.resize()
+
+        self.up_bar.size.x = new_size.x
+
+    def _create_ui(self, name: str, model_params, custom_method_call, play_interval: int, render_interval: int) -> None:
         """
         Instantiate the UI.
         This function creates all the UIElements. This function describe where each element is placed.
         Moreover, the order of creation describe which element is above. The drawer draws them in the order of creation.
         So the last UIElement is the one above the others, and the first one is the one beyond the others.
         """
-        self.userParamView.create_ui(model_params, play_interval, render_interval)
+        self.userParamView.create_ui(model_params, custom_method_call, play_interval, render_interval)
         self._create_up_bar(name)
         self.componentsView.create_ui()
 
     def _create_up_bar(self, name: str) -> None:
         """ Creates the blue bar on top of the screen, and write the name into it. """
-        self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), color=BLUE)
+        self.up_bar = self.add_UIElement(Rectangle, pg.Vector2(0, 0), pg.Vector2(1280, 37), color=BLUE)
         text = self.add_UIElement(Text, pg.Vector2(0, 0), name, self.fonts["basic15"], color=WHITE)
         text.set_pos(pg.Vector2(40, 20 - text.image.get_height() / 2))  # noqa
         self._create_remove_controls_button()
@@ -177,7 +199,7 @@ class View:
 
     def _create_reset_start_step_buttons(self):
         """ Creates the three buttons in the up bar : RESET, START/STOP and STEP """
-        x = 1090
+        x = 1280 - 190
         texts = ("RESET", "START", "STEP")
         names = ("RESET", "START/STOP", "STEP")
 
@@ -189,9 +211,39 @@ class View:
             b.text.draw(screen)
 
         for i in range(3):
-            self.add_UIElement(Button, pg.Vector2(x, 3), texts[i], self.fonts["basic15"], name=names[i],
+            button = self.add_UIElement(Button, pg.Vector2(x, 3), texts[i], self.fonts["basic15"], name=names[i],
                                custom_draw=custom_draw, font_color=(255, 255, 255))
+            self.reset_start_step_buttons.append(button)
             x += 65
+
+    def update_reset_start_step_buttons(self):
+        """ Update the position of the RESET/START/STEP buttons according to the size of the screen """
+        x = self.screen_size.x - 190
+        for button in self.reset_start_step_buttons:
+            button.set_pos(pg.Vector2(x, button.pos.y))
+            x += 65
+
+    def copy_renderer(self, renderer: SpaceRenderer, model: Model):
+        """Create a new renderer instance with the same configuration as the original."""
+        new_renderer = type(renderer)(model=model, backend=renderer.backend)
+
+        attributes_to_copy = [
+            "agent_portrayal",
+            "propertylayer_portrayal",
+            "space_kwargs",
+            "agent_kwargs",
+            "space_mesh",
+            "agent_mesh",
+            "propertylayer_mesh",
+            "post_process_func",
+        ]
+
+        for attr in attributes_to_copy:
+            if getattr(renderer, attr, None) is not None:
+                value_to_copy = getattr(renderer, attr)
+                setattr(new_renderer, attr, value_to_copy)
+
+        return new_renderer
 
     def draw_debug(self):
         """
@@ -215,7 +267,7 @@ class View:
         """
         self.componentsView.switch_page(new_page)
 
-    def scroll_page(self, amount: int):
+    def scroll_page(self, amount: pg.Vector2):
         """
         Scroll through the components if there are to many components.
         :param amount: how much the user is scrolling.
@@ -233,41 +285,83 @@ class ComponentsView:
         :param renderer: The renderer is optional. It is a SpaceRenderer from mesa.visualization.
         """
         self.view = view
-        self.max_page_scrolling_y = self.page_scrolling_y = 0
         self.page = 0  # Showed page
         self.min_page = self.max_page = 0  # The minimal page and maximal page existing
-        self.min_visible_page = 0  # The minimal switch-page button shown
         self.components = {0: []}
         if components is not None:
             self._store_components(components)
         if renderer is not None:
             self.components[0].insert(0, Component(self.view.model, create_space_component(renderer)))
+        self.switch_page_buttons = []  # Provide fast and easy access to specifically buttons for switching pages
+        self.full_switch_page_button_width = 0  # The width of a switch page button, when it has the full name
+        self.buttons_full = True  # If the switch page buttons have the full name
+
+        self.scrollingSliderY = None
+        self.max_page_scrolling_y = self.page_scrolling_y = 0
+
+        self.scrollingSliderX = None
+        self.max_page_scrolling_x = self.page_scrolling_x = 0
+
+    def modify_renderer(self, renderer):
+        self.components[0][0] = Component(self.view.model, create_space_component(renderer))
 
     def create_ui(self) -> None:
+        self.scrollingSliderY = self.view.add_UIElement(ScrollingSlider, pg.Vector2(1270, 37), True, 740 - 37,
+                                                        self.max_page_scrolling_y)
+        self.scrollingSliderX = self.view.add_UIElement(ScrollingSlider, pg.Vector2(300, 730), False, 1280-300,
+                                                        self.max_page_scrolling_x)
         self.create_switch_page_buttons()
 
     def draw(self):
         """
         This function draws all the components in the current page.
         """
-        y = (135 - self.page_scrolling_y) * self.view.ratio.y
-        next_y = y - 55
-        default_x = (0, 300)[self.view.userParamView.show_control_bar] * self.view.ratio.x
+        y = (40 - self.page_scrolling_y * self.view.ratio.y)
+        gap_y = 10
+        next_y = y - gap_y
+        max_x = 300
+        default_x = 300 if self.view.userParamView.show_control_bar else 0
+        default_x -= self.page_scrolling_x * self.view.ratio.x
         x = default_x
         for component in self.components[self.page]:
             image = component.image
             if image is None:
                 continue
+            # CTRL-F scaling
+            # image = pg.transform.scale_by(image, self.view.ratio)
             size = image.get_size()
+
+            # If it goes off the page, it is drawn under the previous one
             if size[0] + x > 1280 * self.view.ratio.x:
-                y = next_y + 10
+                y = next_y + gap_y
                 next_y = y
                 x = default_x
+
+            if size[0] + x > max_x:
+                max_x = size[0] + x
+
             next_y = max(next_y, y + size[1])
             self.view.screen.blit(image, (x, y))
             x += size[0] + 10
         self.max_page_scrolling_y = max(next_y - 700 * self.view.ratio.y + self.page_scrolling_y * self.view.ratio.y, 0)
+        self.scrollingSliderY.update_max_scrolling(self.max_page_scrolling_y / self.view.ratio.y)
+        self.max_page_scrolling_x = max(max_x - 1270 * self.view.ratio.x + self.page_scrolling_x * self.view.ratio.x, 0)
+        self.scrollingSliderX.update_max_scrolling(self.max_page_scrolling_x / self.view.ratio.x)
         self._page_scroll_clamp()
+
+    def resize(self):
+        self.update_switch_buttons()
+        self._page_scroll_clamp()
+        self.scrollingSliderY.pos = pg.Vector2(self.view.screen_size.x - 10, 37)
+        self.scrollingSliderY.resize(self.view.screen_size.y - 37)
+        default_x = 300 if self.view.userParamView.show_control_bar else 0
+        self.scrollingSliderX.pos = pg.Vector2(default_x, self.view.screen_size.y - 10)
+        self.scrollingSliderX.resize(self.view.screen_size.x - default_x - 10 - 3)
+
+    def toggle_untoggle_control_bar(self, toggled):
+        default_x = 300 if toggled else 0
+        self.scrollingSliderX.pos = pg.Vector2(default_x, self.view.screen_size.y - 10)
+        self.scrollingSliderX.resize(self.view.screen_size.x - default_x)
 
     def _store_components(self, components: list[tuple[Callable, int] | Callable]):
         """
@@ -310,7 +404,6 @@ class ComponentsView:
         This function creates the buttons on top of the screen which allow to change the page.
         They are aligned. If there are too many pages, they will be smaller.
         """
-        buttons = []
 
         def custom_page_draw(button, screen):
             if button.locked:
@@ -332,53 +425,94 @@ class ComponentsView:
                              border_radius=10)
             button.text.draw(screen)
 
-        if self.max_page + 1 - self.min_page <= 10:
-            for i in range(self.min_page, self.max_page + 1):
-                buttons.append(
-                    self.view.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.view.fonts["basic15"],
-                                            custom_draw=custom_page_draw, font_color=WHITE))
-            size_x = sum([button.size.x for button in buttons])
-            x = (1050 + 300) // 2 - size_x // 2
-            for button in buttons:
-                button.set_pos(pg.Vector2(x, 0))
-                x += button.size.x
-                button.size.y = 37
+        self.view.min_window_size.x = min(1280, 500 + (self.max_page - self.min_page + 1) * 30)
 
-        else:
-            if 30 < -self.min_page + self.max_page + 1:
-                warnings.warn("There are to many pages, the visualisation could not support it.")
-            for i in range(self.min_page, self.max_page + 1):
-                buttons.append(self.view.add_UIElement(Button, pg.Vector2(0, 0), f"{i}", self.view.fonts["basic15"],
-                                                       custom_draw=custom_page_draw, name=f"PAGE {i}",
-                                                       font_color=WHITE))
-                x = 310
-                button_size_x = (1040 - 310) // len(buttons)
-                for button in buttons:
-                    button.set_pos(pg.Vector2(x, 0))
-                    button.size = pg.Vector2(button_size_x, 37)
-                    button.text.pos = button.pos + button.size // 2 - pg.Vector2(button.text.image.get_size()) // 2
-                    x += button_size_x
+        for i in range(self.min_page, self.max_page + 1):
+            self.switch_page_buttons.append(
+                self.view.add_UIElement(Button, pg.Vector2(0, 0), f"PAGE {i}", self.view.fonts["basic15"],
+                                        custom_draw=custom_page_draw, font_color=WHITE))
+        self.full_switch_page_button_width = self.switch_page_buttons[0].size.x
 
+        self.update_switch_buttons()
         self.switch_page(self.page)
+
+    def update_switch_buttons(self):
+        """ This function update the positions of the switch buttons """
+
+        size_x_full = self.full_switch_page_button_width * (self.max_page - self.min_page + 1)
+
+        right_pos = self.view.screen_size.x - 190
+        left_pos = 300 if self.view.userParamView.show_control_bar else 0
+        disponible_size = right_pos - left_pos
+
+        if size_x_full < disponible_size:
+            if not self.buttons_full:
+                for i in range(len(self.switch_page_buttons)):
+                    button = self.switch_page_buttons[i]
+                    page = i + self.min_page
+                    col = BLACK if button.locked else WHITE
+                    button.modify_text(f"PAGE {page}", color=col)
+                self.buttons_full = True
+
+            x = (right_pos + left_pos) // 2 - size_x_full // 2
+            for button in self.switch_page_buttons:
+                button.set_pos(pg.Vector2(x, 0))
+                button.size.y = 37
+                x += button.size.x
+        else:
+            if self.buttons_full:
+                for i in range(len(self.switch_page_buttons)):
+                    button = self.switch_page_buttons[i]
+                    page = i + self.min_page
+                    col = BLACK if button.locked else WHITE
+                    button.modify_text(f"{page}", color=col)
+                self.buttons_full = False
+
+            x = left_pos
+            button_size_x = disponible_size // len(self.switch_page_buttons)
+            for button in self.switch_page_buttons:
+                button.set_pos(pg.Vector2(x, 0))
+                button.size = pg.Vector2(button_size_x, 37)
+                button.text.pos = button.pos + button.size // 2 - pg.Vector2(button.text.image.get_size()) // 2
+                x += button_size_x
 
     def switch_page(self, new_page):
         """ Change the current page """
-        self.view.buttons[f"PAGE {self.page}"].unlock()
-        self.view.buttons[f"PAGE {self.page}"].modify_text(f"PAGE {self.page}", color=(255, 255, 255))
-        self.view.buttons[f"PAGE {self.page}"].size.y = 37 * self.view.buttons[f"PAGE {self.page}"].ratio.y
+        text1 = f"PAGE {self.page}" if self.buttons_full else str(self.page)
+        button1 = self.view.buttons[f"PAGE {self.page}"]
+        size1 = button1.size.copy()
+        button1.unlock()
+        button1.modify_text(text1, color=(255, 255, 255))
+        button1.size = size1
+        button1.text.pos = button1.pos + button1.size // 2 - pg.Vector2(button1.text.image.get_size()) // 2
         self.page = new_page
-        self.view.buttons[f"PAGE {self.page}"].lock()
-        self.view.buttons[f"PAGE {self.page}"].modify_text(f"PAGE {self.page}", color=(0, 0, 0))
-        self.view.buttons[f"PAGE {self.page}"].size.y = 37 * self.view.buttons[f"PAGE {self.page}"].ratio.y
+        text2 = f"PAGE {self.page}" if self.buttons_full else str(self.page)
+        button2 = self.view.buttons[f"PAGE {self.page}"]
+        size2 = button2.size.copy()
+        button2.lock()
+        button2.modify_text(text2, color=(0, 0, 0))
+        button2.size = size2
+        button2.text.pos = button2.pos + button2.size // 2 - pg.Vector2(button2.text.image.get_size()) // 2
         # Changer le texte change aussi la taille du bouton, on doit la remodifier manuellement
 
-        self.page_scrolling_y = 0
+        self.set_page_scroll(pg.Vector2(0))
+
+    def set_page_scroll(self, page_scroll: pg.Vector2):
+        self.page_scrolling_x = page_scroll.x
+        self.scrollingSliderX.value = page_scroll.x
+        self.page_scrolling_y = page_scroll.y
+        self.scrollingSliderY.value = page_scroll.y
 
     def _page_scroll_clamp(self):
         if self.page_scrolling_y <= 0:
             self.page_scrolling_y = 0
         elif self.page_scrolling_y >= self.max_page_scrolling_y / self.view.ratio.y:
             self.page_scrolling_y = self.max_page_scrolling_y / self.view.ratio.y
+
+        if self.page_scrolling_x <= 0:
+            self.page_scrolling_x = 0
+        elif self.page_scrolling_x >= self.max_page_scrolling_x / self.view.ratio.x:
+            self.page_scrolling_x = self.max_page_scrolling_x / self.view.ratio.x
 
     def render(self):
         """
@@ -388,9 +522,16 @@ class ComponentsView:
         for component in self.components[self.page]:
             component.render()
 
-    def scroll(self, amount: int):
-        self.page_scrolling_y += amount * self.view.SCROLL_SENSIBILITY
+    def scroll(self, amount: pg.Vector2):
+        diffY = self.scrollingSliderY.value - self.page_scrolling_y + amount.y * self.view.SCROLL_SENSIBILITY
+        self.page_scrolling_y += diffY
+
+        diffX = self.scrollingSliderX.value - self.page_scrolling_x + amount.x * self.view.SCROLL_SENSIBILITY
+        self.page_scrolling_x += diffX
+
         self._page_scroll_clamp()
+        self.scrollingSliderY.value = self.page_scrolling_y
+        self.scrollingSliderX.value = self.page_scrolling_x
 
 
 class UserParamView:
@@ -402,52 +543,91 @@ class UserParamView:
         self.userTweakableModelParams = {}  # Provide fast and easy access to user's Model parameters
         self.userTweakableEntries = {}
         self.show_control_bar = True
+        self.scrollingSlider = None
+        self.rect = None
+        self.shadow = None
 
-    def create_ui(self, model_params, play_interval: int, render_interval: int) -> None:
+    def resize(self):
+        self.scrollingSlider.resize(self.view.screen_size.y - 37)
+        self.rect.size.y = self.view.screen_size.y - 37
+        self.shadow.p2.y = self.view.screen_size.y
+
+    def create_ui(self, model_params, custom_method_call, play_interval: int, render_interval: int) -> None:
         """
         This function creates the grey column in the left part of the screen, and fills it with the user parameters.
         It creates also the 3 buttons RESET, START/STOP, and STEP
         """
-        rect = self.view.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), color=LIGHT_GRAY)
-        self.hideable_elements.append(rect)
+        self.rect = self.view.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), color=LIGHT2_GRAY)
+        self.hideable_elements.append(self.rect)
         width = 5
-        shadow = self.view.add_UIElement(Shadow, pg.Vector2(300 - width, 37), pg.Vector2(300 - width, 740),
-                                         pg.Vector2(1, 0),
-                                         width, curved_border_1=True)
-        self.hideable_elements.append(shadow)
+        self.shadow = self.view.add_UIElement(Shadow, pg.Vector2(300 - width, 37), pg.Vector2(300 - width, 740),
+                                         pg.Vector2(1, 0), width)
+        # Pay attention, we change the size of the card at the end of the function
+
+        self.hideable_elements.append(self.shadow)
         self._create_flow_control_entries(play_interval, render_interval)
+        y = 260
+        self.max_param_scrolling_y = y - 700
         if model_params is not None:
-            self._create_model_params_entries(model_params)
+            y = self._create_model_params_entries(model_params) + 50
+        if custom_method_call is not None:
+            self._create_custom_method_call_entries(custom_method_call, y)
+
+        self.scrollingSlider = self.view.add_UIElement(ScrollingSlider, pg.Vector2(285, 37), True, 740-37,
+                                                       self.max_param_scrolling_y)
+        self.hideable_elements.append(self.scrollingSlider)
 
     def toggle_untoggle_control_bar(self):
         self.show_control_bar = not self.show_control_bar
         for elt in self.hideable_elements:
             elt.visible = self.show_control_bar
-
-    def correct_resizing(self, ratio):
-        for elt in self.scrollable_elements:
-            p = elt.pos + pg.Vector2(0, self.param_scrolling_y * ratio.y)
-            elt.set_pos(p)
-
-        self.param_scrolling_y = 0
+        self.view.componentsView.toggle_untoggle_control_bar(self.show_control_bar)
 
     def scroll_params(self, amount: int):
         """
-        Scroll through the parameters if there are to many parameters.
+        Scroll through the parameters if there are to many parameters of the amount given.
+        Moreover, if the user scrolled touching the scrolling slider, it is taken into account in this function
         :param amount: how much the user is scrolling.
         """
+        diff = self.scrollingSlider.value - self.param_scrolling_y + amount * self.view.SCROLL_SENSIBILITY
         prev_param_scrolling_y = self.param_scrolling_y
-        self.param_scrolling_y += amount * self.view.SCROLL_SENSIBILITY
+        self.param_scrolling_y += diff
         self._param_scroll_clamp()
         amount = self.param_scrolling_y - prev_param_scrolling_y
         for element in self.scrollable_elements:
             element.set_pos(element.pos - pg.Vector2(0, amount))
+        self.scrollingSlider.value = self.param_scrolling_y
 
     def _param_scroll_clamp(self):
+        max_scroll = self.compute_max_param_scroll()
         if self.param_scrolling_y <= 0:
             self.param_scrolling_y = 0
-        elif self.param_scrolling_y >= self.max_param_scrolling_y * self.view.ratio.y:
-            self.param_scrolling_y = self.max_param_scrolling_y * self.view.ratio.y
+        elif 0 < max_scroll <= self.param_scrolling_y:
+            self.param_scrolling_y = max_scroll
+        elif max_scroll <= 0:
+            self.param_scrolling_y = 0
+
+    def compute_max_param_scroll(self):
+        """ Returns the max_param_scrolling_y, according to the size of the screen """
+
+        # Let y_screen : the original screen height
+        # Let y_scroll : the max_param_scrolling_y
+        # Let r : the ratio for the height of the screen
+        # Let size = y_screen + y_scroll : the size of the scrollable part (constant)
+        #      ____
+        #     |    |<-- y_screen
+        #     |____|
+        #     |    |
+        #     |    |<--- y_scroll
+        #     |____|
+        #
+        # When r != 0, we have size = y_screen * r + y_screen * (1 - r) + y_scroll
+        # By identification, we get that max_param_scroll is y_screen * (1 - r) + y_scroll
+
+        y_screen = 740 - 37  # We remove the up_bar
+        r = self.view.ratio.y
+        y_scroll = self.max_param_scrolling_y
+        return y_scroll + y_screen * (1 - r)
 
     def _add_model_param_label(self, label: str, y: int) -> tuple[int | float, int | float, Text]:
         """
@@ -496,34 +676,54 @@ class UserParamView:
         res.append(r[:-1])
         return res
 
-    def shadowed_card(self, in_position: pg.Vector2, in_size: pg.Vector2, color_in, width: int = 5, *args, **kwargs):
-        start_col = pg.Vector3(100, 100, 100)
-        end_col = pg.Vector3(*LIGHT_GRAY)
-        res = []
-        for i in range(width):
-            I = pg.Vector2(i, i)
-            color = start_col + (end_col - start_col) * i / width
-            res.append(self.view.add_UIElement(Rectangle, in_position-I+pg.Vector2(3, 3), in_size + 2*I - pg.Vector2(3, 3), color, width=2, *args, **kwargs))
-        res.insert(0, self.view.add_UIElement(Rectangle, in_position, in_size, color_in, *args, **kwargs))
-        return res
-
-    def _create_model_params_entries(self, model_params) -> None:
+    def _create_model_params_entries(self, model_params) -> int:
         """
         Create the tweakable user parameters in the left column, which describe how to re-instantiate the model using
         the RESET button.
+        Returns the y position of the bottom of the model param entries.
         """
-        starting_y = y = 300
-        rects = self.shadowed_card(pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
+        starting_y = y = 260
+        card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(265, 10), WHITE, 3,
+                                       border_radius=10)
+        # Pay attention, we change the size of the card at the end of the function
+
         for param_name in model_params:
             y = self._create_user_param(param_name, model_params[param_name], y)
         y += 15
-        for i in range(len(rects)):
-            rect = rects[i]
-            self.scrollable_elements.append(rect)
-            self.hideable_elements.append(rect)
-            rect.size.y = y - starting_y + 2 * i - 3
-        rects[0].size.y = y - starting_y
-        self.max_param_scrolling_y = max(y - 700, 0)
+
+        self.scrollable_elements.append(card)
+        self.hideable_elements.append(card)
+        card.set_size(pg.Vector2(275, y - starting_y))
+
+        self.max_param_scrolling_y = y - 700
+        return y
+
+    def _create_custom_method_call_entries(self, custom_method_call, starting_y) -> None:
+        y = starting_y
+        for method_name in custom_method_call:
+            starting_y = y
+            card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(275, 10), WHITE, 3,
+                                           border_radius=10)
+            # Pay attention, we change the size of the card at the end of the function
+
+            button = self.view.add_UIElement(Button, pg.Vector2(15, y), method_name, self.view.fonts["basic15"],
+                                             name=f"method_call-{method_name}")
+            self.hideable_elements.append(button)
+            self.scrollable_elements.append(button)
+            y += button.size.y + 5
+            params = custom_method_call[method_name]
+            for param_name in params:
+                params[param_name]["model_param"] = False
+                params[param_name]["associated_method"] = method_name
+                y = self._create_user_param(param_name, params[param_name], y)
+            y += 15
+
+            card.set_size(pg.Vector2(275, y - starting_y))
+            self.hideable_elements.append(card)
+            self.scrollable_elements.append(card)
+            y += 50
+        y -= 50
+        self.max_param_scrolling_y = y - 700
 
     def _create_user_param(self, param_name: str, model_param, y: int) -> int:
         """
@@ -562,10 +762,12 @@ class UserParamView:
         :param render_interval: The starting value of the render_interval's slider
         """
         starting_y = y = 90
-        rects = self.shadowed_card(pg.Vector2(5, y - 10), pg.Vector2(285, 10), WHITE, 3, border_radius=10)
-        for rect in rects:
-            self.scrollable_elements.append(rect)
-            self.hideable_elements.append(rect)
+        card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(275, 10), WHITE, 3,
+                                       border_radius=10)
+        # Pay attention, we change the size of the card at the end of the function
+
+        self.scrollable_elements.append(card)
+        self.hideable_elements.append(card)
         play_interval_params = {
             "type": "SliderInt",
             "min": 0,
@@ -589,9 +791,7 @@ class UserParamView:
             "model_param": False
         }
         y = self._create_user_param("render_interval", render_interval_params, y)
-        rects[0].size.y = y - starting_y
-        for i in range(1, len(rects)):
-            rects[i].size.y = y - starting_y + 2*i - 3
+        card.set_size(pg.Vector2(275, y - starting_y))
 
     def _user_input_params_extraction(self, param, param_name: str) -> tuple[type[UserParam], dict]:
         """
@@ -634,7 +834,7 @@ class UserParamView:
         :return: Tuple of positional arguments compatible with add_UIElement().
         """
         if t == Slider:
-            return pg.Vector2(x, y), 280 - x
+            return (pg.Vector2(x, y),)
         elif t == Checkbox:
             return (pg.Vector2(x, y - Checkbox.SIZE.y / 2 * self.view.ratio.y),)
         elif t == Select:

@@ -5,10 +5,13 @@ from math import log10
 import pygame as pg
 
 
+DARK1_BLUE = (12, 60, 180)
 BLUE = (24, 118, 210)
 LIGHT1_BLUE = (100, 150, 255)
 LIGHT2_BLUE = (120, 180, 255)
-LIGHT_GRAY = (230, 230, 230)
+LIGHT2_GRAY = (230, 230, 230)
+LIGHT1_GRAY = (190, 190, 190)
+GRAY = (125, 125, 125)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
@@ -37,12 +40,9 @@ class UIElement:
     def set_pos(self, new_pos):
         self.pos = new_pos
 
-    def resize(self, ratio):
-        self.pos =mul(self.pos, ratio)
-
 
 class Rectangle(UIElement):
-    def __init__(self, pos: pg.Vector2, size: pg.Vector2, color=5, *args, **kwargs):
+    def __init__(self, pos: pg.Vector2, size: pg.Vector2, color, *args, **kwargs):
         """
         :param pos: The top-left corner position. It must be a pg.Vector2.
         :param size: The size of the rectangle. It must be a pg.Vector2.
@@ -59,9 +59,34 @@ class Rectangle(UIElement):
     def draw(self, screen: pg.Surface):
         pg.draw.rect(screen, self.color, pg.Rect(self.pos, self.size), *self.args, **self.kwargs)
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.size = mul(self.size, ratio)
+
+class ShadowedCard(UIElement):
+    def __init__(self, in_position: pg.Vector2, in_size: pg.Vector2, color_in, width: int = 5, *args, **kwargs):
+        super().__init__(in_position)
+        start_col = pg.Vector3(100, 100, 100)
+        end_col = pg.Vector3(*LIGHT2_GRAY)
+        self.rects = []
+        for i in range(width):
+            I = pg.Vector2(i, i)
+            color = start_col + (end_col - start_col) * i / width
+            self.rects.append(Rectangle(in_position-I+pg.Vector2(3, 3), in_size + 2*I - pg.Vector2(3, 3), color, width=2, *args, **kwargs))
+        self.rects.insert(0, Rectangle(in_position, in_size, color_in, *args, **kwargs))
+
+    def draw(self, screen: pg.Surface):
+        for rect in self.rects:
+            rect.draw(screen)
+        self.rects[0].draw(screen)
+
+    def set_size(self, new_in_size):
+        for i in range(1, len(self.rects)):
+            rect = self.rects[i]
+            rect.size = new_in_size + 2 * pg.Vector2(i) - pg.Vector2(3)
+        self.rects[0].size = new_in_size
+
+    def set_pos(self, pos):
+        v = pos - self.pos
+        for rect in self.rects:
+            rect.set_pos(rect.pos + v)
 
 
 class Shadow(UIElement):
@@ -90,11 +115,6 @@ class Shadow(UIElement):
         self.p1 = new_pos
         self.p2 = new_pos + v
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.p1 = mul(self.p1, ratio)
-        self.p2 = mul(self.p2, ratio)
-
 
 class Text(UIElement):
     def __init__(self, pos: pg.Vector2, text: str, font: pg.font.Font, color=(0, 0, 0), ratio=pg.Vector2(1, 1)):
@@ -105,10 +125,7 @@ class Text(UIElement):
         """
         super().__init__(pos)
         self.font = font
-        self.full_image = font.render(text, True, color)
-        self.image = self.full_image
-        self.ratio = pg.Vector2(1, 1)
-        self.resize(ratio)
+        self.image = font.render(text, True, color)
 
     def draw(self, screen: pg.Surface):
         screen.blit(self.image, self.pos)
@@ -116,16 +133,11 @@ class Text(UIElement):
     def set_pos(self, pos: pg.Vector2):
         self.pos = pos
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.ratio = mul(ratio, self.ratio)
-        self.image = pg.transform.scale_by(self.full_image, self.ratio)
-
 
 class Button(UIElement):
     alreadyUsed = set()
 
-    def __init__(self, pos, text: str, font, name=None, custom_draw: Callable = None, font_color=(0, 0, 0)):
+    def __init__(self, pos, text: str, font, name=None, custom_draw: Callable = None, font_color=WHITE):
         """
         The logic for drawing a clickable button.
 
@@ -160,10 +172,10 @@ class Button(UIElement):
         if self.custom_draw:
             self.custom_draw(self, screen)
         else:
-            bg_color = 4 if self.hover else 3
+            bg_color = LIGHT1_BLUE if self.hover else BLUE
             if self.locked:
-                bg_color = 1
-            pg.draw.rect(screen, bg_color, pg.Rect(self.pos, self.size))
+                bg_color = WHITE
+            pg.draw.rect(screen, bg_color, pg.Rect(self.pos, self.size), border_radius=8)
             self.text.draw(screen)
 
     def modify_text(self, new_text: str, font=None, color=(0, 0, 0)):
@@ -177,13 +189,13 @@ class Button(UIElement):
             font = self.font
         else:
             self.font = font
-        self.text = Text(self.pos + pg.Vector2(10, 10), new_text, font, color=color, ratio=self.ratio)
-        self.size = pg.Vector2(self.text.image.get_size()) + pg.Vector2(20, 20)
+        self.text = Text(self.pos + pg.Vector2(10, 10), new_text, font, color=color)
+        self.size.x = self.text.image.get_width() + 20
 
     def set_pos(self, pos: pg.Vector2):
         """ Change the position of the button. """
         self.pos = pos
-        self.text.set_pos(pos+pg.Vector2(10, 10))
+        self.text.set_pos(pos+mul(pg.Vector2(10, 10), self.ratio))
 
     def lock(self):
         self.locked = True
@@ -194,15 +206,9 @@ class Button(UIElement):
     def get_size(self):
         return self.size
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.size = mul(self.size, ratio)
-        self.text.resize(ratio)
-        self.ratio = mul(self.ratio, ratio)
-
 
 class UserParam(UIElement):
-    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, value=None):
+    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, associated_method=None, value=None):
         """
         A Tweakable object.
         :param pos: His position
@@ -215,6 +221,7 @@ class UserParam(UIElement):
         self.name = param_name
         self.value = value
         self.model_param = model_param
+        self.associated_method = associated_method
 
 
 class Slider(UserParam):
@@ -222,14 +229,13 @@ class Slider(UserParam):
     BAR_HEIGHT = 2
     FONT = None
 
-    def __init__(self, pos: pg.Vector2, length: int, t: str, param_name: str, model_param=True, value=None, min=0,
-                 max=10, step=0.01):
+    def __init__(self, pos: pg.Vector2, t: str, param_name: str, model_param=True, associated_method=None,
+                 value=None, min=0, max=10, step=0.01):
         """
         This class handle the logic for drawing a slider.
 
         :param t: The type of the slider, it can be "SliderInt" or "SliderFloat"
         :param pos: A pg.Vector2 describing the left position of the slider.
-        :param length: The length of the bar of the slider.
         :param value: The initial value. If None, value is initialized with the middle value.
         :param min: The minimum value it can take.
         :param max: The maximum value it can take.
@@ -241,12 +247,12 @@ class Slider(UserParam):
         assert min <= max, "min shall be less than max"
         assert t in ("SliderInt", "SliderFloat"), f"type {t} is unknown"
         if value is None: value = (min + max) / 2
-        super().__init__(pos, param_name, model_param, value)
+        super().__init__(pos, param_name, model_param, associated_method, value)
         self.selectedPosX = 0
         self.step = step
         self.min = min
         self.max = max
-        self.length = length
+        self.length = 270 - pos.x
         self.set_value(value)
         self.hover = False
         self.type = t
@@ -282,17 +288,12 @@ class Slider(UserParam):
         self.selectedPosX = (value - self.min) / (self.max - self.min) * self.length + self.pos.x
         self.value = value
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.length *= ratio.x
-        self.selectedPosX *= ratio.x
-
 
 class Checkbox(UserParam):
     WIDTH = 2
     SIZE = pg.Vector2(20, 20)
 
-    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, value=None, *args, **kwargs):
+    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, associated_method=None, value=None, *args, **kwargs):
         """
         The class handle the logic for drawing a check box.
 
@@ -304,7 +305,7 @@ class Checkbox(UserParam):
         :param kwargs: Thy will be ignored
         """
         if len(args) != 0 or len(kwargs) != 0: print(f"Warning: some the arguments have been ignored")
-        super().__init__(pos, param_name, model_param, value)
+        super().__init__(pos, param_name, model_param, associated_method, value)
         self.size = pg.Vector2(20, 20)
 
     def draw(self, screen: pg.Surface):
@@ -319,13 +320,9 @@ class Checkbox(UserParam):
     def switch(self):
         self.value = not self.value
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.size = mul(self.size, ratio)
-
 
 class Select(UserParam):
-    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, value=None, values=None, *args, **kwargs):
+    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, associated_method=None, value=None, values=None, *args, **kwargs):
         """
         This class handle the logic to draw a selection between different values.
 
@@ -337,7 +334,7 @@ class Select(UserParam):
         :param args: They will be ignored
         :param kwargs: Thy will be ignored
         """
-        super().__init__(pos, param_name, model_param, value)
+        super().__init__(pos, param_name, model_param, associated_method, value)
         if values is None:
             values = [value]
         self.values = values
@@ -347,8 +344,8 @@ class Select(UserParam):
         default_path = pg.font.get_default_font()
         font = pg.font.Font(default_path, 15)
         self.values_images = []
-        self.size = pg.Vector2(280 - self.pos.x, 20)
-        self.toggle_size = pg.Vector2(280 - self.pos.x, 30)
+        self.size = pg.Vector2(270 - self.pos.x, 20)
+        self.toggle_size = pg.Vector2(270 - self.pos.x, 30)
         for value in values:
             image = font.render(str(value), True, (0, 0, 0))
             new_size = (min(image.get_width(), self.size.x - 2 * 5),
@@ -357,6 +354,7 @@ class Select(UserParam):
             _image.fill((255, 255, 255, 0))
             _image.blit(image, (0, 0))
             self.values_images.append(_image)
+        self.values_images_original = self.values_images.copy()
 
     def draw(self, screen: pg.Surface):
         rect = pg.Rect(self.pos, self.size)
@@ -422,20 +420,15 @@ class Select(UserParam):
         self.value = value
         self.index_value = self.values.index(value)
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.size = mul(self.size, ratio)
-        self.toggle_size = mul(self.toggle_size, ratio)
-
 
 class InputText(UserParam):
-    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, value=None, *args, **kwargs):
-        super().__init__(pos, param_name, model_param, value)
+    def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, associated_method=None, value=None, *args, **kwargs):
+        super().__init__(pos, param_name, model_param, associated_method, value)
         if self.value is None: self.value = ""
         self.cursor_pos = len(self.value)
         self.ratio = pg.Vector2(1, 1)
         default_path = pg.font.get_default_font()
-        self.size = pg.Vector2(280 - self.pos.x, 20)
+        self.size = pg.Vector2(270 - self.pos.x, 20)
         self.font = pg.font.Font(default_path, 15)
         self.text_im = None
         self.compute_text_im()
@@ -490,20 +483,107 @@ class InputText(UserParam):
         self.text_im = self.font.render(self.value, True, (0, 0, 0))
         self.text_im = pg.transform.scale_by(self.text_im, self.ratio)
         if self.text_im.get_width() > self.size.x - 16:
-            im = pg.Surface((self.size.x, self.text_im.get_height())).convert_alpha()
+            im = pg.Surface((self.size.x - 16, self.text_im.get_height())).convert_alpha()
             im.fill((0, 0, 0, 0))
-            # self.gap = self.size.x - 16 - self.text_im.get_width()
             im.blit(self.text_im, (self.gap, 0))
             self.text_im = im
 
     def secondary_draw(self, screen):
         pass
 
-    def resize(self, ratio):
-        super().resize(ratio)
-        self.size = mul(self.size, ratio)
-        self.ratio = mul(ratio, self.ratio)
-        self.gap *= self.ratio.x
-        self.move_cursor(0)
 
+class ScrollingSlider(UserParam):
+    def __init__(self, pos, is_vert, screen_size_y, scrolling_length_y, name=""):
+        """
 
+        :param pos: The top left corner position
+        :param is_vert: True if the slider is vertical
+        :param length: The length in pixel of the slider on the screen.
+        :param screen_size_y: The height of the part viewable by the user
+        :param scrolling_length_y: The size where the user can scroll
+        :param name: An id in order to know where it does scroll
+
+         _____
+        |    |<-- screen_size
+        |____|
+        |    |
+        |    |<-- scrolling_length
+        |    |
+        |____|
+        """
+        super().__init__(pos, name, False, value=0)
+        self.hover = False
+        self.is_vert = is_vert
+        if is_vert:
+            self.size = pg.Vector2(10, screen_size_y)
+        else:
+            self.size = pg.Vector2(screen_size_y, 10)
+        self.name = name
+        self.screen_size_y = screen_size_y
+        self.scrolling_length_y = scrolling_length_y
+        self.pointer_size = pg.Vector2(0)
+        self.pointer_length = 0
+        self.update_pointer_size()
+
+    def update_pointer_size(self):
+        # self.screen_size_y / (self.screen_size_y + self.scrolling_length_y) is between 0 and 1, it is the ratio
+        # of the size of the screen.
+        # Finally, we multiply by self.screen_size_y in order to get the size of the scrolling bar.
+        self.pointer_length = self.screen_size_y / (self.screen_size_y + self.scrolling_length_y) * self.screen_size_y
+        self.pointer_size = pg.Vector2(self.pointer_length)
+        if self.is_vert:
+            self.pointer_size.x = 6
+        else:
+            self.pointer_size.y = 6
+
+    def draw(self, screen):
+        if self.pointer_length < self.screen_size_y:
+            pointer_color = GRAY if self.hover else LIGHT1_GRAY
+            pg.draw.rect(screen, WHITE, pg.Rect(self.pos, self.size))
+            pg.draw.rect(screen, pointer_color, pg.Rect(self.get_pointer_pos(), self.pointer_size), border_radius=6)
+
+    def get_pointer_pos(self):
+        direction = pg.Vector2(0, 1) if self.is_vert else pg.Vector2(1, 0)
+        # self.value / self.scrolling_length_y is a ratio between 0 and 1 of how much the user scrolled.
+        if self.scrolling_length_y == 0:
+            pos = 0
+        else:
+            pos = self.value / self.scrolling_length_y * (self.screen_size_y - self.pointer_length - 2)
+        return self.pos + direction*pos + pg.Vector2(2, 2)
+
+    def update_max_scrolling(self, new_max_scrolling):
+        self.scrolling_length_y = new_max_scrolling
+        self.update_pointer_size()
+
+    def resize(self, new_screen_size_y):
+        self.scrolling_length_y = self.screen_size_y + self.scrolling_length_y - new_screen_size_y
+        self.screen_size_y = new_screen_size_y
+        self.update_pointer_size()
+        if self.is_vert:
+            self.size = pg.Vector2(10, self.screen_size_y)
+        else:
+            self.size = pg.Vector2(self.screen_size_y, 10)
+
+    def move_pointer_pos(self, amount: int | float | pg.Vector2):
+        """
+        The amount is in pixels, on the slide.
+
+        pos is the position in his axis.
+        For example, if it is a vertical slider, his axis is vertical.
+        """
+        if isinstance(amount, pg.Vector2):
+            if self.is_vert: amount = amount.y
+            else: amount = amount.x
+
+        self.value += amount / (self.screen_size_y - self.pointer_length - 2) * self.scrolling_length_y
+        self.clamp_value()
+
+    def clamp_value(self):
+        if self.value < 0: self.value = 0
+        if self.value > self.scrolling_length_y: self.value = self.scrolling_length_y
+
+    def is_above_pointer(self, point: pg.Vector2):
+        if self.is_vert:
+            return point.y < self.get_pointer_pos().y
+        else:
+            return point.x < self.get_pointer_pos().x

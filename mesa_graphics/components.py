@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from mesa.visualization.mpl_space_drawing import draw_space
 
-from .backend_integration import FigureMatplotlib
+from .backend_integration import FigureMatplotlib, FigureText
 
 
 def make_mpl_plot_component(
@@ -242,3 +242,18 @@ def SpaceMatplotlib(
 
 
 make_space_component = make_mpl_space_component
+
+
+def make_text_component(text: str, font_size=15, font_color=(0, 0, 0), bg_color=(255, 255, 255), page=0):
+    """ Create a text using pygame.
+    :param text: The string that will be displayed
+    :param font_size: The size of the font used
+    :param font_color: The color of the font used
+    :param bg_color: The color of the background
+    :param page: The page in which it will be drawn
+    :return: The component
+    """
+    def res(model):
+        return FigureText(text, font_size, font_color, bg_color)
+
+    return res, page

@@ -3,6 +3,10 @@ from typing import Any
 
 from mesa import Model as MesaModel
 
+NOT_RESETTING = 0
+USER_ASK_RESET = 1
+RESET_MODEL = 2
+
 
 class Model:
     def __init__(self, mesa_model: MesaModel, play_interval: int, render_interval: int):
@@ -18,15 +22,15 @@ class Model:
         self.debug = False
         self.play_interval = play_interval
         self.render_interval = render_interval
-        self.reset = False
+        self.reset = NOT_RESETTING
         self.model_params = None
 
     def update(self):
         """ This function is called once per frame. It updates the user's Model if it is running. """
         start = time()
-        if self.reset:
+        if self.reset == USER_ASK_RESET:
             self.mesa_model = type(self.mesa_model)(**self.model_params)
-            self.reset = False
+            self.reset = RESET_MODEL
         else:
             if self.is_playing:
                 # We don't need a deepcopy because only view.render() which is in the same thread use mesa_model

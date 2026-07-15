@@ -1,10 +1,12 @@
 import mesa.visualization
 
 from .InputHandler import InputHandler
-from .UIElement import Button, Slider, UserParam, Checkbox, Select, InputText
-from pygame import K_d
+from .UIElement import Button, Slider, UserParam, Checkbox, Select, InputText, ScrollingSlider
+from pygame import Vector2
 from .Model import Model
 from .View import View
+
+from pygame import Vector2
 
 
 class Controller:
@@ -40,7 +42,9 @@ class Controller:
 
     def scroll(self):
         if self.inputHandler.mouse_pos.x > 300:
-            self.view.scroll_page(-self.inputHandler.scroll_direction.y)
+            self.view.scroll_page(Vector2(self.inputHandler.scroll_direction.x,
+                                          -self.inputHandler.scroll_direction.y))
+            self.view.userParamView.scroll_params(0)
         else:
             self.view.userParamView.scroll_params(-self.inputHandler.scroll_direction.y)
 
@@ -136,7 +140,6 @@ class UserParamController:
                 if self.inputHandler.pressed("mouse_left"):
                     if userParam.pos.x <= mousePos.x <= userParam.pos.x + userParam.toggle_size.x:
                         i = int((mousePos.y - userParam.pos.y) // userParam.toggle_size.y)
-                        print(i)
                         if 0 <= i < len(userParam.values):
                             userParam.set_value(userParam.values[i])
                     userParam.is_toggled = False
@@ -149,11 +152,14 @@ class UserParamController:
                     userParam.is_focused = True
                     self.view.ui_focused = userParam
             else:
-                for k in list("abcdefghijklmnoprstuvwxyz"):
-                    if self.inputHandler.pressed(k) or self.inputHandler.get_duration(k) > 50:
-                        userParam.write(k)
-                if self.inputHandler.pressed("SPACE") or self.inputHandler.get_duration("SPACE") > 50:
-                    userParam.write(" ")
+                for letter in self.inputHandler.unicode:
+                    print(hex(ord(letter)))
+                    # x08: BACKSPACE
+                    # x0d: ENTER
+                    # x7f: DELETE
+                    # x1f: ` (before becoming the true accent)
+                    if letter not in "\x08\x0d\x7f\x1f":
+                        userParam.write(letter)
                 if self.inputHandler.pressed("BACKSPACE") or self.inputHandler.get_duration("BACKSPACE") > 50:
                     userParam.remove()
                 if self.inputHandler.pressed("DELETE") or self.inputHandler.get_duration("DELETE") > 50:
@@ -162,11 +168,27 @@ class UserParamController:
                     userParam.move_cursor(1)
                 if self.inputHandler.pressed("LEFT") or self.inputHandler.get_duration("LEFT") > 50:
                     userParam.move_cursor(-1)
-                if self.inputHandler.pressed("RETURN"):
-                    print(userParam.value)
                 if self.inputHandler.pressed("mouse_left"):
                     userParam.is_focused = False
                     self.view.ui_focused = None
+        elif isinstance(userParam, ScrollingSlider):
+            if focused:
+                userParam.move_pointer_pos(self.inputHandler.mouse_movement)
+                if self.view.ui_focused == userParam and not self.inputHandler.holding("mouse_left"):
+                    self.view.ui_focused = None
+            else:
+                userParam.hover = (userParam.pos.x <= mousePos.x <= userParam.pos.x + userParam.size.x and
+                                   userParam.pos.y <= mousePos.y <= userParam.pos.y + userParam.size.y)
+                pointer_pos = userParam.get_pointer_pos() - Vector2(2, 2)
+                hover_pointer = (userParam.hover and pointer_pos.x <= mousePos.x <= pointer_pos.x + userParam.pointer_size.x + 4
+                                 and pointer_pos.y <= mousePos.y <= pointer_pos.y + userParam.pointer_size.y + 4)
+                if self.inputHandler.pressed("mouse_left"):
+                    if hover_pointer:
+                        self.view.ui_focused = userParam
+                    elif userParam.hover:
+                        userParam.move_pointer_pos(self.inputHandler.mouse_pos -
+                                                   (userParam.get_pointer_pos() + userParam.pointer_size / 2))
+
         else:
             raise NotImplementedError()
         if not userParam.model_param:
@@ -181,9 +203,17 @@ class UserParamController:
             res[param] = self.view.userParamView.userTweakableModelParams[param].value
         return res
 
+    def get_method_params(self, method_name):
+        res = {}
+        for param_name in self.view.userParamView.userTweakableEntries:
+            param = self.view.userParamView.userTweakableEntries[param_name]
+            if param.associated_method == method_name:
+                res[param_name] = param.value
+        return res
+
 
 class ButtonsController:
-    def __init__(self, model: Model, view: View, inputHandler: InputHandler, sliderController: UserParamController):
+    def __init__(self, model: Model, view: View, inputHandler: InputHandler, userParamController: UserParamController):
         """
         This class handles the logic behind the buttons.
 
@@ -191,12 +221,12 @@ class ButtonsController:
         the user's on.
         :param view: The View class.
         :param inputHandler: The Controller's inputHandler, to access more easily the user's inputs.
-        :param sliderController: The Controller's sliderController.
+        :param userParamController: The Controller's sliderController.
         """
         self.model = model
         self.view = view
         self.inputHandler = inputHandler
-        self.userParamController = sliderController
+        self.userParamController = userParamController
         self.button_actions = {}
         self._initialize_button_actions()
 
@@ -204,6 +234,7 @@ class ButtonsController:
         """ Initialize the actions to apply when the user click on the buttons. """
         self._initialize_control_buttons()
         self._initialize_switch_page_buttons()
+        self._initialize_method_call_buttons()
 
     def _initialize_control_buttons(self):
         """ Initialize the actions of the 3 buttons: RESET, START/STOP, STEP """
@@ -236,6 +267,22 @@ class ButtonsController:
             return res
         for i in range(self.view.componentsView.min_page, self.view.componentsView.max_page+1):
             self.button_actions[f"PAGE {i}"] = switch_page(i)
+
+    def _initialize_method_call_buttons(self):
+        def action(method_name):
+            def res():
+                method = getattr(self.model.mesa_model, method_name)
+                if method is None:
+                    raise RuntimeError(f"The method {method_name} doesn't exist")
+                params = self.userParamController.get_method_params(method_name)
+                method(**params)
+            return res
+
+        for button_name in self.view.buttons:
+            button = self.view.buttons[button_name]
+            if button.name[:12] == "method_call-":
+                method_name = button.name[12:]
+                self.button_actions[button.name] = action(method_name)
 
     def update(self, button: Button):
         """
