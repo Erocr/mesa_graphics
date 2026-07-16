@@ -444,11 +444,11 @@ class InputText(UserParam):
         self.font = pg.font.Font(default_path_font, 15)
 
         self.size = pg.Vector2(270 - self.pos.x, 20)
-        self.text_im = None  # The image of the text
+        self.text_im = None  # The image representing the text
         self.is_focused = False
 
         # The gap between the position of the inputText, and the position where we draw the text.
-        # When the cursor go too much to the right, the left part is no more visible.
+        # When the cursor goes too much to the right, the left part is no more visible.
         # This is represented as modifying the gap.
         self.gap = 0
         self.move_cursor(0)  # Useful to refresh the gap
@@ -500,7 +500,7 @@ class InputText(UserParam):
         # clamp the cursor_pos
         self.cursor_pos = min(max(self.cursor_pos + amount, 0), len(self.value))
 
-        # render the full image
+        # render from 0 to the cursor_pos, to know where the cursor is positioned in pixels
         im = self.font.render(self.value[:self.cursor_pos], True, (0, 0, 0))
         cursor_pos = im.get_width() + self.gap
 
@@ -514,7 +514,7 @@ class InputText(UserParam):
     def compute_text_im(self):
         """ Computes a new text image so that the text image doesn't go outside the box """
         self.text_im = self.font.render(self.value, True, (0, 0, 0))
-        if self.text_im.get_width() > self.size.x - 16:
+        if self.text_im.get_width() > self.size.x - 16 or self.gap != 0:
             im = pg.Surface((self.size.x - 16, self.text_im.get_height())).convert_alpha()
             im.fill((0, 0, 0, 0))
             im.blit(self.text_im, (self.gap, 0))
