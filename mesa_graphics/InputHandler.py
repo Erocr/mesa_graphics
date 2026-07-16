@@ -21,7 +21,7 @@ class Key:
 class InputHandler:
     def __init__(self):
         """
-        This class simplify the pygame inputs and make them more accessible via preprocessing them
+        This class simplifies the pygame inputs and makes them more accessible via preprocessing them
         You can access inputs via the methods pressed(), holding() and released()
         """
         self.keys = {}
@@ -45,7 +45,8 @@ class InputHandler:
 
     def update_counters(self):
         """
-        Every key has a counter, counting how many frame was the last modification. This function update this counters.
+        Every key has a counter, counting how many frames were the last modification.
+        This function updates this counters.
         """
         keys = list(self.events.keys())
         for evt in keys:
@@ -56,7 +57,7 @@ class InputHandler:
 
     def update(self):
         """
-        Analyse the new events sent by pygame, and write them in a more understandable way
+        Analyze the new events sent by pygame, and write them in a more understandable way
         This method shall be called once per frame
         """
         self._prev_mouse_pos = self._mouse_pos
@@ -66,14 +67,14 @@ class InputHandler:
         self.unicode = ""
 
         for evt in pg.event.get():
-            if evt.type == pg.KEYDOWN:  # The user press a button
+            if evt.type == pg.KEYDOWN:  # The user presses a button
                 self.events[evt.key] = Key()
                 self.unicode += evt.unicode
             elif evt.type == pg.KEYUP:  # The user releases a button
                 self.events[evt.key].duration = -1 - (self.events[evt.key].duration > 0)
             elif evt.type == pg.QUIT:  # The user closes the window
                 self.quit = True
-            elif evt.type == pg.MOUSEBUTTONDOWN:  # The user press a mouse button
+            elif evt.type == pg.MOUSEBUTTONDOWN:  # The user presses a mouse button
                 self.events[-evt.button] = Key()  # The mouse buttons are negative
             elif evt.type == pg.MOUSEBUTTONUP:  # The user releases a mouse button
                 self.events.pop(-evt.button)  # The mouse buttons are negative
@@ -86,8 +87,8 @@ class InputHandler:
         """
         This function generalizes the pygame keys as strings or numbers.
         Moreover, it gives a better error if it doesn't exist.
-        :param key: the pygame key or the string describing the key.
-        :return: the pygame key associated.
+        :param key: The pygame key or the string describing the key.
+        :return: The pygame key associated.
         """
         if isinstance(key, int):
             return key
@@ -99,7 +100,7 @@ class InputHandler:
             raise Exception(f"key {key} does not exist")
 
     def get_duration(self, key: int | str):
-        """ Returns the number of frame since the user started to press the key.
+        """ Returns the number of frames since the user started to press the key.
         It returns -1 if this key is not pressed
         """
         key = self.key_id(key)
@@ -122,7 +123,7 @@ class InputHandler:
         return key in self.events and self.events[key].holding
 
     def released(self, key: int | str):
-        """ Returns True only during the frame in which the user release the key. """
+        """ Returns True only during the frame in which the user releases the key. """
         key = self.key_id(key)
         return key in self.events and self.events[key].released
 

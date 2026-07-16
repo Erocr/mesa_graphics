@@ -31,7 +31,7 @@ class Controller:
     def update(self):
         """
         This is the main function. It is called once per frame. It watches the new user inputs, and
-        act responding to them.
+        acts responding to them.
         """
         self.update_counters()
         self.inputHandler.update()
@@ -57,7 +57,8 @@ class Controller:
 
     def update_counters(self):
         """
-        Every key has a counter, counting how many frame was the last modification. This function update this counters.
+        Every key has a counter, counting how many frames were the last modification.
+        This function updates this counters.
         """
         self.inputHandler.update_counters()
 
@@ -105,7 +106,7 @@ class UserParamController:
         self.inputHandler = inputHandler
 
         # Stores the raw model parameter information.
-        # For example, user can put something like : model_params = { "n": 3 }
+        # For example, user can put something like: model_params = { "n": 3 }
         self.primitive_model_params = {}
 
         self.set_default_model_params(model_params)
@@ -275,7 +276,7 @@ class ButtonsController:
         :param model: A Model instance that will be visualized. It is the MesaGraphic's Model, and not
         the user's on.
         :param view: The View class.
-        :param inputHandler: The Controller's inputHandler, to access more easily the user's inputs.
+        :param inputHandler: The Controller's inputHandler to easily access the user's inputs.
         :param userParamController: The Controller's sliderController.
         """
         self.model = model
@@ -286,7 +287,7 @@ class ButtonsController:
         self._initialize_button_actions()
 
     def _initialize_button_actions(self):
-        """ Initialize the actions to apply when the user click on the buttons. """
+        """ Initialize the actions to apply when the user clicks on the buttons. """
         self._initialize_control_buttons()
         self._initialize_switch_page_buttons()
         self._initialize_method_call_buttons()
@@ -311,8 +312,8 @@ class ButtonsController:
 
         def reset_action():
             """
-            Code to execute when the user clicks on the RESET button. It re-instantiates the Model, and put the
-            model's is_playing flag to False.
+            Code to execute when the user clicks on the RESET button.
+            It re-instantiates the Model, and puts the model's is_playing flag to False.
             """
             self.model.reset = True
             self.model.set_model_params(self.userParamController.get_model_params())
@@ -320,7 +321,9 @@ class ButtonsController:
                 start_or_stop_action()
 
         def toggle_or_untoggle_control_bar():
-            """ Code to execute when the user clicks on the toggle/untoggle button (in top left of the screen) """
+            """
+            Code to execute when the user clicks on the toggle/untoggle button (in the top left corner of the screen)
+            """
             self.view.userParamView.toggle_untoggle_control_bar()
 
         self.button_actions["STEP"] = step_action
@@ -367,7 +370,7 @@ class ButtonsController:
     def update(self, button: Button):
         """
         This is the main function. It is called once per frame. It watches if the mouse hovers a button,
-        and apply the action associated to the button if user clicks on it.
+        and applies the action associated to the button if the user clicks on it.
         """
         mouse_pos = self.inputHandler.mouse_pos
         button.hover = (button.pos.x <= mouse_pos.x <= button.pos.x + button.size.x and

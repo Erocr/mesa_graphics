@@ -138,16 +138,16 @@ def make_space_matplotlib(*args, **kwargs):  # noqa: D103
 
 
 def make_mpl_space_component(
-        agent_portrayal: Callable | None = None,
+        agent_portrayal: Callable | None = None,  # noqa
         propertylayer_portrayal: dict | None = None,
-        post_process: Callable | None = None,
+        post_process: Callable | None = None,  # noqa
         **space_drawing_kwargs):
     """Create a Matplotlib-based space visualization component.
 
     :param agent_portrayal: Function to portray agents.
     :param propertylayer_portrayal: Dictionary of PropertyLayer portrayal specifications
-    :param post_process: a callable that will be called with the Axes instance. Allows for fine tuning plots (e.g., control ticks)
-    :param space_drawing_kwargs: additional keyword arguments to be passed on to the underlying space drawer function. See
+    :param post_process: A callable that will be called with the Axes instance. Allows for fine tuning plots (e.g., control ticks)
+    :param space_drawing_kwargs: Additional keyword arguments to be passed on to the underlying space drawer function. See
                                the functions for drawing the various spaces for further details.
 
     ``agent_portrayal`` is called with an agent and should return a dict. Valid fields in this dict are "color",
@@ -176,7 +176,7 @@ def SpaceMatplotlib(
         model,
         agent_portrayal,
         propertylayer_portrayal,
-        post_process: Callable | None = None,
+        post_process: Callable | None = None,  # noqa
         **space_drawing_kwargs,
 ):
     """Create a Matplotlib-based space visualization component."""

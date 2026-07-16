@@ -42,11 +42,11 @@ class View:
         the user's on
         :param renderer: (SpaceRenderer) A SpaceRenderer instance to render the model's space.
         :param components: List of tuples (component, page).
-        component is a function that take a model instance, and returns a pygame Surface representing it.
+        Component is a function that takes a model instance and returns a pygame Surface representing it.
         You can create them with the matplotlib_components's utility functions, or you can create custom ones.
-        The page is an integer, describing in which page it must be drawn.
+        The page is an integer describing in which page it must be drawn.
         :param model_params: Parameters for re-instantiating a model.
-            Can include user-adjustable parameters and fixed parameters. Defaults to None.
+        Can include user-adjustable parameters and fixed parameters. Defaults to None.
         :param name: Name of the visualization. Defaults to the model's class name.
         """
         self.fonts = {}
@@ -114,7 +114,7 @@ class View:
         :param typ: The type of the object we want to create.
         :param args: The parameters to pass in the class that we want to instantiate.
         :param kwargs: The parameters to pass in the class that we want to instantiate.
-        :return: the object instantiated
+        :return: The object instantiated
 
         For example, if you want to instantiate a Button, call add_UIElement(Button, ...).
         """
@@ -268,7 +268,7 @@ class View:
 
     def draw_debug(self):
         """
-        This function draws debug information to help programmer, or maybe the user.
+        This function draws debug information to help the programmer, or maybe the user.
         This function is called only if you enter the debug mode by pressing "d".
         """
 
@@ -317,7 +317,7 @@ class ComponentsView:
             self._store_components(components)
         if renderer is not None:
             self.components[0].insert(0, Component(self.view.model, create_space_component(renderer)))
-        self.switch_page_buttons = []  # Provide fast and easy access to specifically buttons for switching pages
+        self.switch_page_buttons = []  # Provide fast and easy access to buttons for switching pages
         self.full_switch_page_button_width = 0  # The width of a switch page button, when it has the full name
         self.buttons_full = True  # If the switch page buttons have the full name
 
@@ -442,7 +442,7 @@ class ComponentsView:
         :param components: A list of components.
         Each component can be a tuple (component, page), or only a component.
 
-        For each element of components. If it is only a component, it will be by default placed at the page 0.
+        For each element of components. If it is only a component, it will be by default placed at page 0.
         Moreover, if not all the pages are used, it will create empty pages automatically. For example, if you have
         page 0 and 3 used, it will create automatically pages 1 and 2 blank.
         """
@@ -459,7 +459,7 @@ class ComponentsView:
     def _fill_missing_pages(self):
         """
         Create as many blank pages as needed.
-        If the user put something in the 0-th page anf the second page, this function creates a blank
+        If the user puts something in the 0-th page and the second page, this function creates a blank
         page for page 1.
         """
         # Find the minimum page, and the maximum page set by the user
@@ -476,7 +476,7 @@ class ComponentsView:
 
     def create_switch_page_buttons(self) -> None:
         """
-        This function creates the buttons on top of the screen which allow to change the page.
+        This function creates the buttons on top of the screen, which allows changing the page.
         They are aligned. If there are too many pages, they will be smaller.
         """
 
@@ -527,7 +527,7 @@ class ComponentsView:
     def update_switch_buttons(self):
         """
         This function updates the positions of the switch buttons according to the screen size.
-        Moreover, if the screen size is to small, it will stretch the buttons.
+        Moreover, if the screen size is too small, it will stretch the buttons.
         """
         # Size that would take the buttons if they are not stretched
         size_x_full = self.full_switch_page_button_width * (self.max_page - self.min_page + 1)
@@ -675,7 +675,7 @@ class UserParamView:
         self.rect = self.view.add_UIElement(Rectangle, pg.Vector2(0, 37), pg.Vector2(300, 703), color=LIGHT2_GRAY)
         self.hideable_elements.append(self.rect)
 
-        # The shadow casted by the rectangle
+        # The shadow casts by the rectangle
         width = 5
         self.shadow = self.view.add_UIElement(Shadow, pg.Vector2(300 - width, 37), pg.Vector2(300 - width, 740),
                                               pg.Vector2(1, 0), width)
@@ -899,10 +899,10 @@ class UserParamView:
         Create a user parameter (UserParam). A user parameter is something that the user can tweak.
         :param param_name: The name of the user parameter. It is used as an ID to recognize the user parameter.
         If this name already exists, we will automatically add numbers at the end of the name.
-        :param model_param: A boolean, set to true if the value of the user parameter is uses as a parameter for the
+        :param model_param: A boolean, set to true if the value of the user parameter is used as a parameter for the
         next instantiation of the user's model.
         :param y: The vertical position at which the user parameter widget should be placed.
-        :return: The next available vertical position. This value can be used to place subsequent UI elements without
+        :return: The next available vertical position. This value can be used to place later UI elements without
         overlapping this widget.
         """
         # Extract the arguments
@@ -933,8 +933,8 @@ class UserParamView:
     def _create_flow_control_entries(self, play_interval: int, render_interval: int) -> None:
         """
         Create the flow control user parameters. Thus are the two sliders "play interval" and "render interval".
-        :param play_interval: The starting value of the play_interval's slider
-        :param render_interval: The starting value of the render_interval's slider
+        :param play_interval: The starting value of the play_interval's slider.
+        :param render_interval: The starting value of the render_interval's slider.
         """
         starting_y = y = 90
         card = self.view.add_UIElement(ShadowedCard, pg.Vector2(5, y - 10), pg.Vector2(275, 10), WHITE, 3,
