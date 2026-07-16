@@ -44,6 +44,9 @@ class InputHandler:
         self.keys["mouse_right"] = self.keys["mouse right"] = -3
 
     def update_counters(self):
+        """
+        Every key has a counter, counting how many frame was the last modification. This function update this counters.
+        """
         keys = list(self.events.keys())
         for evt in keys:
             if self.events[evt].duration < 0:
@@ -63,25 +66,26 @@ class InputHandler:
         self.unicode = ""
 
         for evt in pg.event.get():
-            if evt.type == pg.KEYDOWN:
+            if evt.type == pg.KEYDOWN:  # The user press a button
                 self.events[evt.key] = Key()
                 self.unicode += evt.unicode
-            elif evt.type == pg.KEYUP:
+            elif evt.type == pg.KEYUP:  # The user releases a button
                 self.events[evt.key].duration = -1 - (self.events[evt.key].duration > 0)
-            elif evt.type == pg.QUIT:
+            elif evt.type == pg.QUIT:  # The user closes the window
                 self.quit = True
-            elif evt.type == pg.MOUSEBUTTONDOWN:
-                self.events[-evt.button] = Key()
-            elif evt.type == pg.MOUSEBUTTONUP:
-                self.events.pop(-evt.button)
-            elif evt.type == pg.MOUSEWHEEL:
+            elif evt.type == pg.MOUSEBUTTONDOWN:  # The user press a mouse button
+                self.events[-evt.button] = Key()  # The mouse buttons are negative
+            elif evt.type == pg.MOUSEBUTTONUP:  # The user releases a mouse button
+                self.events.pop(-evt.button)  # The mouse buttons are negative
+            elif evt.type == pg.MOUSEWHEEL:  # The user scrolls with the mouse or a touchpad
                 self._scroll_direction = pg.Vector2(evt.x, evt.y)
-            elif evt.type == pg.VIDEORESIZE:
+            elif evt.type == pg.VIDEORESIZE:  # The user resizes the window
                 self.resized = pg.Vector2(evt.w, evt.h)
 
     def key_id(self, key: int | str):
         """
-        This function generalizes the pygame keys. Moreover, it gives a better error if it doesn't exist.
+        This function generalizes the pygame keys as strings or numbers.
+        Moreover, it gives a better error if it doesn't exist.
         :param key: the pygame key or the string describing the key.
         :return: the pygame key associated.
         """

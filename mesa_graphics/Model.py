@@ -33,7 +33,7 @@ class Model:
             self.reset = RESET_MODEL
         else:
             if self.is_playing:
-                # We don't need a deepcopy because only view.render() which is in the same thread use mesa_model
+                # We don't need a deepcopy because only view.render() use mesa_model (which is in the same thread)
                 next_mesa_model = self.mesa_model
                 for i in range(self.render_interval):
                     next_mesa_model.step()
@@ -53,10 +53,10 @@ class Model:
         elif entry_name == "render_interval":
             self.render_interval = new_value
 
-    def set_model_params(self, new_model_params):
+    def set_model_params(self, new_model_params: dict):
         """
         Set the parameters for the Model that the player will re-instantiate.
 
-        :param new_model_params:
+        :param new_model_params: The model parameters and their values
         """
         self.model_params = new_model_params

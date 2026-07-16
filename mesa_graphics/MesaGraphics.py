@@ -58,7 +58,7 @@ class MesaGraphics:
         1. Take into account the user's inputs
         2. Draw onto the screen
 
-        This thread must be as fast as possible in order to have a responsive graphical interface.
+        This thread must be as fast as possible to have a responsive graphical interface.
         So, execute all the heavy computations in the worker thread.
         """
         ex = None
@@ -79,23 +79,24 @@ class MesaGraphics:
         """ Worker loop executed in the secondary thread.
 
         It must execute all the computationally expensive operations. It has the role to:
-        1. update the model
-        2. render (make the plots, and transform them in pygame.Surfaces)
+        1. Update the model
+        2. Render (make the plots, and transform them in pygame.Surfaces)
 
         Update the model can be really long, it depends on the user's implementation.
         Rendering can also be very time-consuming, and user can create custom components, making it possibly even
         slower.
         """
-        ex = None
         try:
             while not self.controller.is_terminated:
                 start = time()
                 self.model.update()
                 self.view.render()
                 d = time() - start
+
                 self.model.debug_infos["worker time"] = d
-                if d < self.model.play_interval * 0.001:
-                    sleep(self.model.play_interval * 0.001 - d)
+                # Don't make it turn too fast for nothing
+                if d < self.model.play_interval * 0.002:
+                    sleep(self.model.play_interval * 0.002 - d)
         except Exception as ex:
             self.controller.terminate()
             self.barrier.wait()

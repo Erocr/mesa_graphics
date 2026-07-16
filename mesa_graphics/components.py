@@ -11,13 +11,13 @@ from .backend_integration import FigureMatplotlib, FigureText
 
 def make_mpl_plot_component(
         measure: str | dict[str, str] | list[str] | tuple[str],
-        post_process: Callable | None = None,
+        post_process: Callable | None = None,  # noqa
         page: int = 0
 ):
     """Create a plotting function for a specified measure using matplotlib backend.
 
-    :param measure: measure (str | dict[str, str] | list[str] | tuple[str]): Measure(s) to plot.
-    :param post_process: a user-specified callable to do post-processing called with the Axes instance.
+    :param measure: Measure (str | dict[str, str] | list[str] | tuple[str]): Measure(s) to plot.
+    :param post_process: User-specified callable to do post-processing called with the Axes instance.
     :param page: Page number where the plot should be displayed.
 
     Returns:
@@ -33,13 +33,13 @@ def make_mpl_plot_component(
 def PlotMatplotlib(
         model,
         measure,
-        post_process: Callable | None = None
+        post_process: Callable | None = None  # noqa
 ):
     """Create a Matplotlib-based plot for a measure or measures.
 
     :param model: (mesa.Model) The model instance.
     :param measure: (str | dict[str, str] | list[str] | tuple[str]) Measure(s) to plot.
-    :param post_process: a user-specified callable to do post-processing called with the Axes instance.
+    :param post_process: A user-specified callable to do post-processing called with the Axes instance.
 
     Returns:
         solara.FigureMatplotlib: A component for rendering the plot.
@@ -84,7 +84,6 @@ def SpaceRendererComponent(
 ):
     """Render the space of a model using a SpaceRenderer.
 
-
     :param model: (Model) The model whose space is to be rendered.
     :param renderer: A SpaceRenderer instance to render the model's space.
     """
@@ -124,44 +123,6 @@ def SpaceRendererComponent(
         return FigureMatplotlib(renderer.canvas.get_figure())
     else:
         assert False, "Only the matplotlib backend has been implemented yet"
-        structure = renderer.space_mesh if renderer.space_mesh else None
-        agents = renderer.agent_mesh if renderer.agent_mesh else None
-        propertylayer = renderer.propertylayer_mesh or None
-
-        if renderer.space_mesh:
-            structure = renderer.draw_structure()
-        if renderer.agent_mesh:
-            agents = renderer.draw_agents()
-        if renderer.propertylayer_mesh:
-            propertylayer = renderer.draw_propertylayer()
-
-        spatial_charts_list = [
-            chart for chart in [structure, propertylayer, agents] if chart
-        ]
-
-        final_chart = None
-        if spatial_charts_list:
-            final_chart = (
-                spatial_charts_list[0]
-                if len(spatial_charts_list) == 1
-                else alt.layer(*spatial_charts_list).resolve_axis(
-                    x="independent", y="independent"
-                )
-            )
-
-        if final_chart is None:
-            # If no charts are available, return an empty chart
-            final_chart = (
-                alt.Chart(pd.DataFrame()).mark_point().properties(width=450, height=350)
-            )
-
-        if renderer.post_process:
-            final_chart = renderer.post_process(final_chart)
-
-        final_chart = final_chart.configure_view(stroke="black", strokeWidth=1.5)
-
-        solara.FigureAltair(final_chart, on_click=None, on_hover=None)
-        return None
 
 
 make_plot_component = make_mpl_plot_component

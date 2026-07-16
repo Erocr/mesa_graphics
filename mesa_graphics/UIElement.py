@@ -117,7 +117,7 @@ class Shadow(UIElement):
 
 
 class Text(UIElement):
-    def __init__(self, pos: pg.Vector2, text: str, font: pg.font.Font, color=(0, 0, 0), ratio=pg.Vector2(1, 1)):
+    def __init__(self, pos: pg.Vector2, text: str, font: pg.font.Font, color=(0, 0, 0)):
         """
         :param pos: The top-left corner position. It must be a pg.Vector2
         :param text: The string shown
@@ -166,7 +166,6 @@ class Button(UIElement):
             name = new_name
         self.name = name
         self.locked = False
-        self.ratio = pg.Vector2(1, 1)
 
     def draw(self, screen: pg.Surface):
         if self.custom_draw:
@@ -181,7 +180,7 @@ class Button(UIElement):
     def modify_text(self, new_text: str, font=None, color=(0, 0, 0)):
         """
         Modifies the text written in the button.
-        :param new_text: the new string to show.
+        :param new_text: The new string to show.
         :param font: The new font. If you don't put the font size, it will put the previous font
         :param color: The color of the new text, black by default
         """
@@ -195,7 +194,7 @@ class Button(UIElement):
     def set_pos(self, pos: pg.Vector2):
         """ Change the position of the button. """
         self.pos = pos
-        self.text.set_pos(pos+mul(pg.Vector2(10, 10), self.ratio))
+        self.text.set_pos(pos+pg.Vector2(10, 10))
 
     def lock(self):
         self.locked = True
@@ -232,7 +231,7 @@ class Slider(UserParam):
     def __init__(self, pos: pg.Vector2, t: str, param_name: str, model_param=True, associated_method=None,
                  value=None, min=0, max=10, step=0.01):
         """
-        This class handle the logic for drawing a slider.
+        This class handles the logic for drawing a slider.
 
         :param t: The type of the slider, it can be "SliderInt" or "SliderFloat"
         :param pos: A pg.Vector2 describing the left position of the slider.
@@ -295,7 +294,7 @@ class Checkbox(UserParam):
 
     def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, associated_method=None, value=None, *args, **kwargs):
         """
-        The class handle the logic for drawing a check box.
+        The class handles the logic for drawing a check box.
 
         :param pos: The top left corner position
         :param param_name: The name (an identification to recognize it)
@@ -324,7 +323,7 @@ class Checkbox(UserParam):
 class Select(UserParam):
     def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, associated_method=None, value=None, values=None, *args, **kwargs):
         """
-        This class handle the logic to draw a selection between different values.
+        This class handles the logic to draw a selection between different values.
 
         :param pos: The position on the screen (top left)
         :param param_name: The name (an identification to recognize it)
@@ -423,39 +422,66 @@ class Select(UserParam):
 
 class InputText(UserParam):
     def __init__(self, pos: pg.Vector2, param_name: str, model_param=True, associated_method=None, value=None, *args, **kwargs):
+        """
+        This class handles the logic to draw an input box. The user can use it to write strings.
+
+        :param pos: The position on the screen (top left)
+        :param param_name: The name (an identification to recognize it)
+        :param model_param: Set to True if it is used as a parameter to put for the re-instantiation of the user's
+        Model.
+        :param associated_method: If it is a parameter for a method call, associated_method is the method that it would
+        call.
+        :param value: The default value.
+        :param args: They will be ignored
+        :param kwargs: Thy will be ignored
+        """
         super().__init__(pos, param_name, model_param, associated_method, value)
         if self.value is None: self.value = ""
-        self.cursor_pos = len(self.value)
-        self.ratio = pg.Vector2(1, 1)
-        default_path = pg.font.get_default_font()
+        self.cursor_pos = len(self.value)  # The cursor pos is in characters, between 0 and len(self.value)
+
+        # initializing the font
+        default_path_font = pg.font.get_default_font()
+        self.font = pg.font.Font(default_path_font, 15)
+
         self.size = pg.Vector2(270 - self.pos.x, 20)
-        self.font = pg.font.Font(default_path, 15)
-        self.text_im = None
-        self.compute_text_im()
+        self.text_im = None  # The image of the text
         self.is_focused = False
+
+        # The gap between the position of the inputText, and the position where we draw the text.
+        # When the cursor go too much to the right, the left part is no more visible.
+        # This is represented as modifying the gap.
         self.gap = 0
+        self.move_cursor(0)  # Useful to refresh the gap
+
+        self.compute_text_im()
 
     def draw(self, screen):
+        """ Called once per frame, it draws the input-box onto the screen"""
         rect = pg.Rect(self.pos, self.size)
-        # Fond
+        # Background
         pg.draw.rect(screen, WHITE, rect, border_radius=6)
 
-        # Bordure
+        # Border
         pg.draw.rect(screen, (180, 180, 180), rect, width=2, border_radius=6)
 
+        # Image of the text, into the rectangle
         screen.blit(self.text_im, self.pos+pg.Vector2(8, self.size.y/2 - self.text_im.get_height()/2))
+
         if self.is_focused:
+            # We create the image of the part of the text before the cursor to know his width, and compute the gap
             im = self.font.render(self.value[:self.cursor_pos], True, (0, 0, 0))
-            cursor_pos = im.get_width() * self.ratio.x + self.gap
+            cursor_pos = im.get_width() + self.gap
             pg.draw.line(screen, (0, 0, 0), self.pos+pg.Vector2(8+cursor_pos, 3),
                          self.pos+pg.Vector2(8+cursor_pos, self.size.y-4), 3)
 
     def write(self, letter):
+        """ Writes a letter, and move the cursor after this letter """
         self.value = self.value[:self.cursor_pos] + letter + self.value[self.cursor_pos:]
         self.move_cursor(1)
         self.compute_text_im()
 
     def remove(self):
+        """ Removes the letter before the cursor, and place the cursor before the removed letter """
         if self.cursor_pos == 0:
             return
         self.value = self.value[:self.cursor_pos-1] + self.value[self.cursor_pos:]
@@ -463,45 +489,46 @@ class InputText(UserParam):
         self.compute_text_im()
 
     def suppr(self):
+        """ Removes the letter after the cursor """
         if self.cursor_pos == len(self.value):
             return
         self.value = self.value[:self.cursor_pos] + self.value[self.cursor_pos+1:]
         self.compute_text_im()
 
     def move_cursor(self, amount):
+        """ Moves the cursor, and computes a new text image so that the text image doesn't go outside the box """
+        # clamp the cursor_pos
         self.cursor_pos = min(max(self.cursor_pos + amount, 0), len(self.value))
+
+        # render the full image
         im = self.font.render(self.value[:self.cursor_pos], True, (0, 0, 0))
-        cursor_pos = im.get_width() * self.ratio.x + self.gap
-        if cursor_pos > self.size.x - 16:
+        cursor_pos = im.get_width() + self.gap
+
+        if cursor_pos > self.size.x - 16:  # If the cursor goes outside the box, to the right
             self.gap -= cursor_pos - self.size.x + 16
-        if cursor_pos < (self.size.x - 16) * 0.2:
+        if cursor_pos < (self.size.x - 16) * 0.2:  # If the cursor goes outside the box, to the left
             self.gap += (self.size.x - 16) * 0.2 - cursor_pos
             if self.gap > 0: self.gap = 0
         self.compute_text_im()
 
     def compute_text_im(self):
+        """ Computes a new text image so that the text image doesn't go outside the box """
         self.text_im = self.font.render(self.value, True, (0, 0, 0))
-        self.text_im = pg.transform.scale_by(self.text_im, self.ratio)
         if self.text_im.get_width() > self.size.x - 16:
             im = pg.Surface((self.size.x - 16, self.text_im.get_height())).convert_alpha()
             im.fill((0, 0, 0, 0))
             im.blit(self.text_im, (self.gap, 0))
             self.text_im = im
 
-    def secondary_draw(self, screen):
-        pass
-
 
 class ScrollingSlider(UserParam):
-    def __init__(self, pos, is_vert, screen_size_y, scrolling_length_y, name=""):
+    def __init__(self, pos: pg.Vector2, is_vert: bool, screen_size: float, scrolling_length: float, name=""):
         """
-
-        :param pos: The top left corner position
-        :param is_vert: True if the slider is vertical
-        :param length: The length in pixel of the slider on the screen.
-        :param screen_size_y: The height of the part viewable by the user
-        :param scrolling_length_y: The size where the user can scroll
-        :param name: An id in order to know where it does scroll
+        :param pos: The top left corner position.
+        :param is_vert: True if the slider is vertical.
+        :param screen_size: The size of the part viewable by the user, only in the interested axis.
+        :param scrolling_length: The size where the user can scroll.
+        :param name: Ignored
 
          _____
         |    |<-- screen_size
@@ -510,26 +537,30 @@ class ScrollingSlider(UserParam):
         |    |<-- scrolling_length
         |    |
         |____|
+
+        We suppose that the length of the scrollingSlider is the same of the screen_size
         """
         super().__init__(pos, name, False, value=0)
         self.hover = False
         self.is_vert = is_vert
         if is_vert:
-            self.size = pg.Vector2(10, screen_size_y)
+            self.size = pg.Vector2(10, screen_size)
         else:
-            self.size = pg.Vector2(screen_size_y, 10)
+            self.size = pg.Vector2(screen_size, 10)
         self.name = name
-        self.screen_size_y = screen_size_y
-        self.scrolling_length_y = scrolling_length_y
+        self.screen_size = screen_size
+        self.scrolling_length = scrolling_length
         self.pointer_size = pg.Vector2(0)
         self.pointer_length = 0
         self.update_pointer_size()
 
     def update_pointer_size(self):
+        """ Updates the pointer size, according to the screen size, and the scrolling_length """
         # self.screen_size_y / (self.screen_size_y + self.scrolling_length_y) is between 0 and 1, it is the ratio
-        # of the size of the screen.
-        # Finally, we multiply by self.screen_size_y in order to get the size of the scrolling bar.
-        self.pointer_length = self.screen_size_y / (self.screen_size_y + self.scrolling_length_y) * self.screen_size_y
+        # of the screen.
+        # finally, we multiply by self.screen_size_y to get the size of the scrolling bar.
+        self.pointer_length = self.screen_size / (self.screen_size + self.scrolling_length) * self.screen_size
+
         self.pointer_size = pg.Vector2(self.pointer_length)
         if self.is_vert:
             self.pointer_size.x = 6
@@ -537,52 +568,61 @@ class ScrollingSlider(UserParam):
             self.pointer_size.y = 6
 
     def draw(self, screen):
-        if self.pointer_length < self.screen_size_y:
+        """ Called once per frame, it draws the scrollingSlider onto the screen. """
+        if self.pointer_length < self.screen_size:
             pointer_color = GRAY if self.hover else LIGHT1_GRAY
             pg.draw.rect(screen, WHITE, pg.Rect(self.pos, self.size))
             pg.draw.rect(screen, pointer_color, pg.Rect(self.get_pointer_pos(), self.pointer_size), border_radius=6)
 
     def get_pointer_pos(self):
+        """ Computes the pointer position according to how much the us scrolled (stored in self.value) """
         direction = pg.Vector2(0, 1) if self.is_vert else pg.Vector2(1, 0)
         # self.value / self.scrolling_length_y is a ratio between 0 and 1 of how much the user scrolled.
-        if self.scrolling_length_y == 0:
+
+        if self.scrolling_length == 0:
             pos = 0
         else:
-            pos = self.value / self.scrolling_length_y * (self.screen_size_y - self.pointer_length - 2)
+            pos = self.value / self.scrolling_length * (self.screen_size - self.pointer_length - 2)
         return self.pos + direction*pos + pg.Vector2(2, 2)
 
     def update_max_scrolling(self, new_max_scrolling):
-        self.scrolling_length_y = new_max_scrolling
+        self.scrolling_length = new_max_scrolling
         self.update_pointer_size()
 
-    def resize(self, new_screen_size_y):
-        self.scrolling_length_y = self.screen_size_y + self.scrolling_length_y - new_screen_size_y
-        self.screen_size_y = new_screen_size_y
+    def resize(self, new_screen_size):
+        """
+        Resize the screen_size. This function applies all the internal modifications due to changing the screen_size
+        """
+        self.scrolling_length = self.screen_size + self.scrolling_length - new_screen_size
+        self.screen_size = new_screen_size
         self.update_pointer_size()
         if self.is_vert:
-            self.size = pg.Vector2(10, self.screen_size_y)
+            self.size = pg.Vector2(10, self.screen_size)
         else:
-            self.size = pg.Vector2(self.screen_size_y, 10)
+            self.size = pg.Vector2(self.screen_size, 10)
 
     def move_pointer_pos(self, amount: int | float | pg.Vector2):
         """
-        The amount is in pixels, on the slide.
+        :param amount: is in pixels, on the slide.
 
-        pos is the position in his axis.
         For example, if it is a vertical slider, his axis is vertical.
         """
         if isinstance(amount, pg.Vector2):
             if self.is_vert: amount = amount.y
             else: amount = amount.x
 
-        self.value += amount / (self.screen_size_y - self.pointer_length - 2) * self.scrolling_length_y
+        self.value += amount / (self.screen_size - self.pointer_length - 2) * self.scrolling_length
         self.clamp_value()
 
     def clamp_value(self):
         if self.value < 0: self.value = 0
-        if self.value > self.scrolling_length_y: self.value = self.scrolling_length_y
+        if self.value > self.scrolling_length: self.value = self.scrolling_length
 
     def is_above_pointer(self, point: pg.Vector2):
+        """
+        If the point is above the pointer. If the slider is horizontal, it will return if the point is on the left
+        of the pointer
+        """
         if self.is_vert:
             return point.y < self.get_pointer_pos().y
         else:

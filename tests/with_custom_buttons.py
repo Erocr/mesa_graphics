@@ -101,7 +101,7 @@ model_params = {
     },
     "text": {
         "type": "InputText",
-        "value": "hello"
+        "value": "hello, how are you ? Personally, I'm pretty fine !!"
     },
     "capacity": 50,
 }
@@ -117,59 +117,9 @@ custom_buttons = {
         }
     },
 
-"tax1": {
-        "amount": {
-            "type": "SliderInt",
-            "value": 1,
-            "min": 1,
-            "max": 5,
-            "step": 1
-        }
-    },
-
-"tax2": {
-        "amount": {
-            "type": "SliderInt",
-            "value": 1,
-            "min": 1,
-            "max": 5,
-            "step": 1
-        }
-    },
-
-"tax3": {
-        "amount": {
-            "type": "SliderInt",
-            "value": 1,
-            "min": 1,
-            "max": 5,
-            "step": 1
-        }
-    },
-
-    "redistribute": {
-        "amount": {
-            "type": "SliderInt",
-            "value": 1,
-            "min": 1,
-            "max": 5,
-            "step": 1
-        },
-        "amount1": {
-            "type": "SliderInt",
-            "value": 1,
-            "min": 1,
-            "max": 5,
-            "step": 1
-        },
-        "amount2": {
-            "type": "SliderInt",
-            "value": 1,
-            "min": 1,
-            "max": 5,
-            "step": 1
-        }
-    }
+    #"redistribute": {
+    #    "amount": 1
+    #}
 }
 
 page = MesaGraphics(

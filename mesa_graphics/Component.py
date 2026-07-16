@@ -16,6 +16,7 @@ class Component:
         self.image = None
 
     def render(self):
+        """ Computes the image according to the model, and stores it internally """
         self.image = self.component_func(self.model.mesa_model)
         if self.image is None:
             raise RuntimeError("The component didn't return anything. "
