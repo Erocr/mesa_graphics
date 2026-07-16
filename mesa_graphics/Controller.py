@@ -10,7 +10,7 @@ from pygame import Vector2
 
 
 class Controller:
-    def __init__(self, model: Model, view: View, model_params=None):
+    def __init__(self, model: Model, view: View, model_params=None, custom_method_call=None):
         """ Controller class
         /!\\ The user must not use this class, use MesaGraphics instead /!\\
 
@@ -24,7 +24,8 @@ class Controller:
         self.inputHandler = InputHandler()
         self.model = model
         self.view = view
-        self.userParamController = UserParamController(model, view, self.inputHandler, model_params=model_params)
+        self.userParamController = UserParamController(model, view, self.inputHandler, model_params=model_params,
+                                                       custom_method_call=custom_method_call)
         self.buttonsController = ButtonsController(model, view, self.inputHandler, self.userParamController)
         self.anormal_termination = False
 
@@ -96,7 +97,8 @@ class Controller:
 
 
 class UserParamController:
-    def __init__(self, model: Model, view: View, inputHandler: InputHandler, model_params=None):
+    def __init__(self, model: Model, view: View, inputHandler: InputHandler, model_params=None,
+                 custom_method_call=None):
         """
         This class is responsible to update the user's params, according to the user's inputs.
         The user's params are the sliders, and buttons in the column, in the left part of the screen.
@@ -108,8 +110,10 @@ class UserParamController:
         # Stores the raw model parameter information.
         # For example, user can put something like: model_params = { "n": 3 }
         self.primitive_model_params = {}
-
         self.set_default_model_params(model_params)
+
+        self.primitive_method_calls_params = {}
+        self.set_default_method_calls_params(custom_method_call)
 
     def set_default_model_params(self, model_params):
         """
@@ -126,8 +130,29 @@ class UserParamController:
         for param in model_params:
 
             # If the model_params[param] is a primitive value
-            if not (isinstance(model_params[param], dict) or isinstance(model_params[param], mesa.visualization.Slider)):
+            if not (isinstance(model_params[param], dict) or isinstance(model_params[param],
+                                                                        mesa.visualization.Slider)):
                 self.primitive_model_params[param] = model_params[param]
+
+    def set_default_method_calls_params(self, method_calls):
+        """
+        Puts in self.primitive_method_calls_params the raw model parameter information.
+        """
+
+        # If the user gave no model_params, primitive_method_calls_params remains empty
+        if method_calls is None:
+            return
+
+        # If model_params is not empty
+        for method in method_calls:
+            self.primitive_method_calls_params[method] = {}
+            for param in method_calls[method]:
+
+                # If the model_params[param] is a primitive value
+                param_value = method_calls[method][param]
+                if not (isinstance(param_value, dict) or isinstance(param_value,
+                                                                    mesa.visualization.Slider)):
+                    self.primitive_method_calls_params[method][param] = param_value
 
     def update(self, userParam: UserParam, focused=False):
         """
@@ -234,8 +259,9 @@ class UserParamController:
                 userParam.hover = (userParam.pos.x <= mousePos.x <= userParam.pos.x + userParam.size.x and
                                    userParam.pos.y <= mousePos.y <= userParam.pos.y + userParam.size.y)
                 pointer_pos = userParam.get_pointer_pos() - Vector2(2, 2)  # pointer top left corner
-                hover_pointer = (userParam.hover and pointer_pos.x <= mousePos.x <= pointer_pos.x + userParam.pointer_size.x + 4
-                                 and pointer_pos.y <= mousePos.y <= pointer_pos.y + userParam.pointer_size.y + 4)
+                hover_pointer = (
+                            userParam.hover and pointer_pos.x <= mousePos.x <= pointer_pos.x + userParam.pointer_size.x + 4
+                            and pointer_pos.y <= mousePos.y <= pointer_pos.y + userParam.pointer_size.y + 4)
                 if self.inputHandler.pressed("mouse_left"):
                     if hover_pointer:
                         self.view.ui_completely_focused = userParam
@@ -343,10 +369,11 @@ class ButtonsController:
         def switch_page(i):
             def res():
                 self.view.switch_page(i)
+
             return res
 
         # We associate the function to each button
-        for i in range(self.view.componentsView.min_page, self.view.componentsView.max_page+1):
+        for i in range(self.view.componentsView.min_page, self.view.componentsView.max_page + 1):
             self.button_actions[f"PAGE {i}"] = switch_page(i)
 
     def _initialize_method_call_buttons(self):
@@ -358,6 +385,7 @@ class ButtonsController:
                     raise RuntimeError(f"The method {method_name} doesn't exist")
                 params = self.userParamController.get_method_params(method_name)
                 method(**params)
+
             return res
 
         # Associate the function to each button which name starts with "method_call-"
@@ -380,4 +408,3 @@ class ButtonsController:
                 self.button_actions[button.name]()  # Call the method associated with
             else:
                 print(f"button {button.name} action has not been implemented")
-

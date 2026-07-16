@@ -880,9 +880,8 @@ class UserParamView:
             # Instantiate the userParameters and the labels
             params = custom_method_call[method_name]
             for param_name in params:
-                params[param_name]["model_param"] = False  # It's value should not be given to re-instantiate the model
-                params[param_name]["associated_method"] = method_name
-                y = self._create_user_param(param_name, params[param_name], y)
+                y = self._create_user_param(param_name, params[param_name], y, model_param=False,
+                                            associated_method=method_name)
             y += 15
 
             # Resize the card, according to the size taken by all the elements in it
@@ -894,21 +893,21 @@ class UserParamView:
         # The screen without resizing is 740 pixels height, without the up bar it becomes 703
         self.max_param_scrolling_y = y - 703
 
-    def _create_user_param(self, param_name: str, model_param, y: int) -> int:
+    def _create_user_param(self, param_name: str, param, y: int, **params_modifications) -> int:
         """
         Create a user parameter (UserParam). A user parameter is something that the user can tweak.
         :param param_name: The name of the user parameter. It is used as an ID to recognize the user parameter.
         If this name already exists, we will automatically add numbers at the end of the name.
-        :param model_param: A boolean, set to true if the value of the user parameter is used as a parameter for the
-        next instantiation of the user's model.
+        :param param: The arguments for the creation of the parameter
         :param y: The vertical position at which the user parameter widget should be placed.
         :return: The next available vertical position. This value can be used to place later UI elements without
         overlapping this widget.
         """
         # Extract the arguments
-        p = self._user_input_params_extraction(model_param, param_name)
+        p = self._user_input_params_extraction(param, param_name)
         if p is not None:
             type, param = p
+            param.update(params_modifications)
             label = param_name
             if "label" in param:
                 label = param.pop("label")
