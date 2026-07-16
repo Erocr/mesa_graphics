@@ -62,8 +62,10 @@ class View:
 
         self.ui_elements = []  # List of UI
         self.buttons = {}  # Provide fast and easy access to buttons
-        self.ui_focused = None  # UI element focused, the other are not interactive while one is focused
-        # Only the sliders, and the Selects can be focused yet.
+        self.ui_completely_focused = None  # UI element completely focused, the other are not interactive while one is
+        # completely focused
+        # Only the user parameter sliders, and the scrolling slider can be completely focused.
+        self.ui_with_secondary_draw = []  # The UI elements that have things to draw after each UI element
         self.reset_start_step_buttons = []
         self.up_bar = None
 
@@ -96,12 +98,10 @@ class View:
             if ui.visible:
                 ui.draw(self.screen)
 
-        # Apply the secondary draw of the ui focused. Some UI elements need to draw specific things after all the
-        # other UI elements if they are focused.
-        if self.ui_focused is not None:
-            secondary_draw = getattr(self.ui_focused, "secondary_draw", None)
-            if secondary_draw is not None:
-                secondary_draw(self.screen)
+        # Apply the secondary draw of the ui that wants to.
+        # Some UI elements need to draw specific things after all the other UI elements if they are focused.
+        for ui_elem in self.ui_with_secondary_draw:
+            ui_elem.secondary_draw(self.screen)
 
         # Draw the debug message (if debug is enabled)
         if self.model.debug: self.draw_debug()

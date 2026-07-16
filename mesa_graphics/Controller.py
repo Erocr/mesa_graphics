@@ -67,8 +67,8 @@ class Controller:
         # Checks if the user focuses a specific UI element
         # If so, only this UI element is updated
         # Only Sliders, Selects, InputTexts can be focused
-        if self.view.ui_focused is not None:
-            self._update_single_ui(self.view.ui_focused, True)
+        if self.view.ui_completely_focused is not None:
+            self._update_single_ui(self.view.ui_completely_focused, True)
 
         else:
             # updates each UI element
@@ -149,11 +149,11 @@ class UserParamController:
                 # Stops to focus if the user stops to drag it
                 if not self.inputHandler.holding("mouse_left"):
                     userParam.hover = False
-                    self.view.ui_focused = None
+                    self.view.ui_completely_focused = None
 
             # If the user is dragging the slider.
             if userParam.hover and self.inputHandler.holding("mouse_left"):
-                self.view.ui_focused = userParam
+                self.view.ui_completely_focused = userParam
 
                 # pos is the mouse position relatively to the slider between 0 and 1.
                 # pos = 0 means value = minValue; pos = 1 means value = maxValue
@@ -187,15 +187,15 @@ class UserParamController:
                         if 0 <= i < len(userParam.values):
                             userParam.set_value(userParam.values[i])
 
+                    self.view.ui_with_secondary_draw.remove(userParam)
                     userParam.is_toggled = False
-                    self.view.ui_focused = None
 
             else:
                 hover = (userParam.pos.x <= mousePos.x <= userParam.pos.x + userParam.size.x and
                          userParam.pos.y - 5 <= mousePos.y <= userParam.pos.y + userParam.size.y)
                 if hover and self.inputHandler.pressed("mouse_left"):
                     userParam.is_toggled = True
-                    self.view.ui_focused = userParam
+                    self.view.ui_with_secondary_draw.append(userParam)
 
         elif isinstance(userParam, InputText):
             if not userParam.is_focused:
@@ -203,7 +203,6 @@ class UserParamController:
                          userParam.pos.y - 5 <= mousePos.y <= userParam.pos.y + userParam.size.y)
                 if hover and self.inputHandler.pressed("mouse_left"):
                     userParam.is_focused = True
-                    self.view.ui_focused = userParam
             else:
                 # self.inputHandler.unicode has what has been written since the last frame
                 for letter in self.inputHandler.unicode:
@@ -223,13 +222,13 @@ class UserParamController:
                     userParam.move_cursor(-1)
                 if self.inputHandler.pressed("mouse_left"):
                     userParam.is_focused = False
-                    self.view.ui_focused = None
+                    self.view.ui_completely_focused = None
 
         elif isinstance(userParam, ScrollingSlider):
             if focused:
                 userParam.move_pointer_pos(self.inputHandler.mouse_movement)
-                if self.view.ui_focused == userParam and not self.inputHandler.holding("mouse_left"):
-                    self.view.ui_focused = None
+                if self.view.ui_completely_focused == userParam and not self.inputHandler.holding("mouse_left"):
+                    self.view.ui_completely_focused = None
             else:
                 userParam.hover = (userParam.pos.x <= mousePos.x <= userParam.pos.x + userParam.size.x and
                                    userParam.pos.y <= mousePos.y <= userParam.pos.y + userParam.size.y)
@@ -238,7 +237,7 @@ class UserParamController:
                                  and pointer_pos.y <= mousePos.y <= pointer_pos.y + userParam.pointer_size.y + 4)
                 if self.inputHandler.pressed("mouse_left"):
                     if hover_pointer:
-                        self.view.ui_focused = userParam
+                        self.view.ui_completely_focused = userParam
                     elif userParam.hover:
                         userParam.move_pointer_pos(self.inputHandler.mouse_pos -
                                                    (userParam.get_pointer_pos() + userParam.pointer_size / 2))
