@@ -11,13 +11,12 @@ SolaraViz()
 
 
 def agent_portrayal(agent):
-    if isinstance(agent, Obstacle):
-        return AgentPortrayalStyle(size=0, alpha=0)
-    elif isinstance(agent, Car):
+    if isinstance(agent, Car):
         markers = {
             (1, 0): ">",
             (0, 1): "^",
-            (0, -1): "v"
+            (0, -1): "v",
+            (-1, 0): "<"
         }
         return AgentPortrayalStyle(marker=markers[tuple(agent.direction)], color=f"C{agent.num}")
 
@@ -36,7 +35,6 @@ renderer.setup_agents(agent_portrayal)
 renderer.setup_propertylayer(propertylayer_portrayal)
 renderer.render()
 
-turn_time_composant = make_plot_component("average turn time")
 average_speed_composant = make_plot_component("average speed")
 
 model_params = {
@@ -74,5 +72,5 @@ page = MesaGraphics(
     model,
     renderer,
     model_params=model_params,
-    components=[turn_time_composant, average_speed_composant]
+    components=[average_speed_composant]
 )
