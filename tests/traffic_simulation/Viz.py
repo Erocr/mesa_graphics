@@ -59,12 +59,10 @@ model_params = {
         "min": 20,
         "max": 100
     },
-    "configuration": {
-        "type": "SliderInt",
-        "value": 1,
-        "label": "configuration",
-        "min": 1,
-        "max": 3
+    "file_name": {
+        "type": "InputText",
+        "value": "one_way_road",
+        "label": "map"
     }
 }
 

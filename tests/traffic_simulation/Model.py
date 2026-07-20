@@ -1,9 +1,9 @@
 import mesa
 import numpy as np
 from mesa.discrete_space import PropertyLayer
+import json
 
 from Agent import Car
-
 
 
 def average_speed(model):
@@ -12,49 +12,81 @@ def average_speed(model):
 
 
 class Model(mesa.Model):
-    def __init__(self, n=1, size=10, max_speed=5, seed=None, configuration: int = 1):
+    def __init__(self, n=1, size=10, max_speed=5, seed=None, file_name: str = "one_way_road"):
         super().__init__(seed=seed)
         self.num_agents = n
         self.datacollector = mesa.DataCollector(model_reporters={"average speed": average_speed})
-        if configuration == 1:
-            self.grid = mesa.discrete_space.OrthogonalVonNeumannGrid((size, 3), torus=True, random=self.random,
-                                                                     capacity=1)
-            self.car_possible_pos = self.grid.all_cells.select(lambda c: c.position[1] == 1).cells
-            self.obstacles_pos = self.grid.all_cells.select(lambda c: c.position[1] == 2 or c.position[1] == 0).cells
-        elif configuration == 2:
-            self.grid = mesa.discrete_space.OrthogonalVonNeumannGrid((size, 4), torus=True, random=self.random,
-                                                                     capacity=1)
-            self.car_possible_pos = self.grid.all_cells.select(lambda c: c.position[1] == 1).cells
-            self.obstacles_pos = self.grid.all_cells.select(lambda c: c.position[1] == 0 or c.position[1] == 3).cells
-        elif configuration == 3:
-            self.grid = mesa.discrete_space.OrthogonalVonNeumannGrid((size, 5), torus=True, random=self.random,
-                                                                     capacity=1)
+        self.length = size
+        self.free_pos: list[mesa.discrete_space.Cell] = []  # Les positions où les voitures peuvent aller
+        self._accepted_directions = {}  # Associe aux cellules une liste des directions acceptées, par défaut toutes
+        # les directions sont acceptées
+        self.grid: mesa.discrete_space.OrthogonalVonNeumannGrid = None  # noqa
 
-            def is_blocked(c):
-                if c.position[1] == 0 or c.position[1] == 4: return True
-                elif c.position[1] == 2: return c.position[0] != 2*size//3
-                elif c.position[1] == 1: return False
-                elif c.position[1] == 3: return c.position[0] > 2*size//3
+        if file_name[-5:] != ".json": file_name = file_name + ".json"
+        self.import_road(file_name)
 
-            self.car_possible_pos = self.grid.all_cells.select(lambda c: c.position[1] == 3 or c.position[1] == 1).cells
-            self.obstacles_pos = self.grid.all_cells.select(is_blocked).cells
-        else:
-            raise NotImplementedError(f"configuration {configuration} not implemented")
-        assert n <= len(self.car_possible_pos), "Trop de voitures dans un espace trop petit"
-        Car.create_agents(self, n, [self.car_possible_pos[i] for i in range(n)], max_speed=max_speed)
+        Car.create_agents(self, n, [self.free_pos[i] for i in range(n)], max_speed=max_speed)
 
         blocked_layer = PropertyLayer(
             "blocked", (self.grid.width, self.grid.height), default_value=0, dtype=int
         )
-        blocked_layer.data = np.zeros((self.grid.width, self.grid.height))
-        for c in self.obstacles_pos:
-            blocked_layer.data[int(c.position[0])][int(c.position[1])] = 1
+        blocked_layer.data = np.ones((self.grid.width, self.grid.height))
+        for c in self.free_pos:
+            blocked_layer.data[int(c.position[0])][int(c.position[1])] = 0
         self.grid.add_property_layer(blocked_layer)
 
         self.datacollector.collect(self)
 
+    def import_road(self, file_name):
+        # Open file, and load the content
+        with open(file_name, "r") as file:
+            file_content = file.read()
+        content = json.loads(file_content)
+
+        # Prends les types de tiles définies dans le fichier, par défault il n'y en a pas
+        _tile_types = {}
+        if "tile_types" in content:
+            _tile_types = content["tile_types"]
+
+        # Prends la grille et calcule la taille
+        _grid = content["grid"]
+        height = len(_grid)
+        width = max(len(line) for line in _grid)
+
+        # Crée la grille
+        self.grid = mesa.discrete_space.OrthogonalVonNeumannGrid((self.length, height), torus=True,
+                                                                 random=self.random, capacity=1)
+
+        # Calcule les positions où les voitures peuvent aller
+        self.free_pos = []
+        for cell in self.grid.all_cells.cells:
+            i, j = cell.position
+            typ = self.tile_type(_grid, _tile_types, width, (int(i), int(j)))
+            if typ["road"]:
+                self.free_pos.append(cell)
+            if "directions" in typ:
+                directions_map = {"up": (0, 1), "down": (0, -1), "right": (1, 0), "left": (-1, 0)}
+                self._accepted_directions[cell] = []
+                for direction in typ["directions"]:
+                    self._accepted_directions[cell].append(directions_map[direction])
+
+    def tile_type(self, _grid, tile_types, width, pos):
+        x, y = pos
+        x %= width
+        if x > len(_grid[y]):
+            return {"road": False}
+        typ = str(_grid[y][x])
+        if typ in tile_types:
+            return tile_types[typ]
+        else:
+            return {"road": False}
+
+    def accepted_directions(self, cell):
+        # Par défaut toutes les directions sont autorisées.
+        return self._accepted_directions.get(cell, None)
+
     def is_road(self, cell):
-        return cell not in self.obstacles_pos
+        return cell in self.free_pos
 
     def is_free(self, cell: mesa.discrete_space.Cell):
         return self.is_road(cell) and cell.is_empty

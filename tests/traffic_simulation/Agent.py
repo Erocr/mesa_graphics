@@ -2,12 +2,16 @@ import mesa
 
 
 class CellInfo:
-    def __init__(self, cell, is_free):
+    def __init__(self, cell, is_free, directions=None):
         self.cell = cell
         self.is_free = is_free
+        if directions is None:
+            self.directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        else:
+            self.directions = directions
 
     def __str__(self):
-        return str((self.cell, self.is_free))
+        return str((self.cell.position, self.is_free, self.directions))
 
     def __repr__(self):
         return str(self)
@@ -50,14 +54,15 @@ class Car(mesa.discrete_space.CellAgent):
         for i in range(Car.MAX_SPEED+1):
             res.append([None, None, None])
             for j in range(3):
-                # La position dans la grille complète associée à la position (i, j) dans la grille partielle
+                # La position dans la grille complète associée à la position (i, j) de la grille partielle
                 cell = self.partial_grid_to_cell(i, j)
                 is_road = self.model.is_free(cell)
-                res[i][j] = CellInfo(cell, is_road)
+                accepted_dirs = self.model.accepted_directions(cell)
+                res[i][j] = CellInfo(cell, is_road, accepted_dirs)
 
         return res
 
-    def partial_grid_to_complete_grid(self, i, j):
+    def partial_grid_to_complete_grid_pos(self, i, j):
         ortho_dir = (self.direction[1], -self.direction[0])
         p = [self.cell.position[0] + i * self.direction[0] + (j - 1) * ortho_dir[0],
              self.cell.position[1] + i * self.direction[1] + (j - 1) * ortho_dir[1]]
@@ -69,7 +74,7 @@ class Car(mesa.discrete_space.CellAgent):
         return p
 
     def partial_grid_to_cell(self, i, j):
-        p = self.partial_grid_to_complete_grid(i, j)
+        p = self.partial_grid_to_complete_grid_pos(i, j)
         return self.model.grid.find_nearest_cell(p)
 
     def deliberate(self, perception: list[list[CellInfo]]) -> tuple[int, int]:
@@ -88,14 +93,28 @@ class Car(mesa.discrete_space.CellAgent):
         for i in range(self.MAX_SPEED+1):
             for j in range(1, 4):  # On veut commencer la boucle avec la case du milieu
                 j = j % 3
-                if j == 1:  # Si la case est devant la voiture
-                    # Regarde si c'est la tuile où est déjà la voiture (i == 0) ou si la tuile d'avant est accessible,
-                    # et la tuile est libre.
-                    # Enfin, elle ne doit pas être trop éloignée.
-                    grid[i][j] = i == 0 or (grid[i-1][j] and perception[i][j].is_free and i <= self.speed)
+
+                # Calcule la direction qu'il a pour aller sur la case (i, j)
+                if j == 0:
+                    direction = (-self.direction[1], self.direction[0])
+                elif j == 1:
+                    direction = self.direction
                 else:
-                    # La case est accessible si la case du milieu est accessible, et que la case est libre
-                    grid[i][j] = grid[i][1] and perception[i][j].is_free and i + abs(j-1) <= self.speed
+                    direction = (self.direction[1], -self.direction[0])
+
+                if j == 1:  # Si la case est devant la voiture
+                    # Si la case est celle où est déjà la voiture (i == 0), alors elle peut bien y aller (i.e. ne pas bouger)
+                    # sinon, il faut que la tuile d'avant soit accessible,
+                    # que la tuile soit libre,
+                    # qu'elle ne soit pas trop éloignée,
+                    # et enfin que la direction qu'aurait la voiture pour aller sur cette tuile soit acceptée.
+                    grid[i][j] = i == 0 or (grid[i-1][j] and perception[i][j].is_free and i <= self.speed and \
+                                            direction in perception[i][j].directions)
+                else:
+                    # La case est accessible si la case du milieu est accessible, que la case est libre, et que la
+                    # direction pour y aller soit acceptée
+                    grid[i][j] = grid[i][1] and perception[i][j].is_free and i + abs(j-1) <= self.speed and \
+                                 direction in perception[i][j].directions
 
         # Cherche les positions les plus éloignées
         max_dist = 0
@@ -134,10 +153,3 @@ class Car(mesa.discrete_space.CellAgent):
             self.direction = (self.direction[1], -self.direction[0])  # Tourne vers la droite
 
 
-def get_direction(grid, pos1, pos2):
-    d = [pos2[0] - pos1[0], pos2[1] - pos1[1]]
-    if d[0] < 0: d[0] += grid.width
-    if d[0] > 1: d[0] -= grid.width
-    if d[1] < 0: d[1] += grid.height
-    if d[1] > 1: d[1] -= grid.height
-    return d
