@@ -52,9 +52,9 @@ class Car(mesa.discrete_space.CellAgent):
         for j in range(3):
             # La position dans la grille complète associée à la position (i, j) de la grille partielle
             cell = self.model.grid.find_nearest_cell(positions[j])
-            is_road = self.model.is_free(cell)
+            is_free = self.model.is_free(cell)
             accepted_dirs = self.model.accepted_directions(cell)
-            res.append(CellInfo(cell, is_road, accepted_dirs))
+            res.append(CellInfo(cell, is_free, accepted_dirs))
 
         return res
 
@@ -110,11 +110,30 @@ class Car(mesa.discrete_space.CellAgent):
         self.pos_counter += self.speed
         if self.pos_counter >= Car.MAX_SPEED:
             self.pos_counter -= Car.MAX_SPEED
-            self.direction = direction  # Tourne la voiture
+            if direction != (0, 0):
+                self.direction = direction  # Tourne la voiture
 
             # Avance la voiture
             position = self.cell.position[0] + direction[0], self.cell.position[1] + direction[1]
             self.move_to(self.model.grid.find_nearest_cell(position))
 
 
+class TrafficLight(mesa.discrete_space.CellAgent):
+    def __init__(self, model, cell, time=5, states=None):
+        assert states is not None and len(states) > 0, \
+            "Les feu de signalisation (traffic light) doivent avoir un paramètre states non vide"
+        super().__init__(model)
+        self.cell = cell
+        self.state_duration = time
+        self.counter_time = 0
+        self.states = states
+        self.state_index = 0
+
+    def step(self):
+        self.counter_time += 1
+        if self.counter_time >= self.state_duration:
+            self.counter_time -= self.state_duration
+
+            self.state_index = (self.state_index + 1) % len(self.states)
+            self.model.modify_directions(self.cell, self.states[self.state_index])
 

@@ -65,9 +65,9 @@ class DiningPhilosophersModel(mesa.Model):
             "Throughput": lambda m: (
                 (
                     sum(p.total_eaten for p in m.agents_by_type[PhilosopherAgent])
-                    / m.time
+                    / m.state_duration
                 )
-                if m.time > 0
+                if m.state_duration > 0
                 else 0
             ),
         }

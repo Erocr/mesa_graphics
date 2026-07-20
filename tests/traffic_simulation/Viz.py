@@ -19,6 +19,9 @@ def agent_portrayal(agent):
             (-1, 0): "<"
         }
         return AgentPortrayalStyle(marker=markers[tuple(agent.direction)], color=f"C{agent.num}")
+    if isinstance(agent, TrafficLight):
+        col = 'red' if agent.state_index == 0 else "blue"
+        return AgentPortrayalStyle(marker="o", color=col)
 
 
 def propertylayer_portrayal(layer):

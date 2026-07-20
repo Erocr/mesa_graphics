@@ -3,7 +3,7 @@ import numpy as np
 from mesa.discrete_space import PropertyLayer
 import json
 
-from Agent import Car
+from Agent import Car, TrafficLight
 
 
 def average_speed(model):
@@ -14,7 +14,7 @@ def average_speed(model):
 def number_static_cars(model):
     res = 0
     for agent in model.agents:
-        if agent.speed == 0:
+        if isinstance(agent, Car) and agent.speed == 0:
             res += 1
     return res
 
@@ -64,7 +64,7 @@ class Model(mesa.Model):
 
         # Crée la grille
         self.grid = mesa.discrete_space.OrthogonalVonNeumannGrid((self.length, height), torus=True,
-                                                                 random=self.random, capacity=1)
+                                                                 random=self.random)
 
         # Calcule les positions où les voitures peuvent aller
         self.free_pos = []
@@ -75,10 +75,18 @@ class Model(mesa.Model):
             if typ["road"]:
                 self.free_pos.append(cell)
             if "directions" in typ:
-                directions_map = {"up": (0, 1), "down": (0, -1), "right": (1, 0), "left": (-1, 0)}
-                self._accepted_directions[cell] = []
-                for direction in typ["directions"]:
-                    self._accepted_directions[cell].append(directions_map[direction])
+                self._accepted_directions[cell] = self.direction_names_to_vectors(typ["directions"])
+            if "traffic light" in typ:  # Must be a dictionary
+                parameters = typ["traffic light"]
+                TrafficLight.create_agents(self, 1, [cell], time=parameters.get("time", 5),
+                                           states=parameters.get("states", None))
+
+    def direction_names_to_vectors(self, directions):
+        directions_map = {"up": (0, 1), "down": (0, -1), "right": (1, 0), "left": (-1, 0)}
+        res = []
+        for direction in directions:
+            res.append(directions_map[direction])
+        return res
 
     def tile_type(self, _grid, tile_types, width, pos):
         x, y = pos
@@ -95,11 +103,18 @@ class Model(mesa.Model):
         # Par défaut toutes les directions sont autorisées.
         return self._accepted_directions.get(cell, None)
 
+    def modify_directions(self, cell, directions):
+        # Appelé par le feu tricolore
+        self._accepted_directions[cell] = self.direction_names_to_vectors(directions)
+
     def is_road(self, cell):
         return cell in self.free_pos
 
     def is_free(self, cell: mesa.discrete_space.Cell):
-        return self.is_road(cell) and cell.is_empty
+        for agent in cell.agents:
+            if isinstance(agent, Car):
+                return False
+        return self.is_road(cell)
 
     def step(self):
         self.datacollector.collect(self)
