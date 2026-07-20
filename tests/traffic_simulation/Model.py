@@ -11,11 +11,20 @@ def average_speed(model):
     return sum(speeds) / len(speeds)
 
 
+def number_static_cars(model):
+    res = 0
+    for agent in model.agents:
+        if agent.speed == 0:
+            res += 1
+    return res
+
+
 class Model(mesa.Model):
     def __init__(self, n=1, size=10, max_speed=5, seed=None, file_name: str = "one_way_road"):
         super().__init__(seed=seed)
         self.num_agents = n
-        self.datacollector = mesa.DataCollector(model_reporters={"average speed": average_speed})
+        self.datacollector = mesa.DataCollector(model_reporters={"average speed": average_speed,
+                                                                 "nb static cars": number_static_cars})
         self.length = size
         self.free_pos: list[mesa.discrete_space.Cell] = []  # Les positions où les voitures peuvent aller
         self._accepted_directions = {}  # Associe aux cellules une liste des directions acceptées, par défaut toutes
@@ -61,6 +70,7 @@ class Model(mesa.Model):
         self.free_pos = []
         for cell in self.grid.all_cells.cells:
             i, j = cell.position
+            j = self.grid.height - 1 - j  # Retourne verticalement, car le fichier json donne la grille dans le mauvais sens
             typ = self.tile_type(_grid, _tile_types, width, (int(i), int(j)))
             if typ["road"]:
                 self.free_pos.append(cell)
@@ -73,7 +83,7 @@ class Model(mesa.Model):
     def tile_type(self, _grid, tile_types, width, pos):
         x, y = pos
         x %= width
-        if x > len(_grid[y]):
+        if x >= len(_grid[y]):
             return {"road": False}
         typ = str(_grid[y][x])
         if typ in tile_types:

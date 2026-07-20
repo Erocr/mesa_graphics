@@ -26,6 +26,7 @@ class Car(mesa.discrete_space.CellAgent):
     def __init__(self, model, cell, max_speed=5):
         Car.MAX_SPEED = max_speed
         super().__init__(model)
+        self.pos_counter = 0
         self.speed = 0
         self.cell = cell
         self.direction = (1, 0)
@@ -37,119 +38,83 @@ class Car(mesa.discrete_space.CellAgent):
         action = self.deliberate(perception)
         self.do(action)
 
-    def perceive(self) -> list[list[CellInfo]]:
+    def perceive(self) -> list[CellInfo]:
         """
         Perçois le monde.
-        Renvoie les 3*max_speed cases qui sont devant la voiture en y associant les informations de la cellule
-        Par exemple, avec un max_speed de 5, il peut renvoyer quelque chose qui ressemble schématiquement à ça :
-        ...X..
-        C....X
-        XXXXXX
 
-        Plus spécifiquement, il va renvoyer une grille de CellInfo, dont la définition est plus haut dans le fichier.
-        Quelque chose comme :
-        [[X, C, .], [X, ., .], [X, ., .], [X, ., X], [X, ., .], [X, X, .]]
+        Renvoie la case de devant et les cases sur le côté dans l'ordre : [gauche, devant, droite].
+        Renvoie des CellInfo correspondant aux cases.
         """
+        directions = [self.left_dir(), self.direction, self.right_dir()]
+        positions = [(self.cell.position[0]+d[0], self.cell.position[1]+d[1]) for d in directions]
         res = []
-        for i in range(Car.MAX_SPEED+1):
-            res.append([None, None, None])
-            for j in range(3):
-                # La position dans la grille complète associée à la position (i, j) de la grille partielle
-                cell = self.partial_grid_to_cell(i, j)
-                is_road = self.model.is_free(cell)
-                accepted_dirs = self.model.accepted_directions(cell)
-                res[i][j] = CellInfo(cell, is_road, accepted_dirs)
+
+        for j in range(3):
+            # La position dans la grille complète associée à la position (i, j) de la grille partielle
+            cell = self.model.grid.find_nearest_cell(positions[j])
+            is_road = self.model.is_free(cell)
+            accepted_dirs = self.model.accepted_directions(cell)
+            res.append(CellInfo(cell, is_road, accepted_dirs))
 
         return res
 
-    def partial_grid_to_complete_grid_pos(self, i, j):
-        ortho_dir = (self.direction[1], -self.direction[0])
-        p = [self.cell.position[0] + i * self.direction[0] + (j - 1) * ortho_dir[0],
-             self.cell.position[1] + i * self.direction[1] + (j - 1) * ortho_dir[1]]
+    def left_dir(self):
+        """ La direction tournée de 90° vers la gauche """
+        return -self.direction[1], self.direction[0]
 
-        # Applique le modulo du tore
-        p[0] = p[0] % self.model.grid.width
-        p[1] = p[1] % self.model.grid.height
+    def right_dir(self):
+        """ La direction tournée de 90° vers la droite """
+        return self.direction[1], -self.direction[0]
 
-        return p
-
-    def partial_grid_to_cell(self, i, j):
-        p = self.partial_grid_to_complete_grid_pos(i, j)
-        return self.model.grid.find_nearest_cell(p)
-
-    def deliberate(self, perception: list[list[CellInfo]]) -> tuple[int, int]:
+    def deliberate(self, perception: list[CellInfo]) -> tuple[int, int]:
         """
-        Choisis l'action à faire.
-        Cette action est représentée comme un vecteur du mouvement qu'il aura.
-        Pour ce faire, il va :
-        - Créer un tableau de booléens avec la même dimension de la grille décrivant s'il peut aller sur la case ou pas.
-        - Choisir la case la plus éloignée joignable (si plusieurs sont disponibles, en choisit un au hasard)
-        :param perception: Grille des cases où il peut potentiellement aller
-        :return: tuple[int, int]
+        Donne la meilleure direction vers laquelle il peut aller.
+
+        :param perception: Les cases où il pourra potentiellement aller, avec plusieurs attributs associés à la case
+        :return: le vecteur de mouvement sur la grille
         """
+        # Commence par calculer les endroits où il pourrait aller si son compteur arrive à MAX_SPEED
+        direction = 0, 0
+        if self.can_go(self.direction, perception[1]):  # S'il peut aller tout droit
+            direction = self.direction
 
-        # Crée la grille des mouvements possibles
-        grid = [[False, False, False] for _ in range(self.MAX_SPEED + 1)]
-        for i in range(self.MAX_SPEED+1):
-            for j in range(1, 4):  # On veut commencer la boucle avec la case du milieu
-                j = j % 3
+        else:  # Ne peut pas aller tout droit, il peut tourner ou piler
+            possible_dirs = []
+            if self.can_go(self.left_dir(), perception[0]):  # S'il peut tourner à gauche
+                possible_dirs.append(self.left_dir())
+            if self.can_go(self.right_dir(), perception[2]):  # S'il peut tourner à droite
+                possible_dirs.append(self.right_dir())
 
-                # Calcule la direction qu'il a pour aller sur la case (i, j)
-                if j == 0:
-                    direction = (-self.direction[1], self.direction[0])
-                elif j == 1:
-                    direction = self.direction
-                else:
-                    direction = (self.direction[1], -self.direction[0])
+            if len(possible_dirs) > 0:  # S'il peut tourner à droite ou à gauche
+                direction = self.random.choice(possible_dirs)
 
-                if j == 1:  # Si la case est devant la voiture
-                    # Si la case est celle où est déjà la voiture (i == 0), alors elle peut bien y aller (i.e. ne pas bouger)
-                    # sinon, il faut que la tuile d'avant soit accessible,
-                    # que la tuile soit libre,
-                    # qu'elle ne soit pas trop éloignée,
-                    # et enfin que la direction qu'aurait la voiture pour aller sur cette tuile soit acceptée.
-                    grid[i][j] = i == 0 or (grid[i-1][j] and perception[i][j].is_free and i <= self.speed and \
-                                            direction in perception[i][j].directions)
-                else:
-                    # La case est accessible si la case du milieu est accessible, que la case est libre, et que la
-                    # direction pour y aller soit acceptée
-                    grid[i][j] = grid[i][1] and perception[i][j].is_free and i + abs(j-1) <= self.speed and \
-                                 direction in perception[i][j].directions
+        return direction
 
-        # Cherche les positions les plus éloignées
-        max_dist = 0
-        best_choices = []
-        for i in range(self.MAX_SPEED+1):
-            for j in range(3):
-                if not grid[i][j]:
-                    continue
+    def increment_speed(self):
+        self.speed = min(self.speed + 1, Car.MAX_SPEED)
 
-                d = i * 2 + abs(j - 1)  # On veut qu'un chemin tout droit soit préféré par rapport à un chemin sur le
-                                        # côté
-                if d == max_dist:
-                    best_choices.append((i, j))
-                if d > max_dist:
-                    best_choices = [(i, j)]
-                    max_dist = d
+    def can_go(self, direction: tuple[int, int], cellInfo: CellInfo):
+        return cellInfo.is_free and direction in cellInfo.directions
 
-        return self.random.choice(best_choices)
+    def do(self, direction: tuple[int, int]) -> None:
+        """
+        """
+        if direction == (0, 0):  # S'il ne peut aller nul part
+            self.speed = 0  # Pile
+        elif direction == self.direction:  # S'il peut aller tout droit
+            self.increment_speed()  # Accélère
+        else:  # S'il peut tourner
+            self.speed = min(self.speed + 1, Car.MAX_SPEED_TURINING)
 
-    def do(self, action: tuple[int, int]) -> None:
-        cell = self.partial_grid_to_cell(*action)
-        self.move_to(cell)
+        # Incrémente le compteur
+        self.pos_counter += self.speed
+        if self.pos_counter >= Car.MAX_SPEED:
+            self.pos_counter -= Car.MAX_SPEED
+            self.direction = direction  # Tourne la voiture
 
-        # Diminue ou augmente la vitesse en fonction des cas
-        if action[0] + abs(action[1] - 1) < self.speed:
-            self.speed = 0
-        elif action[1] == 1:
-            self.speed = min(self.MAX_SPEED, self.speed + 1)
-        else:
-            self.speed = min(self.MAX_SPEED_TURINING, self.speed)
+            # Avance la voiture
+            position = self.cell.position[0] + direction[0], self.cell.position[1] + direction[1]
+            self.move_to(self.model.grid.find_nearest_cell(position))
 
-        # Change la direction
-        if action[1] == 0:
-            self.direction = (-self.direction[1], self.direction[0])  # Tourne vers la gauche
-        elif action[1] == 2:
-            self.direction = (self.direction[1], -self.direction[0])  # Tourne vers la droite
 
 

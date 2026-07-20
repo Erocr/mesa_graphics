@@ -6,7 +6,7 @@ from Model import Model
 
 from mesa_graphics import MesaGraphics, make_plot_component
 
-model = Model(n=10, size=40)
+model = Model(n=10, size=20)
 SolaraViz()
 
 
@@ -36,6 +36,7 @@ renderer.setup_propertylayer(propertylayer_portrayal)
 renderer.render()
 
 average_speed_composant = make_plot_component("average speed")
+nb_static_cars_comp = make_plot_component("nb static cars")
 
 model_params = {
     "n": {
@@ -54,10 +55,10 @@ model_params = {
     },
     "size": {
         "type": "SliderInt",
-        "value": 40,
+        "value": 20,
         "label": "length of the route",
-        "min": 20,
-        "max": 100
+        "min": 5,
+        "max": 50
     },
     "file_name": {
         "type": "InputText",
@@ -70,5 +71,5 @@ page = MesaGraphics(
     model,
     renderer,
     model_params=model_params,
-    components=[average_speed_composant]
+    components=[average_speed_composant, nb_static_cars_comp]
 )
