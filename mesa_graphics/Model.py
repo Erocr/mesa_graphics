@@ -18,8 +18,6 @@ class Model:
         """
         self.mesa_model = mesa_model
         self.is_playing = False
-        self.debug_infos = {}
-        self.debug = False
         self.play_interval = play_interval
         self.render_interval = render_interval
         self.reset = NOT_RESETTING
@@ -27,7 +25,6 @@ class Model:
 
     def update(self):
         """ This function is called once per frame. It updates the user's Model if it is running. """
-        start = time()
         if self.reset == USER_ASK_RESET:
             self.mesa_model = type(self.mesa_model)(**self.model_params)
             self.reset = RESET_MODEL
@@ -38,7 +35,6 @@ class Model:
                 for i in range(self.render_interval):
                     next_mesa_model.step()
                 self.mesa_model = next_mesa_model
-        self.debug_infos["model_time"] = time() - start
 
     def notify_user_entries_change(self, entry_name: str, new_value: Any):
         """

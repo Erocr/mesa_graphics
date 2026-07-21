@@ -80,7 +80,6 @@ class Controller:
     def _update_single_ui(self, ui, focused=False):
         """ Updates a single UI element according to the user's inputs """
 
-        # Asks the right controller's part to update the ui element
         if isinstance(ui, Button):
             self.buttonsController.update(ui)
         if isinstance(ui, UserParam):
@@ -107,7 +106,7 @@ class UserParamController:
         self.view = view
         self.inputHandler = inputHandler
 
-        # Stores the raw model parameter information.
+        # Stores fixed model parameters separately from user-editable ones.
         # For example, user can put something like: model_params = { "n": 3 }
         self.primitive_model_params = {}
         self.set_default_model_params(model_params)
@@ -129,7 +128,8 @@ class UserParamController:
         # If model_params is not empty
         for param in model_params:
 
-            # If the model_params[param] is a primitive value
+            # Keep only parameters that are already concrete values.
+            # Widget descriptions (dicts and Sliders) are handled separately.
             if not (isinstance(model_params[param], dict) or isinstance(model_params[param],
                                                                         mesa.visualization.Slider)):
                 self.primitive_model_params[param] = model_params[param]
@@ -324,32 +324,26 @@ class ButtonsController:
         This function defines the actions as functions
         """
 
+        # Code to execute when the user clicks on the STEP button
         def step_action():
-            """ Code to execute when the user clicks on the STEP button """
             self.model.mesa_model.step()
 
+        # Code to execute when the user clicks on the START/STOP button. It reverts the model's is_playing flag and
+        # modify the text of the START/STOP button.
         def start_or_stop_action():
-            """
-            Code to execute when the user clicks on the START/STOP button. It reverts the model's is_playing flag and
-            modify the text of the START/STOP button.
-            """
             self.model.is_playing = not self.model.is_playing
             self.view.buttons["START/STOP"].modify_text(("START", "STOP")[self.model.is_playing], color=(255, 255, 255))
 
+        # Code to execute when the user clicks on the RESET button.
+        # It re-instantiates the Model, and puts the model's is_playing flag to False.
         def reset_action():
-            """
-            Code to execute when the user clicks on the RESET button.
-            It re-instantiates the Model, and puts the model's is_playing flag to False.
-            """
             self.model.reset = True
             self.model.set_model_params(self.userParamController.get_model_params())
             if self.model.is_playing:
                 start_or_stop_action()
 
+        # Code to execute when the user clicks on the toggle/untoggle button (in the top left corner of the screen)
         def toggle_or_untoggle_control_bar():
-            """
-            Code to execute when the user clicks on the toggle/untoggle button (in the top left corner of the screen)
-            """
             self.view.userParamView.toggle_untoggle_control_bar()
 
         self.button_actions["STEP"] = step_action
@@ -360,12 +354,9 @@ class ButtonsController:
     def _initialize_switch_page_buttons(self):
         """ Initialize the actions of the switching page buttons """
 
-        # We use this weird thing of putting a function in a function in a function because if we make something like :
-        # for i in range(...):
-        #     def switch_page():
-        #         self.view.switch_page(i)
-        #     self.buttons_actions[...] = switch_page
-        # It would use the latest i, and not a different i for each switch_page function.
+        # We create a function factory so that each callback captures its own
+        # page number. Defining the callback directly inside the loop would
+        # make every callback use the last value of `i`.
         def switch_page(i):
             def res():
                 self.view.switch_page(i)

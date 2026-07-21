@@ -17,12 +17,25 @@ ComponentsView handles the page system, and the components.
 
 
 The important functions:
-- View._create_ui  (called in View.__init__, describes where are placed each UIElement)
+- View._create_ui 
+This function is called in View.__init__. It describes where are placed each UIElement.
+
 - ComponentsView.create_ui
+This function is called by View._create_ui. It describes where are placed each UIElements of ComponentsView like the 
+page switching buttons and the sliders
+
 - UserParamView.create_ui
+This function is called by View._create_ui. It describes where are placed each UIElements of UserParamView like the 
+rectangle, the tweakable elements, the labels, and the sliders.
+
 - View.add_UIElement
-- View.draw  (called once per frame)
-- ComponentsView.draw  (called by View.draw)
+This function is the one used to create UIElements. All the creation of UIElements shall be through this function.
+
+- View.draw 
+This function is called once per frame. It draws on the screen the elements.
+
+- ComponentsView.draw 
+This function is called by View.draw. It draws the components.
 """
 
 
@@ -60,7 +73,7 @@ class View:
         self.userParamView = UserParamView(self)
         self.ratio = pg.Vector2(1, 1)
 
-        self.ui_elements = []  # List of UI
+        self.ui_elements = []  # List of UI elements, drawn at each frame
         self.buttons = {}  # Provide fast and easy access to buttons
         self.ui_completely_focused = None  # UI element completely focused, the other are not interactive while one is
         # completely focused
@@ -102,9 +115,6 @@ class View:
         # Some UI elements need to draw specific things after all the other UI elements if they are focused.
         for ui_elem in self.ui_with_secondary_draw:
             ui_elem.secondary_draw(self.screen)
-
-        # Draw the debug message (if debug is enabled)
-        if self.model.debug: self.draw_debug()
 
         pg.display.flip()  # Refresh the screen with the modifications
 
@@ -192,7 +202,7 @@ class View:
             bg_color = LIGHT2_BLUE if button.hover else BLUE
             pg.draw.rect(screen, bg_color, pg.Rect(button.pos, button.size), border_radius=10)
 
-            # The screen with a column symbol
+            # The symbol of a screen with a column
             offset = pg.Vector2(5, 5)
             pg.draw.rect(screen, WHITE, pg.Rect(button.pos + offset, button.size - 2 * offset),
                          border_radius=5, width=3)
@@ -203,7 +213,7 @@ class View:
                                     font=self.fonts["basic15"], name="remove control bar",
                                     custom_draw=custom_draw)
 
-        # Set manually the size of the button
+        # Fixed size prevents text resizing from affecting the toolbar layout.
         button.size = pg.Vector2(33, 33)
         button.set_pos(pg.Vector2(2, 2))
 
@@ -266,24 +276,6 @@ class View:
 
         return new_renderer
 
-    def draw_debug(self):
-        """
-        This function draws debug information to help the programmer, or maybe the user.
-        This function is called only if you enter the debug mode by pressing "d".
-        """
-
-        # Compute the texts to draw
-        texts = []
-        for info in self.model.debug_infos:
-            texts.append(info + ": " + str(self.model.debug_infos[info]))
-
-        # Render and draw the texts
-        y = 0
-        for text in texts:
-            image = self.fonts["basic15"].render(text, False, (255, 255, 255), (0, 0, 0, 125))
-            self.screen.blit(image, pg.Vector2(0, y))
-            y += image.get_height()
-
     def switch_page(self, new_page: int):
         """
         Switch to another page and update page-selection buttons.
@@ -294,7 +286,7 @@ class View:
 
     def scroll_page(self, amount: pg.Vector2):
         """
-        Scroll through the components if there are to many components.
+        Scroll through the components if there are too many components.
         :param amount: How much the user is scrolling.
         """
         self.componentsView.scroll(amount)
@@ -310,7 +302,7 @@ class ComponentsView:
         :param renderer: The renderer is optional. It is a SpaceRenderer from mesa.visualization.
         """
         self.view = view
-        self.page = 0  # Showed page
+        self.page = 0  # Displayed page, current page
         self.min_page = self.max_page = 0  # The minimal page and maximal page existing
         self.components = {0: []}
         if components is not None:
@@ -649,7 +641,7 @@ class UserParamView:
         self.view = view
         self.max_param_scrolling_y = self.param_scrolling_y = 0
         self.scrollable_elements = []  # There are all the elements that you can move scrolling through the parameter window
-        self.hideable_elements = []  # List of the UI elements that should be hided when you untoggle the control bar.
+        self.hideable_elements = []  # List of the UI elements that should be hidden when you untoggle the control bar.
         self.userTweakableModelParams = {}  # Provide fast and easy access to user's Model parameters
         self.userTweakableEntries = {}  # Provide fast and easy access to all the tweakable entries (UserParam)
         self.show_control_bar = True
@@ -782,7 +774,7 @@ class UserParamView:
 
     def _split_label(self, label: str):
         """ Split the labels so that only max_number_chars characters are in any line. """
-        max_number_chars = 26  # Chose empirically
+        max_number_chars = 26  # Chosen empirically
         res = []
         # Split the label in words
         words = label.split(" ")

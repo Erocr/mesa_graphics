@@ -3,6 +3,9 @@ import pygame as pg
 
 class Key:
     def __init__(self, d=0):
+        # How much since the user is holding the key.
+        # If the user just released it, the duration is negative.
+        # And if the user is not pressing the key at all, the Key object should not exist.
         self.duration = d
 
     @property

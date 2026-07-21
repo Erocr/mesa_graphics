@@ -94,7 +94,6 @@ class MesaGraphics:
                 self.view.render()
                 d = time() - start
 
-                self.model.debug_infos["worker time"] = d
                 # Don't make it turn too fast for nothing
                 if d < self.model.play_interval * 0.002:
                     sleep(self.model.play_interval * 0.002 - d)

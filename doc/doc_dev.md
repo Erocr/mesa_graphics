@@ -8,7 +8,7 @@ It explains what this project does and how it does it.
 MesaGraphics is a visualization add-on for Mesa: https://Mesa.readthedocs.io/stable. 
 
 The user defines a Mesa Model, then, the MesaGraphics library displays the Model, and the user-defined plots. It 
-allows the user to interact with the Model, and re-instantiate it through buttons, checkboxes, and sliders.
+allows the user to interact with the Model and re-instantiate it through buttons, checkboxes, and sliders.
 
 ![screenshot](screenshot.png)
 
@@ -20,10 +20,10 @@ entirely locally through Pygame.
 Components are dynamic plots that track Model attributes, and being refreshed every time the user's Model is 
 modified.
 There are multiple ways to create components:
-- Though Mesa's Renderer (the class name is SpaceRenderer) create the space plots. It shows a grid with the agents 
-in it.
-- Though make_plot_component function. The function creates a plot that track the value of an attribute
-(or the result of a function).
+- Though Mesa's Renderer (the class name is SpaceRenderer) creates the space plots. 
+It shows a grid with the agents in it.
+- Though make_plot_component function. 
+The function creates a plot that tracks the value of an attribute (or the result of a function).
 - Custom components, for more complex plots.
 
 These functions are implemented in the components.py file.
@@ -49,7 +49,7 @@ and build upon it.
 
 ### Installation
 
-In the user's documentation, there is a command line that clone only the folder with the source code, but here you need
+In the user's documentation, there is a command line that clones only the folder with the source code, but here you need
 all the folders.
 
 ```bash
@@ -82,7 +82,7 @@ python tests/with_model_params.py
 
 The repository contains multiplie folders.  
 - All code is in the **mesa_graphics** folder.  
-- The tests are python files that call our library. They are all in the **tests** folder.  
+- The tests are python files that call our library. They are all in the **tests**' folder.  
 - In the **doc** folder, you have all the documentation files, used for new contributors, and to describe the design 
 and implementation of the library. Some files were created for my internship.
 
@@ -94,7 +94,7 @@ Finally, there are some files in none of these folders. These files are here for
 The class MesaGraphics is the starting point of the graphic interface. It starts automatically all the modules which 
 will create the window, start the visualization, and start to take account of the user's inputs.
 
-### High Level Architecture
+### High-Level Architecture
 
 MesaGraphics follow the **Model-View-Controller** (MVC) pattern. So, it has the three main classes:
 - **Model**: Contains the user's Model, and some attributes.
@@ -103,17 +103,20 @@ MesaGraphics follow the **Model-View-Controller** (MVC) pattern. So, it has the 
 
 ### High Level flow
 
-You can see below a graphical representation of the high level flow.
+You can see below a graphical representation of the high-level flow.
 
 ![flow](block_diagram.png)
 
-For better performances, we implemented multithreading.
+For better performance, we implemented multithreading.
 
-The main thread is really lightweight. It handles the user's inputs, and draw onto the screen. This thread shall be 
-really fast to have a responsive interface. It runs currently approximately at 1000 fps.
+The main thread is really lightweight. 
+It handles the user's inputs and draws onto the screen. 
+This thread shall be really fast to have a responsive interface. 
+It runs currently approximately at 1000 fps.
 
-The worker thread performs all the computationally expensive operations. So, it generates the plots, and simulate the 
-Model. These two operations can be arbitrarily expensive because the user can give custom plots and custom Model.
+The worker thread performs all the computationally expensive operations. 
+So, it generates the plots and simulates the Model. 
+These two operations can be arbitrarily expensive because the user can give custom plots and custom Model.
 
 The multithreading can make a lot of subtle bugs really hard to debug. So, when you add code, pay attention to the 
 following points:
@@ -123,7 +126,7 @@ rendering them in the `View.render` function, and then draw the rendered image. 
 rendering function and the Model simulation function are in the same thread.
 - In general, try using attributes in only one thread. Be careful when attributes are modified and used in 
 different threads.
-- Python use GIL: The Python Global Interpreter Lock or GIL, in simple words, is a mutex (or a lock) that allows only 
+- Python uses GIL: The Python Global Interpreter Lock or GIL, in simple words, is a mutex (or a lock) that allows only 
 one thread to hold the control of the Python interpreter. So modifying an attribute in two different threads can be 
 acceptable.
 
@@ -143,7 +146,10 @@ attributes.
 - **Controller.py**: There is the Controller layer, that's to say the Controller, the ButtonsController, and the 
   UserParamController.
 - **View.py**: There is the View component. Where all the graphical elements are instantiated, and drawn.
-- **UIElement.py**: There is all the different graphical elements. (Button, Rectangle, Slider, Checkbox, ...).
+- **UIElement.py**: There are all the different graphical elements. (Button, Rectangle, Slider, Checkbox, ...).
+- **InputHandler**: A helper class to store in a more suitable way the user's inputs
+- **backend_integration.py**: Functions that transform the results of the backends into pygame Surface.
+- **components.py**: Functions that create components
 
 ### Controller
 
@@ -156,7 +162,7 @@ user's inputs.
 ### View
 
 The View is divided in UserParamView, and ComponentsView. The UserParamView handles the control bar column (the column 
-on the left side of the screen). The ComponentsView handles the components, and the page system.
+on the left side of the screen). The ComponentsView handles the components and the page system.
 
 ### UIElement
 
@@ -189,16 +195,18 @@ facultatif
 ### Interacting with UserParam
 
 Interacting with UserParam is pretty similar to interacting with buttons. Each UserParam has a name just as the buttons.
-When the user change a UserParam value, the UserParamController calls a method of the UserParam to describe the change.
-Finally, when the user re-instantiate the Model, the UserParamController iterates through all the UserParam to retrieve 
+When the user changes a UserParam value, the UserParamController calls a method of the UserParam to describe the change.
+Finally, when the user re-instantiates the Model, the UserParamController iterates through all the UserParam to retrieve 
 their values, and use them to instantiate the next model.
 
 ### Special UI Elements
 
-Some UIElement must be tracked. For example, when you untoggle the control bar, some UI elements must be hided. So,
-we put all the UI Elements that must be hided when we untoggle the control bar in a list. This logic is used for several 
-other features. So, if you want that your UIElement has the good behaviours, pay attention to put it in the right lists.
+Some UIElement must be tracked. 
+For example, when you un-toggle the control bar, some UI elements must be hidden. 
+So, we put all the UI Elements that must be hidden when we un-toggle the control bar in a list. 
+This logic is used for several other features. 
+So, if you want that your UIElement has good behavior, pay attention to put it in the right lists.
 I put here a list of these features:
-- **UserParamView.hideable_elements**: The elements that are hided when you untoggle the control bar
+- **UserParamView.hideable_elements**: The elements that are hidden when you un-toggle the control bar
 - **UserParamView.scrollable_elements**: The elements that go up and down when you scroll in the control bar
 

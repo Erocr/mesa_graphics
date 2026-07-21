@@ -101,7 +101,7 @@ model_params = {
     },
     "text": {
         "type": "InputText",
-        "value": "hello, how are you ? Personally, I'm pretty fine !!"
+        "value": "hello"
     },
     "capacity": 50,
 }
