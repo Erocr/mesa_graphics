@@ -29,9 +29,15 @@ class Car(mesa.discrete_space.CellAgent):
         self.pos_counter = 0
         self.speed = 0
         self.cell = cell
-        self.direction = (1, 0)
+        self.direction = self.starting_direction()
         self.num = Car.NUM_CAR
         Car.NUM_CAR += 1
+
+    def starting_direction(self):
+        possibles = self.model.accepted_directions(self.cell)
+        if possibles is None:
+            return 1, 0
+        return self.random.choice(possibles)
 
     def step(self):
         perception = self.perceive()
