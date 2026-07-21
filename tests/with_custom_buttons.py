@@ -117,9 +117,9 @@ custom_buttons = {
         }
     },
 
-    #"redistribute": {
-    #    "amount": 1
-    #}
+    "redistribute": {
+        "amount": 1
+    }
 }
 
 page = MesaGraphics(

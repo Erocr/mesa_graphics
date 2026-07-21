@@ -44,7 +44,8 @@ class MesaGraphics:
         self.view = View(self.model, renderer=renderer, components=components, play_interval=play_interval,
                          render_interval=render_interval, model_params=model_params,
                          custom_method_call=custom_method_call, name=name)
-        self.controller = Controller(self.model, self.view, model_params=model_params)
+        self.controller = Controller(self.model, self.view, model_params=model_params,
+                                     custom_method_call=custom_method_call)
         self.barrier = threading.Barrier(2)
         self.update_thread = threading.Thread(target=self._worker_thread_loop)
         self.update_thread.start()

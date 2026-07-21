@@ -6,23 +6,32 @@ from Model import Model
 
 from mesa_graphics import MesaGraphics, make_plot_component
 
-model = Model(n=10, size=40)
+model = Model(n=10, width=20)
 SolaraViz()
 
 
 def agent_portrayal(agent):
-    if isinstance(agent, Obstacle):
-        return AgentPortrayalStyle(size=0, alpha=0)
-    elif isinstance(agent, Car):
+    """
+    Indique comment afficher les voitures et les feux de signalisation dans la grille.
+    """
+    if isinstance(agent, Car):
         markers = {
             (1, 0): ">",
             (0, 1): "^",
-            (0, -1): "v"
+            (0, -1): "v",
+            (-1, 0): "<"
         }
         return AgentPortrayalStyle(marker=markers[tuple(agent.direction)], color=f"C{agent.num}")
+    if isinstance(agent, TrafficLight):
+        col = 'red' if agent.state_index == 0 else "blue"
+        return AgentPortrayalStyle(marker="o", color=col, alpha=0.5)
 
 
 def propertylayer_portrayal(layer):
+    """
+    Indique comment afficher les cases dans la grille.
+    En bleu si c'est de la route, et en rouge sinon.
+    """
     if layer.name == "blocked":
         return PropertyLayerStyle(colormap="coolwarm",
                                   alpha=0.5,
@@ -31,14 +40,17 @@ def propertylayer_portrayal(layer):
                                   vmax=1)
 
 
+# La grille
 renderer = SpaceRenderer(model=model, backend="matplotlib")
 renderer.setup_agents(agent_portrayal)
 renderer.setup_propertylayer(propertylayer_portrayal)
 renderer.render()
 
-turn_time_composant = make_plot_component("average turn time")
+# Les plots en dessous de la grille
 average_speed_composant = make_plot_component("average speed")
+nb_static_cars_comp = make_plot_component("nb static cars")
 
+# Les paramètres pour re-instancier le modèle
 model_params = {
     "n": {
         "type": "SliderInt",
@@ -54,19 +66,17 @@ model_params = {
         "min": 1,
         "max": 10
     },
-    "size": {
+    "width": {
         "type": "SliderInt",
-        "value": 40,
+        "value": 20,
         "label": "length of the route",
-        "min": 20,
-        "max": 100
+        "min": 5,
+        "max": 50
     },
-    "configuration": {
-        "type": "SliderInt",
-        "value": 1,
-        "label": "configuration",
-        "min": 1,
-        "max": 3
+    "file_name": {
+        "type": "InputText",
+        "value": "one_way_road",
+        "label": "map"
     }
 }
 
@@ -74,5 +84,5 @@ page = MesaGraphics(
     model,
     renderer,
     model_params=model_params,
-    components=[turn_time_composant, average_speed_composant]
+    components=[average_speed_composant, nb_static_cars_comp]
 )

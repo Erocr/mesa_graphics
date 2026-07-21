@@ -12,7 +12,7 @@ class Customer(Agent):
 
     def __init__(self, model):
         super().__init__(model)
-        self.arrival_time = model.time
+        self.arrival_time = model.state_duration
         self.service_start_time = None
         self.service_end_time = None
 
@@ -51,9 +51,9 @@ class Server(Agent):
 
     def start_service(self, customer):
         """Begin serving a customer."""
-        customer.service_start_time = self.model.time
+        customer.service_start_time = self.model.state_duration
         self.current_customer = customer
-        self._service_started_at = self.model.time
+        self._service_started_at = self.model.state_duration
 
         duration = self.model.rng.exponential(1.0 / self.service_rate)
         self.model.schedule_event(self._complete_service, after=duration)
@@ -61,8 +61,8 @@ class Server(Agent):
     def _complete_service(self):
         """Complete service and try to pull next customer from queue."""
         customer = self.current_customer
-        customer.service_end_time = self.model.time
-        self.busy_time += self.model.time - self._service_started_at
+        customer.service_end_time = self.model.state_duration
+        self.busy_time += self.model.state_duration - self._service_started_at
 
         self.model._record_departure(customer)
         customer.remove()
