@@ -23,7 +23,7 @@ def agent_portrayal(agent):
         }
         return AgentPortrayalStyle(marker=markers[tuple(agent.direction)], color=f"C{agent.num}")
     if isinstance(agent, TrafficLight):
-        col = 'red' if agent.state_index == 0 else "blue"
+        col = agent.colors[agent.state_index]
         return AgentPortrayalStyle(marker="o", color=col, alpha=0.5)
 
 
@@ -47,8 +47,8 @@ renderer.setup_propertylayer(propertylayer_portrayal)
 renderer.render()
 
 # Les plots en dessous de la grille
-average_speed_composant = make_plot_component("average speed")
-nb_static_cars_comp = make_plot_component("nb static cars")
+average_speed_composant = make_plot_component("average speed", page=1)
+nb_static_cars_comp = make_plot_component("nb static cars", page=1)
 
 # Les paramètres pour re-instancier le modèle
 model_params = {

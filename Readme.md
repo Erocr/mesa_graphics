@@ -70,7 +70,7 @@ git clone --filter=blob:none --sparse https://github.com/Erocr/mesa_graphics.git
 cd mesa_graphics
 git sparse-checkout set mesa_graphics
 ```
-This command clone only the part of the repository with the source code.  
+This command clones only the part of the repository with the source code.  
 If git is not installed on your computer, or you have problems, you can go directly on 
 [the github page](https://github.com/Erocr/mesa_graphics), then click on the green Code button, download ZIP, and 
 extract the ZIP file in your project folder.
@@ -335,6 +335,8 @@ following will display the plot component on page 1:
 ``` python
 plot_comp = make_plot_component("encoding", page=1)
 ```
+
+> Note : The plot components are really slow to compute. If you want it to go faster, put the plots in different pages.  
 
 #### Custom Components
 

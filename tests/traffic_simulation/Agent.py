@@ -1,3 +1,5 @@
+from typing import Iterable
+
 import mesa
 
 
@@ -125,20 +127,42 @@ class Car(mesa.discrete_space.CellAgent):
 
 
 class TrafficLight(mesa.discrete_space.CellAgent):
-    def __init__(self, model, cell, time=5, states=None):
+    def __init__(self, model, cell, time=5, states=None, colors=None):
         assert states is not None and len(states) > 0, \
             "Les feu de signalisation (traffic light) doivent avoir un paramètre states non vide"
+        assert colors is None or len(states) == len(colors), \
+            "Le nombre de couleurs du feu de signalisation doit correspondre au nombre d'états"
         super().__init__(model)
         self.cell = cell
-        self.state_duration = time
         self.counter_time = 0
         self.states = states
         self.state_index = 0
 
+        # self.state_duration est la durée de chaque état
+        if isinstance(time, Iterable):
+            self.state_duration = time
+        else:
+            self.state_duration = [time for _ in range(len(states))]
+
+        # self.colors est la couleur pour chaque état
+        self.colors = colors
+        if colors is None:
+            if len(self.states) == 2:
+                self.colors = ["green", "red"]
+            elif len(self.states) == 3:
+                self.colors = ["green", "orange", "red"]
+            elif len(self.states) == 4:
+                self.colors = ["green", "orange", "red", "orange"]
+            else:
+                self.colors = [f"C{i}" for i in range(len(self.states))]
+
+        # Modifie les directions acceptées dans la case du feu
+        self.model.modify_directions(self.cell, self.states[self.state_index])
+
     def step(self):
         self.counter_time += 1
-        if self.counter_time >= self.state_duration:
-            self.counter_time -= self.state_duration
+        if self.counter_time >= self.state_duration[self.state_index]:
+            self.counter_time -= self.state_duration[self.state_index]
 
             self.state_index = (self.state_index + 1) % len(self.states)
             self.model.modify_directions(self.cell, self.states[self.state_index])

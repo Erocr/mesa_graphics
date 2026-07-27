@@ -89,7 +89,8 @@ class Model(mesa.Model):
             if "traffic light" in typ:  # typ["traffic light"] est censé être un dictionnaire
                 parameters = typ["traffic light"]
                 TrafficLight.create_agents(self, 1, [cell], time=parameters.get("time", 5),
-                                           states=parameters.get("states", None))
+                                           states=parameters.get("states", None),
+                                           colors=parameters.get("colors", None))
 
     def tile_type(self, _grid, tile_types, width, pos):
         """ Extrait les paramètres de la tuile
