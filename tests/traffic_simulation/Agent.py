@@ -156,7 +156,7 @@ class TrafficLight(mesa.discrete_space.CellAgent):
             else:
                 self.colors = [f"C{i}" for i in range(len(self.states))]
 
-        # Modifie les directions acceptées dans la case du feu
+        # Modifie les directions acceptées dans la case du feu avec celles de son état initial
         self.model.modify_directions(self.cell, self.states[self.state_index])
 
     def step(self):

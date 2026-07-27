@@ -1,3 +1,5 @@
+import os
+
 from mesa.visualization import SpaceRenderer, SolaraViz
 from mesa.visualization.components import AgentPortrayalStyle, PropertyLayerStyle
 
@@ -50,6 +52,9 @@ renderer.render()
 average_speed_composant = make_plot_component("average speed", page=1)
 nb_static_cars_comp = make_plot_component("nb static cars", page=1)
 
+roads = os.listdir("roads")  # Obtient la liste des fichiers dans le dossier roads
+roads = [road[:-5] for road in roads]  # Enlève .json à la fin du nom du fichier
+
 # Les paramètres pour re-instancier le modèle
 model_params = {
     "n": {
@@ -74,9 +79,9 @@ model_params = {
         "max": 50
     },
     "file_name": {
-        "type": "InputText",
+        "type": "Select",
         "value": "one_way_road",
-        "label": "map"
+        "values": roads
     }
 }
 

@@ -54,7 +54,7 @@ class Model(mesa.Model):
     def import_road(self, file_name, width):
         """ Crée la grille, et rempli la grille selon comment il a été décrit dans le fichier file_name """
         # Ouvre le fichier, et charge le contenu
-        with open(file_name, "r") as file:
+        with open("roads/"+file_name, "r") as file:
             file_content = file.read()
         content = json.loads(file_content)
 
