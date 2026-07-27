@@ -1,4 +1,5 @@
 from typing import Iterable
+from Messaging import Message, Messaging
 
 import mesa
 
@@ -19,13 +20,23 @@ class CellInfo:
         return str(self)
 
 
-class Car(mesa.discrete_space.CellAgent):
+class MessageReceiver(mesa.discrete_space.CellAgent):
+    """
+    C'est un agent qui peut recevoir des messages.
+    Il doit implémenter la méthode notify qui permet de recevoir un message.
+    Par défaut, il ignore tous les messages reçus.
+    """
+    def notify(self, message: Message):
+        pass
+
+
+class Car(MessageReceiver):
     """An agent with fixed initial wealth."""
     NUM_CAR = 0
     MAX_SPEED = 5
-    MAX_SPEED_TURINING = 2
+    MAX_SPEED_TURNING = 2
 
-    def __init__(self, model, cell, max_speed=5):
+    def __init__(self, model, cell, messaging: Messaging, max_speed=5):
         Car.MAX_SPEED = max_speed
         super().__init__(model)
         self.pos_counter = 0
@@ -34,6 +45,10 @@ class Car(mesa.discrete_space.CellAgent):
         self.direction = self.starting_direction()
         self.num = Car.NUM_CAR
         Car.NUM_CAR += 1
+
+        # Garde en mémoire la messagerie pour pouvoir envoyer des messages.
+        self.messaging = messaging
+        messaging.add_receiver(self)
 
         # Le chemin est sous la forme d'une chaîne de caractères où chaque caractère indique une direction
         # f pour forward, r pour right et l pour left
@@ -153,7 +168,7 @@ class Car(mesa.discrete_space.CellAgent):
         elif direction == self.direction:  # S'il va tout droit
             self.increment_speed()  # Accélère
         else:  # S'il tourne
-            self.speed = min(self.speed + 1, Car.MAX_SPEED_TURINING)
+            self.speed = min(self.speed + 1, Car.MAX_SPEED_TURNING)
 
         # Incrémente le compteur
         self.pos_counter += self.speed
@@ -212,3 +227,18 @@ class TrafficLight(mesa.discrete_space.CellAgent):
             self.state_index = (self.state_index + 1) % len(self.states)
             self.model.modify_directions(self.cell, self.states[self.state_index])
 
+
+class Passenger(MessageReceiver):
+    """ Le passager est un agent qui va demander aux voitures de le transporter à son but. """
+    def __init__(self, model, cell, messaging: Messaging, goal):
+        super().__init__(model)
+        self.cell = cell
+        self.goal = goal
+        self.transporting_car = None
+
+        # Garde en mémoire la messagerie pour pouvoir envoyer des messages.
+        self.messaging = messaging
+        messaging.add_receiver(self)
+
+    def transport(self, car):
+        self.transporting_car = car

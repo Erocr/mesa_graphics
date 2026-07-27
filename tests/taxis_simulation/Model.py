@@ -4,6 +4,7 @@ from mesa.discrete_space import PropertyLayer
 import json
 
 from Agent import Car, TrafficLight
+from Messaging import Messaging
 
 
 def average_speed(model):
@@ -33,12 +34,16 @@ class Model(mesa.Model):
         self.grid: mesa.discrete_space.OrthogonalVonNeumannGrid = None  # noqa  Mets la grille à None, elle sera créée
         # dans import_road
 
+        # Mets en place le système de messagerie
+        self.messaging = Messaging()
+
         # Importe le fichier avec la grille
         if file_name[-5:] != ".json": file_name = file_name + ".json"
         self.import_road(file_name, width)
 
         # Crée les agents dans les endroits qui sont libres selon le fichier qui a été importé
-        Car.create_agents(self, n, [self.free_pos[i] for i in range(n)], max_speed=max_speed)
+        Car.create_agents(self, n, [self.free_pos[i] for i in range(n)], messaging=self.messaging,
+                          max_speed=max_speed)
 
         # Crée un layer pour pouvoir afficher les cases en bleues lorsqu'elles sont accessibles, et en rouge
         # lorsqu'elles ne le sont pas
