@@ -1,5 +1,6 @@
 from typing import Iterable
 from Messaging import Message, Messaging
+import heapq  # J'utilise les tas pour l'algorithme A*
 
 import mesa
 
@@ -240,5 +241,17 @@ class Passenger(MessageReceiver):
         self.messaging = messaging
         messaging.add_receiver(self)
 
+        self.messaging.notify(Message(Message.REQUEST, f"distance {self.cell.position}"))
+
+    def notify(self, message: Message):
+        if message.performatif == Message.INFORMATIF:
+            print(f"Passager a reçu {message.content}")
+
     def transport(self, car):
         self.transporting_car = car
+
+    def step(self):
+        # S'il est dans une voiture, il n'a rien à faire
+        if self.transporting_car is None:
+            return
+

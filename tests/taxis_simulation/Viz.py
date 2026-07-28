@@ -1,6 +1,6 @@
 import os
 
-from mesa.visualization import SpaceRenderer, SolaraViz
+from mesa.visualization import SpaceRenderer
 from mesa.visualization.components import AgentPortrayalStyle, PropertyLayerStyle
 
 from Agent import *
@@ -8,8 +8,14 @@ from Model import Model
 
 from mesa_graphics import MesaGraphics, make_plot_component
 
-model = Model(n=10, width=30)
-SolaraViz()
+from a_star_algorithm import a_star
+
+model = Model(n=1, width=30)
+
+p1 = model.random.choice(model.free_pos)
+p2 = model.random.choice(model.free_pos)
+print(f"{p1} -> {p2}")
+print(a_star(p1, p2))
 
 
 def agent_portrayal(agent):
@@ -24,9 +30,11 @@ def agent_portrayal(agent):
             (-1, 0): "<"
         }
         return AgentPortrayalStyle(marker=markers[tuple(agent.direction)], color=f"C{agent.num}")
-    if isinstance(agent, TrafficLight):
+    elif isinstance(agent, TrafficLight):
         col = agent.colors[agent.state_index]
         return AgentPortrayalStyle(marker="o", color=col, alpha=0.5)
+    elif isinstance(agent, Passenger):
+        return AgentPortrayalStyle(marker="o", color="blue")
 
 
 def propertylayer_portrayal(layer):
@@ -59,7 +67,7 @@ roads = [road[:-5] for road in roads]  # Enlève .json à la fin du nom du fichi
 model_params = {
     "n": {
         "type": "SliderInt",
-        "value": 10,
+        "value": 1,
         "label": "number of cars",
         "min": 1,
         "max": 50

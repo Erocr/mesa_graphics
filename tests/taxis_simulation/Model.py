@@ -3,7 +3,7 @@ import numpy as np
 from mesa.discrete_space import PropertyLayer
 import json
 
-from Agent import Car, TrafficLight
+from Agent import Car, TrafficLight, Passenger
 from Messaging import Messaging
 
 
@@ -42,8 +42,12 @@ class Model(mesa.Model):
         self.import_road(file_name, width)
 
         # Crée les agents dans les endroits qui sont libres selon le fichier qui a été importé
-        Car.create_agents(self, n, [self.free_pos[i] for i in range(n)], messaging=self.messaging,
+        free_pos = self.free_pos.copy()
+        self.random.shuffle(free_pos)
+        Car.create_agents(self, n, [free_pos[i] for i in range(n)], messaging=self.messaging,
                           max_speed=max_speed)
+
+        self.spawn_passenger()
 
         # Crée un layer pour pouvoir afficher les cases en bleues lorsqu'elles sont accessibles, et en rouge
         # lorsqu'elles ne le sont pas
@@ -141,6 +145,11 @@ class Model(mesa.Model):
             if isinstance(agent, Car):
                 return False
         return self.is_road(cell)
+
+    def spawn_passenger(self):
+        cell1 = self.random.choice(self.free_pos)
+        cell2 = self.random.choice(self.free_pos)
+        Passenger.create_agents(self, 1, cell1, self.messaging, cell2)
 
     def step(self):
         self.datacollector.collect(self)
