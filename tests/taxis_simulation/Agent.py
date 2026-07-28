@@ -52,12 +52,15 @@ class Car(MessageReceiver):
         self.messaging = messaging
         messaging.add_receiver(self)
         self.sent_proposition = None  # Le passager à qui il a proposé de le transporter
+        self.discussion_nb = None  # Le numéro de discussion avec le passager
         self.route_computed = ""  # La route pour aller jusqu'au passager à qui il a proposé
+
+        self.transport = None  # The passenger he transports
 
         # Le chemin est sous la forme d'une chaîne de caractères où chaque caractère indique une direction
         # f pour forward, r pour right et l pour left
         self.path = ""
-        self.follow_path = True  # à True pour le test
+        self.follow_path = True
 
     def starting_direction(self):
         """
@@ -109,6 +112,10 @@ class Car(MessageReceiver):
         :param perception: Les cases où il pourra potentiellement aller, avec plusieurs attributs associés à la case
         :return: le vecteur de mouvement sur la grille
         """
+        if self.sent_proposition is not None and self.sent_proposition.cell == self.cell:
+            self.transport = self.sent_proposition
+            self.sent_proposition = None
+            self.transport.transported_by(self)
         if self.follow_path:
             return self.deliberation_with_path(perception)
         else:
@@ -185,37 +192,52 @@ class Car(MessageReceiver):
             position = self.cell.position[0] + direction[0], self.cell.position[1] + direction[1]
             self.move_to(self.model.grid.find_nearest_cell(position))
 
-            # S'il suit son chemin, met à jour son chemin
+            # S'il suit un chemin, met à jour son chemin
             if self.follow_path:
                 self.path = self.path[1:]
 
+            # S'il a un passager, bouge le passager
+            if self.transport is not None:
+                self.transport.move_to(self.cell)
+
     def notify(self, message: Message, sender):
         if message.performatif == Message.REQUEST:
-            if message.content[:9] == "passenger" and self.sent_proposition is None:
+            if message.content[:9] == "passenger" and self.sent_proposition is None and self.transport is None:
                 splitted = message.content.split(" ")
                 pos = int(splitted[1]), int(splitted[2])
                 self.route_computed = a_star(self.cell, self.model.grid.find_nearest_cell(pos), self.direction, self.model)
                 self.messaging.notify(Message(Message.INFORMATIF, f"distance {len(self.route_computed)}",
                                               message.discussion_nb), self)
                 self.sent_proposition = sender
+                self.discussion_nb = message.discussion_nb
 
         elif message.performatif == Message.INFORMATIF:
-            if message.content == "ok" and sender == self.sent_proposition:
+            if message.content == "ok" and sender == self.sent_proposition and message.discussion_nb == self.discussion_nb:
                 self.path = self.route_computed
                 self.follow_path = True
-            elif message.content == "no" and sender == self.sent_proposition:
+            elif message.content == "no" and sender == self.sent_proposition and message.discussion_nb == self.discussion_nb:
                 self.sent_proposition = None
                 self.route_computed = ""
+            elif message.content[:9] == "direction" and message.discussion_nb == self.discussion_nb and sender == self.transport:
+                splitted = message.content.split(" ")
+                pos = int(splitted[1]), int(splitted[2])
+                self.path = a_star(self.cell, self.model.grid.find_nearest_cell(pos), self.direction, self.model)
+                self.follow_path = True
+            elif message.content == "disappear":
+                if self.transport == sender:
+                    self.transport = None
+                if self.sent_proposition == sender:
+                    self.sent_proposition = None
 
 
 class Passenger(MessageReceiver):
     TIME_WAIT_BEFORE_ACCEPT = 3
 
     """ Le passager est un agent qui va demander aux voitures de le transporter à son but. """
-    def __init__(self, model, cell, messaging: Messaging, goal):
+    def __init__(self, model, cell, messaging: Messaging, goal_cell: mesa.discrete_space.Cell):
         super().__init__(model)
         self.cell = cell
-        self.goal = goal
+        self.goal = goal_cell
         self.transporting_car = None
 
         self.discussion_nb = 0  # Son nombre de discussions, utile pour savoir si c'est bien à lui qu'on parle,
@@ -229,12 +251,8 @@ class Passenger(MessageReceiver):
         self.messaging = messaging
         messaging.add_receiver(self)
 
-        self.send_time = 0  # Depuis quand est-ce qu'il a demandé aux taxis de venir
-        self.discussion_nb = self.messaging.get_new_discussion_nb()
-        self.messaging.notify(Message(Message.REQUEST,
-                                      f"passenger {int(self.cell.position[0])} {int(self.cell.position[1])}",
-                                      discussion_nb=self.discussion_nb),
-                              self)
+        self.send_time = 0
+        self.send_position()
 
     def notify(self, message: Message, sender):
         if message.performatif == Message.INFORMATIF and message.discussion_nb == self.discussion_nb:
@@ -245,26 +263,59 @@ class Passenger(MessageReceiver):
                     self.best_taxi = sender
                 self.taxis.append(sender)
 
-    def transport(self, car):
+    def transported_by(self, car):
         self.transporting_car = car
+        self.messaging.notify_specific(Message(Message.INFORMATIF,
+                                               f"direction {int(self.goal.position[0])} {int(self.goal.position[1])}",
+                                               self.discussion_nb), self, car)
 
     def step(self):
         # S'il est dans une voiture, il n'a rien à faire
         if self.transporting_car is not None:
-            return
+            # C'est à la voiture de le déplacer quand elle se déplace
+
+            if self.cell == self.goal:
+                self.disappear()
 
         self.send_time += 1  # Le temps depuis qu'il a envoyé le message augmente
         if self.send_time >= self.TIME_WAIT_BEFORE_ACCEPT:
             self.accept_taxi()
+            if not self.has_taxi:
+                self.send_position()
+
+    def send_position(self):
+        """ Envoie sa position à tous les taxis """
+        self.send_time = 0  # Depuis quand est-ce qu'il a demandé aux taxis de venir
+        self.discussion_nb = self.messaging.get_new_discussion_nb()
+        self.messaging.notify(Message(Message.REQUEST,
+                                      f"passenger {int(self.cell.position[0])} {int(self.cell.position[1])}",
+                                      discussion_nb=self.discussion_nb),
+                              self)
 
     def accept_taxi(self):
+        """
+        Envoie un message à tous les taxis qui lui ont répondu.
+        - 'ok' si c'est le meilleur taxi.
+        - 'no' s'il y a un meilleur taxi.
+
+        Si aucun taxi ne lui a répondu, la fonction ne fait rien
+        """
         for taxi in self.taxis:
+            # Si c'est le meilleur taxi, envoie 'ok'
             if taxi is self.best_taxi:
                 self.messaging.notify_specific(Message(Message.INFORMATIF, "ok", self.discussion_nb),
                                                self,
                                                taxi)
+
+            # Si ce n'est pas le meilleur taxi, envoie 'no'
             else:
                 self.messaging.notify_specific(Message(Message.INFORMATIF, "no", self.discussion_nb),
                                                self,
                                                taxi)
         self.taxis = []
+        self.has_taxi = self.best_taxi is not None
+
+    def disappear(self):
+        self.messaging.notify(Message(Message.INFORMATIF, "disappear"), self)
+        self.cell.remove_agent(self)
+        self.model.agents.remove(self)

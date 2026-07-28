@@ -134,9 +134,7 @@ qu'elle avance.
 - **Action** (do) : Exécute l'action choisie durant la délibération. Elle commence par changer la vitesse suivant si elle 
 va tout droit, tourne, ou pile. Ensuite, elle change le compteur de position. Si le compteur de position dépasse la vitesse maximale,
 la voiture avance en suivant le vecteur choisit dans la délibération.
+ 
 
-### Feu de circulation (TrafficLight)
 
-Le feu de circulation est un agent sur la grille, comme la voiture. 
-Le feu de circulation a un timer. Lorsque ce timer arrive au max (state_duration), il change son compteur d'état, et 
-change les directions acceptées par la case sur laquelle il est. 
+  

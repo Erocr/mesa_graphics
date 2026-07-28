@@ -9,9 +9,7 @@ from Model import Model
 
 from mesa_graphics import MesaGraphics, make_plot_component
 
-from a_star_algorithm import a_star
-
-model = Model(n=1, width=30)
+model = Model(nb_cars=1, nb_passengers=1, width=30)
 
 
 def agent_portrayal(agent):
@@ -58,10 +56,17 @@ roads = [road[:-5] for road in roads]  # Enlève .json à la fin du nom du fichi
 
 # Les paramètres pour re-instancier le modèle
 model_params = {
-    "n": {
+    "nb_cars": {
         "type": "SliderInt",
         "value": 1,
         "label": "number of cars",
+        "min": 1,
+        "max": 50
+    },
+    "nb_passengers": {
+        "type": "SliderInt",
+        "value": 1,
+        "label": "number of passengers",
         "min": 1,
         "max": 50
     },

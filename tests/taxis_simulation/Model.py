@@ -23,7 +23,7 @@ def number_static_cars(model):
 
 
 class Model(mesa.Model):
-    def __init__(self, n=1, width=30, max_speed=5, seed=None, file_name: str = "city"):
+    def __init__(self, nb_cars=1, nb_passengers=1, width=30, max_speed=5, seed=None, file_name: str = "city"):
         super().__init__(seed=seed)
         self.datacollector = mesa.DataCollector(model_reporters={"average speed": average_speed,
                                                                  "nb static cars": number_static_cars})
@@ -44,10 +44,11 @@ class Model(mesa.Model):
         # Crée les agents dans les endroits qui sont libres selon le fichier qui a été importé
         free_pos = self.free_pos.copy()
         self.random.shuffle(free_pos)
-        Car.create_agents(self, n, [free_pos[i] for i in range(n)], messaging=self.messaging,
+        Car.create_agents(self, nb_cars, [free_pos[i] for i in range(nb_cars)], messaging=self.messaging,
                           max_speed=max_speed)
 
-        self.spawn_passenger()
+        for _ in range(nb_passengers):
+            self.spawn_passenger()
 
         # Crée un layer pour pouvoir afficher les cases en bleues lorsqu'elles sont accessibles, et en rouge
         # lorsqu'elles ne le sont pas

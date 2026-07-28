@@ -176,7 +176,7 @@ def cost_delta(cell1, cell2, previous_direction, model):
     dot_ = dot(direction, previous_direction)
 
     # Si le vecteur va dans le sens opposé, il ne peut pas y aller. Les voitures ne peuvent pas aller vers l'arrière.
-    if dot_ < 0:
+    if dot_ < 0 or direction not in model.accepted_directions(cell2):
         return -1
 
     else:
