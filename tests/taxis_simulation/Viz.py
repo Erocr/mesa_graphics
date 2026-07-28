@@ -14,8 +14,9 @@ model = Model(n=1, width=30)
 
 p1 = model.random.choice(model.free_pos)
 p2 = model.random.choice(model.free_pos)
-print(f"{p1} -> {p2}")
-print(a_star(p1, p2))
+direction = model.random.choice(model.accepted_directions(p1))
+print(f"{p1} -> {p2}, starting with direction {direction}")
+print(a_star(p1, p2, direction, model))
 
 
 def agent_portrayal(agent):
