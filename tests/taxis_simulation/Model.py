@@ -3,7 +3,7 @@ import numpy as np
 from mesa.discrete_space import PropertyLayer
 import json
 
-from Agent import Car, TrafficLight, Passenger
+from Agent import Car, Passenger
 from Messaging import Messaging
 
 
@@ -78,8 +78,7 @@ class Model(mesa.Model):
         grid_width = max(len(line) for line in _grid)
 
         # Crée la grille
-        self.grid = mesa.discrete_space.OrthogonalVonNeumannGrid((width, grid_height), torus=True,
-                                                                 random=self.random)
+        self.grid = mesa.discrete_space.OrthogonalVonNeumannGrid((width, grid_height), random=self.random)
 
         # Calcule les positions où les voitures peuvent aller
         self.free_pos = []
@@ -95,11 +94,6 @@ class Model(mesa.Model):
                 self.free_pos.append(cell)
             if "directions" in typ:
                 self._accepted_directions[cell] = self._direction_names_to_vectors(typ["directions"])
-            if "traffic light" in typ:  # typ["traffic light"] est censé être un dictionnaire
-                parameters = typ["traffic light"]
-                TrafficLight.create_agents(self, 1, [cell], time=parameters.get("time", 5),
-                                           states=parameters.get("states", None),
-                                           colors=parameters.get("colors", None))
 
     def tile_type(self, _grid, tile_types, width, pos):
         """ Extrait les paramètres de la tuile

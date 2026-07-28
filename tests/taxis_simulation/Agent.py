@@ -1,6 +1,7 @@
 from typing import Iterable
 from Messaging import Message, Messaging
 import heapq  # J'utilise les tas pour l'algorithme A*
+from a_star_algorithm import a_star
 
 import mesa
 
@@ -27,7 +28,7 @@ class MessageReceiver(mesa.discrete_space.CellAgent):
     Il doit implémenter la méthode notify qui permet de recevoir un message.
     Par défaut, il ignore tous les messages reçus.
     """
-    def notify(self, message: Message):
+    def notify(self, message: Message, sender):
         pass
 
 
@@ -50,6 +51,8 @@ class Car(MessageReceiver):
         # Garde en mémoire la messagerie pour pouvoir envoyer des messages.
         self.messaging = messaging
         messaging.add_receiver(self)
+        self.sent_proposition = None  # Le passager à qui il a proposé de le transporter
+        self.route_computed = ""  # La route pour aller jusqu'au passager à qui il a proposé
 
         # Le chemin est sous la forme d'une chaîne de caractères où chaque caractère indique une direction
         # f pour forward, r pour right et l pour left
@@ -186,50 +189,28 @@ class Car(MessageReceiver):
             if self.follow_path:
                 self.path = self.path[1:]
 
+    def notify(self, message: Message, sender):
+        if message.performatif == Message.REQUEST:
+            if message.content[:9] == "passenger" and self.sent_proposition is None:
+                splitted = message.content.split(" ")
+                pos = int(splitted[1]), int(splitted[2])
+                self.route_computed = a_star(self.cell, self.model.grid.find_nearest_cell(pos), self.direction, self.model)
+                self.messaging.notify(Message(Message.INFORMATIF, f"distance {len(self.route_computed)}",
+                                              message.discussion_nb), self)
+                self.sent_proposition = sender
 
-class TrafficLight(mesa.discrete_space.CellAgent):
-    def __init__(self, model, cell, time=5, states=None, colors=None):
-        assert states is not None and len(states) > 0, \
-            "Les feu de signalisation (traffic light) doivent avoir un paramètre states non vide"
-        assert colors is None or len(states) == len(colors), \
-            "Le nombre de couleurs du feu de signalisation doit correspondre au nombre d'états"
-        super().__init__(model)
-        self.cell = cell
-        self.counter_time = 0
-        self.states = states
-        self.state_index = 0
-
-        # self.state_duration est la durée de chaque état
-        if isinstance(time, Iterable):
-            self.state_duration = time
-        else:
-            self.state_duration = [time for _ in range(len(states))]
-
-        # self.colors est la couleur pour chaque état
-        self.colors = colors
-        if colors is None:
-            if len(self.states) == 2:
-                self.colors = ["green", "red"]
-            elif len(self.states) == 3:
-                self.colors = ["green", "orange", "red"]
-            elif len(self.states) == 4:
-                self.colors = ["green", "orange", "red", "orange"]
-            else:
-                self.colors = [f"C{i}" for i in range(len(self.states))]
-
-        # Modifie les directions acceptées dans la case du feu avec celles de son état initial
-        self.model.modify_directions(self.cell, self.states[self.state_index])
-
-    def step(self):
-        self.counter_time += 1
-        if self.counter_time >= self.state_duration[self.state_index]:
-            self.counter_time -= self.state_duration[self.state_index]
-
-            self.state_index = (self.state_index + 1) % len(self.states)
-            self.model.modify_directions(self.cell, self.states[self.state_index])
+        elif message.performatif == Message.INFORMATIF:
+            if message.content == "ok" and sender == self.sent_proposition:
+                self.path = self.route_computed
+                self.follow_path = True
+            elif message.content == "no" and sender == self.sent_proposition:
+                self.sent_proposition = None
+                self.route_computed = ""
 
 
 class Passenger(MessageReceiver):
+    TIME_WAIT_BEFORE_ACCEPT = 3
+
     """ Le passager est un agent qui va demander aux voitures de le transporter à son but. """
     def __init__(self, model, cell, messaging: Messaging, goal):
         super().__init__(model)
@@ -237,21 +218,53 @@ class Passenger(MessageReceiver):
         self.goal = goal
         self.transporting_car = None
 
+        self.discussion_nb = 0  # Son nombre de discussions, utile pour savoir si c'est bien à lui qu'on parle,
+        # ou à un autre passager
+        self.min_distance = None  # La distance minimale parmi les distances que lui ont envoyées les taxis
+        self.best_taxi = None  # Le meilleur taxi jusque-là
+        self.has_taxi = False  # S'il a accepté un taxi
+        self.taxis = []  # Tous les taxis qui lui ont proposé de le transporter
+
         # Garde en mémoire la messagerie pour pouvoir envoyer des messages.
         self.messaging = messaging
         messaging.add_receiver(self)
 
-        self.messaging.notify(Message(Message.REQUEST, f"distance {self.cell.position}"))
+        self.send_time = 0  # Depuis quand est-ce qu'il a demandé aux taxis de venir
+        self.discussion_nb = self.messaging.get_new_discussion_nb()
+        self.messaging.notify(Message(Message.REQUEST,
+                                      f"passenger {int(self.cell.position[0])} {int(self.cell.position[1])}",
+                                      discussion_nb=self.discussion_nb),
+                              self)
 
-    def notify(self, message: Message):
-        if message.performatif == Message.INFORMATIF:
-            print(f"Passager a reçu {message.content}")
+    def notify(self, message: Message, sender):
+        if message.performatif == Message.INFORMATIF and message.discussion_nb == self.discussion_nb:
+            if message.content[:8] == "distance":
+                distance = int(message.content.split(" ")[1])
+                if self.min_distance is None or distance < self.min_distance:
+                    self.min_distance = distance
+                    self.best_taxi = sender
+                self.taxis.append(sender)
 
     def transport(self, car):
         self.transporting_car = car
 
     def step(self):
         # S'il est dans une voiture, il n'a rien à faire
-        if self.transporting_car is None:
+        if self.transporting_car is not None:
             return
 
+        self.send_time += 1  # Le temps depuis qu'il a envoyé le message augmente
+        if self.send_time >= self.TIME_WAIT_BEFORE_ACCEPT:
+            self.accept_taxi()
+
+    def accept_taxi(self):
+        for taxi in self.taxis:
+            if taxi is self.best_taxi:
+                self.messaging.notify_specific(Message(Message.INFORMATIF, "ok", self.discussion_nb),
+                                               self,
+                                               taxi)
+            else:
+                self.messaging.notify_specific(Message(Message.INFORMATIF, "no", self.discussion_nb),
+                                               self,
+                                               taxi)
+        self.taxis = []

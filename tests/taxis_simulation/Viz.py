@@ -26,9 +26,6 @@ def agent_portrayal(agent):
             (-1, 0): "<"
         }
         return AgentPortrayalStyle(marker=markers[tuple(agent.direction)], color=f"C{agent.num}")
-    elif isinstance(agent, TrafficLight):
-        col = agent.colors[agent.state_index]
-        return AgentPortrayalStyle(marker="o", color=col, alpha=0.5)
     elif isinstance(agent, Passenger):
         return AgentPortrayalStyle(marker="o", color="blue")
 
