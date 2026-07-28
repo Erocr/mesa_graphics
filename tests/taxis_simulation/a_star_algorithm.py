@@ -34,7 +34,7 @@ class AStarNode:
 
     def __lt__(self, other):
         """
-        Surcharge l'opérateur <
+        Surcharge l'opérateur '<'
         Utile pour heapq
         """
         return self.heuristic - self.cost < other.heuristic - other.cost
@@ -57,13 +57,11 @@ def a_star(cell1: mesa.discrete_space.Cell, cell2: mesa.discrete_space.Cell, sta
     heapq.heappush(open_list, AStarNode(0, dist(cell1.position, cell2.position), cell1, starting_direction))
 
     start = time.time()
-    # TODO: ne prend pas en compte les directions
     while len(open_list) > 0:
         u_node = heapq.heappop(open_list)  # On prend l'élément à l'heuristique minimale
 
         # Si c'est la case d'arrivée, on a fini
         if u_node.cell.position[0] == cell2.position[0] and u_node.cell.position[1] == cell2.position[1]:
-            print(f"found in {time.time() - start}s visiting {len(closed_list)} cells")
             closed_list[CellDirection(u_node.cell, u_node.direction)] = u_node.parent
             return reconstruct_path(closed_list, CellDirection(cell1, starting_direction),
                                     CellDirection(u_node.cell, u_node.direction))

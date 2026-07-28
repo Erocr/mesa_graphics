@@ -1,4 +1,5 @@
 import os
+import time
 
 from mesa.visualization import SpaceRenderer
 from mesa.visualization.components import AgentPortrayalStyle, PropertyLayerStyle
@@ -11,12 +12,6 @@ from mesa_graphics import MesaGraphics, make_plot_component
 from a_star_algorithm import a_star
 
 model = Model(n=1, width=30)
-
-p1 = model.random.choice(model.free_pos)
-p2 = model.random.choice(model.free_pos)
-direction = model.random.choice(model.accepted_directions(p1))
-print(f"{p1} -> {p2}, starting with direction {direction}")
-print(a_star(p1, p2, direction, model))
 
 
 def agent_portrayal(agent):
