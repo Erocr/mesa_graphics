@@ -1,10 +1,11 @@
+from typing import Iterable
+
 import mesa
 import numpy as np
 from mesa.discrete_space import PropertyLayer
 import json
-
-from Agent import Car, Passenger
-from Messaging import Messaging
+from Messaging import BROAD_CAST, CARS, PASSENGERS
+from Agent import Car, Passenger, MessageReceiver
 
 
 def average_speed(model):
@@ -24,6 +25,10 @@ def number_static_cars(model):
 
 class Model(mesa.Model):
     def __init__(self, nb_cars=1, nb_passengers=1, width=30, max_speed=5, seed=None, file_name: str = "city"):
+        # La discussion number le plus grand trouvé dans les dicussions.
+        # C'est utile pour créer des nouvelles discussion.
+        self.max_discussion_nb = 0
+
         super().__init__(seed=seed)
         self.datacollector = mesa.DataCollector(model_reporters={"average speed": average_speed,
                                                                  "nb static cars": number_static_cars})
@@ -34,9 +39,6 @@ class Model(mesa.Model):
         self.grid: mesa.discrete_space.OrthogonalVonNeumannGrid = None  # noqa  Mets la grille à None, elle sera créée
         # dans import_road
 
-        # Mets en place le système de messagerie
-        self.messaging = Messaging()
-
         # Importe le fichier avec la grille
         if file_name[-5:] != ".json": file_name = file_name + ".json"
         self.import_road(file_name, width)
@@ -44,8 +46,7 @@ class Model(mesa.Model):
         # Crée les agents dans les endroits qui sont libres selon le fichier qui a été importé
         free_pos = self.free_pos.copy()
         self.random.shuffle(free_pos)
-        Car.create_agents(self, nb_cars, [free_pos[i] for i in range(nb_cars)], messaging=self.messaging,
-                          max_speed=max_speed)
+        Car.create_agents(self, nb_cars, [free_pos[i] for i in range(nb_cars)], max_speed=max_speed)
 
         for _ in range(nb_passengers):
             self.spawn_passenger()
@@ -141,10 +142,27 @@ class Model(mesa.Model):
                 return False
         return self.is_road(cell)
 
+    def send_msg(self, message, sender, who=BROAD_CAST):
+        self.max_discussion_nb = max(message.discussion_nb, self.max_discussion_nb)
+        receivers = []
+        if who == BROAD_CAST:
+            receivers = self.agents
+        elif who == CARS:
+            receivers = [agent for agent in self.agents if isinstance(agent, Car)]
+        elif who == PASSENGERS:
+            receivers = [agent for agent in self.agents if isinstance(agent, Passenger)]
+        elif isinstance(who, MessageReceiver):
+            receivers = [who]
+        elif isinstance(who, Iterable):
+            receivers = who
+
+        for receiver in receivers:
+            receiver.notify(message, sender)
+
     def spawn_passenger(self):
         cell1 = self.random.choice(self.free_pos)
         cell2 = self.random.choice(self.free_pos)
-        Passenger.create_agents(self, 1, cell1, self.messaging, cell2)
+        Passenger.create_agents(self, 1, cell1, cell2)
 
     def step(self):
         self.datacollector.collect(self)
