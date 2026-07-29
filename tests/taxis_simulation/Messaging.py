@@ -23,7 +23,7 @@ class Messaging:
     Il a une liste de receveurs, et lorsque quelqu'un envoie un message, tous les receveurs reçoivent ce message.
     Si ce message leur est attribué, ils pourront l'utiliser, sinon, il sera ignoré.
     """
-    MAX_DISCUSSION_NB = 255
+    # MAX_DISCUSSION_NB = 255
 
     def __init__(self):
         self.receivers = []
@@ -37,7 +37,7 @@ class Messaging:
 
     def notify(self, message: Message, sender):
         """ Send the message to every receiver """
-        assert 0 <= message.discussion_nb <= Messaging.MAX_DISCUSSION_NB
+        # assert 0 <= message.discussion_nb <= Messaging.MAX_DISCUSSION_NB
         self.max_discussion_nb = max(message.discussion_nb, self.max_discussion_nb)
         for receiver in self.receivers:
             receiver.notify(message, sender)
@@ -46,4 +46,4 @@ class Messaging:
         receiver.notify(message, sender)
 
     def get_new_discussion_nb(self):
-        return (self.max_discussion_nb % 255) + 1
+        return self.max_discussion_nb + 1

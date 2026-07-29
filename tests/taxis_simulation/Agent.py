@@ -282,6 +282,7 @@ class Passenger(MessageReceiver):
             self.accept_taxi()
             if not self.has_taxi:
                 self.send_position()
+                print("proposition from "+str(self.cell.position))
 
     def send_position(self):
         """ Envoie sa position à tous les taxis """
@@ -302,7 +303,7 @@ class Passenger(MessageReceiver):
         """
         for taxi in self.taxis:
             # Si c'est le meilleur taxi, envoie 'ok'
-            if taxi is self.best_taxi:
+            if taxi == self.best_taxi:
                 self.messaging.notify_specific(Message(Message.INFORMATIF, "ok", self.discussion_nb),
                                                self,
                                                taxi)
@@ -313,7 +314,9 @@ class Passenger(MessageReceiver):
                                                self,
                                                taxi)
         self.taxis = []
-        self.has_taxi = self.best_taxi is not None
+        if self.best_taxi is not None:
+            self.has_taxi = True
+        self.best_taxi = None  # Only for test
 
     def disappear(self):
         self.messaging.notify(Message(Message.INFORMATIF, "disappear"), self)
