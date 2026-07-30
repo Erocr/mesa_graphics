@@ -72,6 +72,8 @@ class Car(MessageReceiver):
         self.path = ""
         self.follow_path = False
 
+        self.sent_proposition_timer = 0
+
     def starting_direction(self):
         """
         Calcule la direction initiale de la voiture.
@@ -259,8 +261,11 @@ class Car(MessageReceiver):
 
                 # Change son état
                 self.state = Car.SENT_PROPOSITION
+                self.sent_proposition_timer = 0
 
         elif self.state == Car.SENT_PROPOSITION:
+
+            self.sent_proposition_timer += 1
 
             # Si la personne a accepté la proposition de la voiture
             if perception[3] is not None and perception[3]:
@@ -271,8 +276,9 @@ class Car(MessageReceiver):
                 # Change son état
                 self.state = Car.PROPOSITION_ACCEPTED
 
-            # Si la personne a refusé la proposition
-            elif perception[3] is not None and not perception[3]:
+            # Si la personne a refusé la proposition ou si la personne prend trop de temps pour répondre
+            elif (perception[3] is not None and not perception[3]) or \
+                    self.sent_proposition_timer > Passenger.TIME_WAIT_BEFORE_ACCEPT:
 
                 #  Oublie d'avoir envoyé cette proposition
                 self.sent_proposition = None
