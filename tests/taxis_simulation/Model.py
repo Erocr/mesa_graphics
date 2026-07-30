@@ -6,6 +6,7 @@ from mesa.discrete_space import PropertyLayer
 import json
 from Messaging import BROAD_CAST, CARS, PASSENGERS
 from Agent import Car, Passenger, MessageReceiver
+from a_star_algorithm import cost_delta
 
 
 def average_speed(model):
@@ -97,6 +98,49 @@ class Model(mesa.Model):
             if "directions" in typ:
                 self._accepted_directions[cell] = self._direction_names_to_vectors(typ["directions"])
 
+        self.remove_blocking_directions()
+
+    def remove_blocking_directions(self):
+        # La liste des directions à enlever
+        # De la forme [(cell1, direction1), ...]
+        to_remove = []
+
+        # Tant qu'il y a des éléments à enlever, continue.
+        # Peut-être qu'enlever une direction va rendre une autre case bloquée.
+        while True:
+            # Regarde pour chaque cellule, chaque direction, et elève celles qui sont bloquées
+            for cell in self.grid.all_cells:
+                if not self.is_road(cell):
+                    continue
+
+                for direction in self.accepted_directions(cell):
+
+                    # Calcule si une voiture dans la cellule `cell`, et avec la direction `direction` est bloquée
+                    blocked = True
+                    for neighbor in cell.neighborhood:
+                        # cost_delta est une fonction qui renvoie -1 si la voiture ne peut pas y aller,
+                        # et une heuristique de coût si elle peut y aller
+                        if cost_delta(cell, neighbor, direction, self) > 0:
+                            blocked = False
+
+                    # Si la case est bloquée, on l'ajoute dans les éléments à enlever
+                    if blocked:
+                        to_remove.append((cell, direction))
+
+            # S'il n'y a plus rien à enlever, s'arrête
+            if len(to_remove) == 0:
+                return
+
+            # Pour chaque élément à enlever, on l'enlève
+            for cell, direction in to_remove:
+                if cell in self._accepted_directions:
+                    self._accepted_directions[cell].remove(direction)
+                else:
+                    self._accepted_directions[cell] = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+                    self._accepted_directions[cell].remove(direction)
+
+            to_remove = []
+
     def tile_type(self, _grid, tile_types, width, pos):
         """ Extrait les paramètres de la tuile
         _grid est la grille des avec les id des types de tuiles
@@ -124,7 +168,7 @@ class Model(mesa.Model):
         La voiture doit arriver sur cette case avec une de ces directions.
         """
         # Par défaut toutes les directions sont autorisées.
-        return self._accepted_directions.get(cell, None)
+        return self._accepted_directions.get(cell, [(0, 1), (1, 0), (-1, 0), (0, -1)])
 
     def modify_directions(self, cell: mesa.discrete_space.Cell, directions: list[tuple[int, int]]):
         """ Modifie les directions acceptées par la cellule cell """
