@@ -40,11 +40,18 @@ class AStarNode:
         return self.heuristic - self.cost < other.heuristic - other.cost
 
 
-def a_star(cell1: mesa.discrete_space.Cell, cell2: mesa.discrete_space.Cell, starting_direction, model):
+def a_star(cell1: mesa.discrete_space.Cell, cell2: mesa.discrete_space.Cell, starting_direction, model, added_blocked=None):
     """
-    Prend en paramètre les positions de deux points p1 et p2.
-    Il renvoie le chemin pour aller de p1 à p2 trouvé utilisant l'algorithme A*
+    Prend en paramètre deux cellules cell1 et cell2.
+    Il renvoie le chemin pour aller de cell1 à cell2 trouvé utilisant l'algorithme A*
+    La starting_direction indique la direction de la voiture au début.
+
+    Ce chemin suit le code de la route.
+    Il est possible d'ajouter des cases par lesquelles on ne veut pas passer dans added_blocked.
     """
+    if added_blocked is None:
+        added_blocked = []
+
     # closed_list est un dictionnaire qui associe aux noeuds déjà visités le noeud parent.
     closed_list: dict[CellDirection: CellDirection] = {}
 
@@ -69,7 +76,7 @@ def a_star(cell1: mesa.discrete_space.Cell, cell2: mesa.discrete_space.Cell, sta
         # On ajoute les voisins dans open_list
         for v in u_node.cell.neighborhood:
             # C'est le coût ajouté pour aller à la case v depuis u
-            cost_add = cost_delta(u_node.cell, v, u_node.direction, model)
+            cost_add = cost_delta(u_node.cell, v, u_node.direction, model, added_blocked)
             if cost_add < 0:
                 continue
 
@@ -103,7 +110,7 @@ def a_star(cell1: mesa.discrete_space.Cell, cell2: mesa.discrete_space.Cell, sta
         # On ajoute dans closed_list la case qu'on vient de visiter
         closed_list[CellDirection(u_node.cell, u_node.direction)] = u_node.parent
 
-    raise RuntimeError(f"There is no path from {cell1.position} to {cell2.position}")
+    return None
 
 
 def reconstruct_path(closed_list, cell1: CellDirection, cell2: CellDirection):
@@ -163,11 +170,15 @@ def compute_direction(cell1, cell2):
     return cell2.position[0] - cell1.position[0], cell2.position[1] - cell1.position[1]
 
 
-def cost_delta(cell1, cell2, previous_direction, model):
+def cost_delta(cell1, cell2, previous_direction, model, added_blocked=None):
     """
     Renvoie l'augmentation de coût pour aller de cell1 à cell2, avec cell1 et cell2 adjacentes.
     Si le coût est -1, alors il est impossible de passer par là.
     """
+    # Si on ne veut pas passer par la case cell2
+    if added_blocked is not None and cell2 in added_blocked:
+        return -1
+
     # Si la case cell2 n'est pas de la route, la voiture ne peut pas y aller dessus
     if not model.is_road(cell2):
         return -1

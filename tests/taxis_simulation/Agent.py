@@ -39,6 +39,8 @@ class MessageReceiver(mesa.discrete_space.CellAgent):
 
 class Car(MessageReceiver):
     """An agent with fixed initial wealth."""
+    TIME_AFTER_RECOMPUTING_PATH = 2
+
     NUM_CAR = 0
     MAX_SPEED = 5
     MAX_SPEED_TURNING = 2
@@ -70,9 +72,11 @@ class Car(MessageReceiver):
         # Le chemin est sous la forme d'une chaîne de caractères où chaque caractère indique une direction
         # f pour forward, r pour right et l pour left
         self.path = ""
+        self.goal = None  # Là vers où il va
         self.follow_path = False
 
         self.sent_proposition_timer = 0
+        self.blocked_timer = 0  # Depuis quand est-ce qu'il est bloqué et qu'il ne peut pas avancer
 
     def starting_direction(self):
         """
@@ -151,14 +155,15 @@ class Car(MessageReceiver):
                     pos = int(splitted[1]), int(splitted[2])
 
                     # Calcule la route la plus rapide jusqu'au passager
-                    route_computed = a_star(self.cell, self.model.grid.find_nearest_cell(pos), self.direction,
-                                            self.model)
+                    goal = self.model.grid.find_nearest_cell(pos)
+                    route_computed = a_star(self.cell, goal, self.direction, self.model)
 
                     # Si jamais la route est plus courte que celle vers le passager le plus proche jusque-là
                     if len(route_computed) < min_distance:
                         min_distance = len(route_computed)
                         best_passenger = sender
                         self.route_computed = route_computed  # Mémorise la route calculée
+                        self.goal = goal
                         discussion_nb = message.discussion_nb
 
                 # élimine tous les messages
@@ -257,7 +262,9 @@ class Car(MessageReceiver):
                 self.sent_proposition = best_passenger
                 self.discussion_nb = discussion_nb
 
-                self.follow_path = True  # S'arrête, le chemin qu'il a calculé serait obsolète sinon
+                # S'arrête, le chemin qu'il a calculé serait obsolète sinon
+                self.follow_path = True
+                self.path = ""
 
                 # Change son état
                 self.state = Car.SENT_PROPOSITION
@@ -321,7 +328,9 @@ class Car(MessageReceiver):
                 pos = int(splitted[1]), int(splitted[2])
 
                 # Calcule le chemin
-                self.path = a_star(self.cell, self.model.grid.find_nearest_cell(pos), self.direction, self.model)
+                goal = self.model.grid.find_nearest_cell(pos)
+                self.path = a_star(self.cell, goal, self.direction, self.model)
+                self.goal = goal
                 self.follow_path = True
 
         if not self.state == Car.IDLE:
@@ -358,7 +367,7 @@ class Car(MessageReceiver):
             return [(0, 0)]
 
         # S'il doit aller à gauche, et qu'il peut aller à gauche
-        if self.path[0] == "l":
+        if self.path[0] == "l" and self.can_go(self.left_dir(), perception[0]):
             return [self.left_dir()]
 
         # S'il doit aller tout droit, et qu'il peut aller tout droit
@@ -371,6 +380,27 @@ class Car(MessageReceiver):
 
         # S'il ne peut pas aller là où il doit aller
         else:
+            self.blocked_timer += 1
+
+            # Si ça fait plusieurs tours qu'il ne peut pas avancer
+            if self.blocked_timer > self.TIME_AFTER_RECOMPUTING_PATH:
+                self.blocked_timer = 0
+
+                # Trouve la cellule où il veut aller, mais n'arrive pas à aller
+                direction = {"f": self.direction, "l": self.left_dir(), "r": self.right_dir()}[self.path[0]]
+                blocking_pos = self.cell.position[0] + direction[0], self.cell.position[1] + direction[1]
+                blocking_cell = self.model.grid.find_nearest_cell(blocking_pos)
+
+                # Recalcule le chemin sans passer par blocking_cell
+                path = a_star(self.cell, self.goal, self.direction, self.model, [blocking_cell])
+
+                # Remplace seulement s'il a trouvé un chemin
+                if path is not None:
+                    self.path = path
+
+                    # Recalcule là où il va en fonction du nouveau chemin
+                    return self.deliberation_with_path(perception)
+
             return [(0, 0)]
 
     def increment_speed(self):
@@ -473,6 +503,7 @@ class Passenger(MessageReceiver):
                         self.min_distance = distance
                         self.best_taxi = sender
                     self.taxis.append(sender)
+
             self.messages.pop(i)
 
     def transported_by(self, car):
