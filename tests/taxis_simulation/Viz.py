@@ -7,7 +7,7 @@ from mesa.visualization.components import AgentPortrayalStyle, PropertyLayerStyl
 from Agent import *
 from Model import Model
 
-from mesa_graphics import MesaGraphics, make_plot_component
+from mesa_graphics import MesaGraphics, make_plot_component, make_text_component
 
 model = Model(nb_cars=1, nb_passengers=1, width=30)
 
@@ -56,7 +56,18 @@ renderer.setup_agents(agent_portrayal)
 renderer.setup_propertylayer(propertylayer_portrayal)
 renderer.render()
 
-# Les plots en dessous de la grille
+# La légende
+legend = make_text_component(
+"""
+Car colors:
+- red : The car is free
+- yellow : The car sent a proposition to someone
+- orange : He accepted the proposition
+- blue : The car is transporting someone  
+""", page=0
+)
+
+# Les plots
 average_speed_composant = make_plot_component("average speed", page=1)
 nb_static_cars_comp = make_plot_component("nb static cars", page=1)
 
@@ -92,5 +103,5 @@ page = MesaGraphics(
     model,
     renderer,
     model_params=model_params,
-    components=[average_speed_composant, nb_static_cars_comp]
+    components=[legend, average_speed_composant, nb_static_cars_comp]
 )

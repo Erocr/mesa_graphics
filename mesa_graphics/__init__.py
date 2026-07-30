@@ -1,12 +1,12 @@
 __all__ = ["MesaGraphics",
            "make_mpl_plot_component", "make_space_component", "make_plot_component", "make_mpl_space_component",
-           "make_space_matplotlib",
+           "make_space_matplotlib", "make_text_component",
            "FigureMatplotlib"]
 
 from .MesaGraphics import MesaGraphics
 from .components import (make_mpl_plot_component, make_space_component, make_plot_component,
                          make_mpl_space_component, make_space_matplotlib,
-                         create_space_component)
+                         create_space_component, make_text_component)
 from .backend_integration import FigureMatplotlib
 
 from pygame import font

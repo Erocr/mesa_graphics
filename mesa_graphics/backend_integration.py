@@ -33,6 +33,7 @@ def FigureText(text: str, font_size=15, font_color=(0, 0, 0), background_color=(
     height = sum([image.get_height() for image in images])
 
     res = pg.Surface((width, height))
+    res.fill(background_color)
 
     y = 0
     for image in images:
