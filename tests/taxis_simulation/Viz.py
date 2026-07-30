@@ -23,9 +23,18 @@ def agent_portrayal(agent):
             (0, -1): "v",
             (-1, 0): "<"
         }
-        return AgentPortrayalStyle(marker=markers[tuple(agent.direction)], color=f"C{agent.num}")
+        col = "red"
+        if agent.state == Car.IDLE:
+            col = "red"
+        elif agent.state == Car.SENT_PROPOSITION:
+            col = "yellow"
+        elif agent.state == Car.PROPOSITION_ACCEPTED:
+            col = "orange"
+        elif agent.state == Car.TRANSPORTING:
+            col = "blue"
+        return AgentPortrayalStyle(marker=markers[tuple(agent.direction)], color=col)
     elif isinstance(agent, Passenger):
-        return AgentPortrayalStyle(marker="o", color="blue")
+        return AgentPortrayalStyle(marker="o", color="blue", size=5)
 
 
 def propertylayer_portrayal(layer):

@@ -6,16 +6,17 @@ import mesa
 
 
 class CellInfo:
-    def __init__(self, cell, is_free, directions=None):
+    def __init__(self, cell, is_road, directions=None, blocking=None):
         self.cell = cell
-        self.is_free = is_free
+        self.is_road = is_road
+        self.blocking = blocking
         if directions is None:
             self.directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
         else:
             self.directions = directions
 
     def __str__(self):
-        return str((self.cell.position, self.is_free, self.directions))
+        return str((self.cell.position, self.is_road, self.directions, self.blocking))
 
     def __repr__(self):
         return str(self)
@@ -69,7 +70,7 @@ class Car(MessageReceiver):
         # Le chemin est sous la forme d'une chaîne de caractères où chaque caractère indique une direction
         # f pour forward, r pour right et l pour left
         self.path = ""
-        self.follow_path = True
+        self.follow_path = False
 
     def starting_direction(self):
         """
@@ -108,9 +109,10 @@ class Car(MessageReceiver):
         for j in range(3):
             # La position dans la grille complète associée à la position (i, j) de la grille partielle
             cell = self.model.grid.find_nearest_cell(positions[j])
-            is_free = self.model.is_free(cell)
+            is_road = self.model.is_road(cell)
+            blocking = self.model.blocking(cell)
             accepted_dirs = self.model.accepted_directions(cell)
-            res.append(CellInfo(cell, is_free, accepted_dirs))
+            res.append(CellInfo(cell, is_road, accepted_dirs, blocking))
 
         res.append(self.read_messages())
 
@@ -242,7 +244,7 @@ class Car(MessageReceiver):
         if self.state == Car.IDLE:
 
             # S'il a reçu au moins une proposition d'un passager, lui envoie un message, et change d'état
-            if perception[3] is not None:
+            if perception[3] is not None and perception[3][0] is not None:
                 best_passenger, discussion_nb = perception[3]
 
                 # Demande à self.do d'envoyer un message
@@ -252,6 +254,8 @@ class Car(MessageReceiver):
                                 best_passenger))
                 self.sent_proposition = best_passenger
                 self.discussion_nb = discussion_nb
+
+                self.follow_path = True  # S'arrête, le chemin qu'il a calculé serait obsolète sinon
 
                 # Change son état
                 self.state = Car.SENT_PROPOSITION
@@ -273,6 +277,7 @@ class Car(MessageReceiver):
                 #  Oublie d'avoir envoyé cette proposition
                 self.sent_proposition = None
                 self.route_computed = ""
+                self.follow_path = False
 
                 # Passe en état IDLE
                 self.state = Car.IDLE
@@ -289,6 +294,7 @@ class Car(MessageReceiver):
             elif perception[3] is not None and perception[3] == "disappear":
                 # Oublie la personne
                 self.sent_proposition = None
+                self.follow_path = False
                 # Rentre en état IDLE
                 self.state = Car.IDLE
 
@@ -298,6 +304,7 @@ class Car(MessageReceiver):
             if perception[3] is not None and perception[3] == "disappear":
                 # Oublie la personne
                 self.transport = None
+                self.follow_path = False
                 # Rentre en état IDLE
                 self.state = Car.IDLE
 
@@ -311,10 +318,10 @@ class Car(MessageReceiver):
                 self.path = a_star(self.cell, self.model.grid.find_nearest_cell(pos), self.direction, self.model)
                 self.follow_path = True
 
-        if self.follow_path:
-            return [self.deliberation_with_path(perception)] + actions
+        if not self.state == Car.IDLE:
+            return self.deliberation_with_path(perception) + actions
         else:
-            return [self.deliberation_without_path(perception)] + actions
+            return self.deliberation_without_path(perception) + actions
 
     def deliberation_without_path(self, perception):
         """
@@ -336,35 +343,35 @@ class Car(MessageReceiver):
             if len(possible_dirs) > 0:  # S'il peut tourner à droite ou à gauche
                 direction = self.random.choice(possible_dirs)
 
-        return direction
+        return [direction]
 
     def deliberation_with_path(self, perception):
         """ Donne la direction de son chemin s'il peut y aller, sinon il renvoie (0, 0) """
         # Si son chemin est vide, n'avance pas
         if len(self.path) == 0:
-            return 0, 0
+            return [(0, 0)]
 
         # S'il doit aller à gauche, et qu'il peut aller à gauche
-        if self.path[0] == "l" and self.can_go(self.left_dir(), perception[0]):
-            return self.left_dir()
+        if self.path[0] == "l":
+            return [self.left_dir()]
 
         # S'il doit aller tout droit, et qu'il peut aller tout droit
         elif self.path[0] == "f" and self.can_go(self.direction, perception[1]):
-            return self.direction
+            return [self.direction]
 
         # S'il doit aller à droite, et qu'il peut aller à droite
         elif self.path[0] == "r" and self.can_go(self.right_dir(), perception[2]):
-            return self.right_dir()
+            return [self.right_dir()]
 
         # S'il ne peut pas aller là où il doit aller
         else:
-            return 0, 0
+            return [(0, 0)]
 
     def increment_speed(self):
         self.speed = min(self.speed + 1, Car.MAX_SPEED)
 
     def can_go(self, direction: tuple[int, int], cellInfo: CellInfo):
-        return cellInfo.is_free and direction in cellInfo.directions
+        return cellInfo.is_road and cellInfo.blocking is None and direction in cellInfo.directions
 
     def do(self, deliberation: list) -> None:
         """
@@ -420,8 +427,7 @@ class Passenger(MessageReceiver):
         self.has_taxi = False  # S'il a accepté un taxi
         self.taxis = []  # Tous les taxis qui lui ont proposé de le transporter
 
-        self.send_time = 0
-        self.send_position()
+        self.send_time = Passenger.TIME_WAIT_BEFORE_ACCEPT  # Envoie directement la posiiton aux taxis
 
     def step(self):
         perception = self.perceive()

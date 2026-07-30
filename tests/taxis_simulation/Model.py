@@ -186,6 +186,15 @@ class Model(mesa.Model):
                 return False
         return self.is_road(cell)
 
+    def blocking(self, cell):
+        """
+        Renvoie si une voiture bloque la cellule
+        None si personne ne bloque
+        """
+        for agent in cell.agents:
+            if isinstance(agent, Car):
+                return agent
+
     def send_msg(self, message, sender, who=BROAD_CAST):
         self.max_discussion_nb = max(message.discussion_nb, self.max_discussion_nb)
         receivers = []
