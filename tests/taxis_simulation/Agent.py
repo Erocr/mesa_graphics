@@ -432,6 +432,9 @@ class Passenger(MessageReceiver):
         return self.read_messages()
 
     def deliberate(self, perception):
+        pass
+
+    def do(self, action):
         # S'il est dans une voiture, il n'a rien à faire
         if self.transporting_car is not None:
             # C'est à la voiture de le déplacer quand elle se déplace
@@ -445,13 +448,13 @@ class Passenger(MessageReceiver):
             if not self.has_taxi:
                 self.send_position()
 
-    def do(self, action):
-        pass
-
     def read_messages(self):
         for i in reversed(range(len(self.messages))):
             message, sender = self.messages[i]
+
+            # Si le message est une proposition d'un taxi en réponse à sa demande
             if message.performatif == Message.INFORMATIF and message.discussion_nb == self.discussion_nb:
+                # Cherche la meilleure réponse
                 if message.content[:8] == "distance":
                     distance = int(message.content.split(" ")[1])
                     if self.min_distance is None or distance < self.min_distance:
