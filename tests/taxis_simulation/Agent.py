@@ -39,7 +39,7 @@ class MessageReceiver(mesa.discrete_space.CellAgent):
 
 class Car(MessageReceiver):
     """An agent with fixed initial wealth."""
-    TIME_AFTER_RECOMPUTING_PATH = 2
+    TIME_BEFORE_RECOMPUTING_PATH = 2
 
     NUM_CAR = 0
     MAX_SPEED = 5
@@ -383,7 +383,7 @@ class Car(MessageReceiver):
             self.blocked_timer += 1
 
             # Si ça fait plusieurs tours qu'il ne peut pas avancer
-            if self.blocked_timer > self.TIME_AFTER_RECOMPUTING_PATH:
+            if self.blocked_timer > self.TIME_BEFORE_RECOMPUTING_PATH:
                 self.blocked_timer = 0
 
                 # Trouve la cellule où il veut aller, mais n'arrive pas à aller

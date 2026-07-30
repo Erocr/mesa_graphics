@@ -25,14 +25,20 @@ def number_static_cars(model):
 
 
 class Model(mesa.Model):
-    def __init__(self, nb_cars=1, nb_passengers=1, width=30, max_speed=5, seed=None, file_name: str = "city"):
-        # La discussion number le plus grand trouvé dans les dicussions.
-        # C'est utile pour créer des nouvelles discussion.
-        self.max_discussion_nb = 0
+    def __init__(self, nb_cars=1, nb_passengers=1, width=30, max_speed=5, seed=None, file_name: str = "city",
+                 time_recompute_path=3, time_before_accept=3):
 
         super().__init__(seed=seed)
         self.datacollector = mesa.DataCollector(model_reporters={"average speed": average_speed,
                                                                  "nb static cars": number_static_cars})
+
+        # La discussion number le plus grand trouvé dans les dicussions.
+        # C'est utile pour créer des nouvelles discussions.
+        self.max_discussion_nb = 0
+
+        # Change les paramètres des agents en fonction de ce qui a été entré par l'utilisateur
+        Car.TIME_BEFORE_RECOMPUTING_PATH = time_recompute_path
+        Passenger.TIME_WAIT_BEFORE_ACCEPT = time_before_accept
 
         self.free_pos: list[mesa.discrete_space.Cell] = []  # Les positions où les voitures peuvent aller
         self._accepted_directions = {}  # Associe aux cellules une liste des directions acceptées, par défaut toutes

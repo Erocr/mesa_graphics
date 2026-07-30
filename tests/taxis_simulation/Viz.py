@@ -76,6 +76,14 @@ roads = [road[:-5] for road in roads]  # Enlève .json à la fin du nom du fichi
 
 # Les paramètres pour re-instancier le modèle
 model_params = {
+    "seed": {
+        "type": "SliderFloat",
+        "value": 0,
+        "min": 0,
+        "max": 100,
+        "label": "seed",
+        "step": 0.1
+    },
     "nb_cars": {
         "type": "SliderInt",
         "value": 1,
@@ -96,6 +104,20 @@ model_params = {
         "label": "max speed",
         "min": 1,
         "max": 10
+    },
+    "time_recompute_path": {
+        "type": "SliderInt",
+        "value": 3,
+        "min": 2,
+        "max": 10,
+        "label": "time to wait being blocked before recalculating the path"
+    },
+    "time_before_accept": {
+        "type": "SliderInt",
+        "value": 3,
+        "min": 2,
+        "max": 10,
+        "label": "time to wait before accepting a car"
     }
 }
 
