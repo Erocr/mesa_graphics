@@ -150,27 +150,17 @@ class Car(MessageReceiver):
                     route_computed = a_star(self.cell, self.model.grid.find_nearest_cell(pos), self.direction,
                                             self.model)
 
-                    # Si jamais la route est plus courte que celle vers le passager le plus proche jusque là
+                    # Si jamais la route est plus courte que celle vers le passager le plus proche jusque-là
                     if len(route_computed) < min_distance:
                         min_distance = len(route_computed)
                         best_passenger = sender
-                        self.route_computed = route_computed
+                        self.route_computed = route_computed  # Mémorise la route calculée
                         discussion_nb = message.discussion_nb
 
                 # élimine tous les messages
                 self.messages.pop(i)
 
-            # S'il a reçu au moins une proposition d'un passager, renvoie le meilleur trouvé
-            if best_passenger is not None:
-
-                # TODO: bouger ça dans deliberate / do
-                self.model.send_msg(Message(Message.INFORMATIF, f"distance {len(self.route_computed)}",
-                                            discussion_nb), self, best_passenger)
-                self.sent_proposition = best_passenger
-                self.discussion_nb = discussion_nb
-                self.state = Car.SENT_PROPOSITION
-
-            return best_passenger
+            return best_passenger, discussion_nb
 
         # Si jamais il a envoyé une proposition à quelqu'un, mais que personne n'a répondu encore
         elif self.state == Car.SENT_PROPOSITION:
@@ -184,10 +174,6 @@ class Car(MessageReceiver):
                 if message.performatif == Message.INFORMATIF and message.content == "ok" and \
                         message.discussion_nb == self.discussion_nb and sender == self.sent_proposition:
 
-                    # TODO: bouger ça dans deliberate / do
-                    self.path = self.route_computed
-                    self.follow_path = True
-                    self.state = Car.PROPOSITION_ACCEPTED
                     return True
 
                 # Si jamais le message
@@ -197,10 +183,6 @@ class Car(MessageReceiver):
                 elif message.performatif == Message.INFORMATIF and message.content == "no" and \
                         sender == self.sent_proposition and message.discussion_nb == self.discussion_nb:
 
-                    # TODO: bouger ça dans deliberate / do
-                    self.sent_proposition = None
-                    self.route_computed = ""
-                    self.state = Car.IDLE
                     return False
 
                 # Supprime tous les messages
@@ -215,10 +197,6 @@ class Car(MessageReceiver):
                 if message.performatif == Message.INFORMATIF and message.content == "disappear" and \
                         self.sent_proposition == sender:
 
-                    # TODO: bouger ça dans deliberate / do
-                    self.sent_proposition = None
-                    self.state = Car.IDLE
-
                     return "disappear"
                 self.messages.pop(i)
 
@@ -230,23 +208,11 @@ class Car(MessageReceiver):
                 if message.performatif == Message.INFORMATIF and message.content[:9] == "direction" and \
                         message.discussion_nb == self.discussion_nb and sender == self.transport:
 
-                    # TODO: bouger ça dans deliberate / do
-                    # Les coordonnées de là où il veut aller
-                    splitted = message.content.split(" ")
-                    pos = int(splitted[1]), int(splitted[2])
-
-                    # Calcule le chemin
-                    self.path = a_star(self.cell, self.model.grid.find_nearest_cell(pos), self.direction, self.model)
-                    self.follow_path = True
-                    return self.path
+                    return message.content
 
                 # Si jamais la personne qu'il transporte disparait
                 if message.performatif == Message.INFORMATIF and message.content == "disappear" and \
                         self.transport == sender:
-
-                    # TODO: bouger ça dans deliberate / do
-                    self.transport = None
-                    self.state = Car.IDLE
 
                     return "disappear"
 
@@ -260,29 +226,95 @@ class Car(MessageReceiver):
         """ La direction tournée de 90° vers la droite """
         return self.direction[1], -self.direction[0]
 
-    def deliberate(self, perception: list) -> tuple[int, int]:
+    def deliberate(self, perception: list) -> list:
         """
-        Donne la meilleure direction vers laquelle il peut aller.
+        Renvoie une liste d'actions.
+        Le premier élément est la meilleure direction vers laquelle il peut aller.
+        Ensuite, les actions peuvent être :
+        - des tuples (Message, à qui l'envoyer)
 
         :param perception: Les cases où il pourra potentiellement aller, avec plusieurs attributs associés à la case
         :return: le vecteur de mouvement sur la grille
         """
-        if self.state == Car.IDLE:
-            # Si un passager nous a envoyé une proposition
-            if perception is not None:
-                pass
+        actions = []
 
-        if self.state == Car.PROPOSITION_ACCEPTED:
+        # S'il n'a rien à faire
+        if self.state == Car.IDLE:
+
+            # S'il a reçu au moins une proposition d'un passager, lui envoie un message, et change d'état
+            if perception[3] is not None:
+                best_passenger, discussion_nb = perception[3]
+
+                # Demande à self.do d'envoyer un message
+                actions.append((Message(Message.INFORMATIF,
+                                        f"distance {len(self.route_computed)}",
+                                        discussion_nb),
+                                best_passenger))
+                self.sent_proposition = best_passenger
+                self.discussion_nb = discussion_nb
+
+                # Change son état
+                self.state = Car.SENT_PROPOSITION
+
+        elif self.state == Car.SENT_PROPOSITION:
+
+            # Si la personne a accepté la proposition de la voiture
+            if perception[3] is not None and perception[3]:
+                # Va vers ce passager
+                self.path = self.route_computed
+                self.follow_path = True
+
+                # Change son état
+                self.state = Car.PROPOSITION_ACCEPTED
+
+            # Si la personne a refusé la proposition
+            elif perception[3] is not None and not perception[3]:
+
+                #  Oublie d'avoir envoyé cette proposition
+                self.sent_proposition = None
+                self.route_computed = ""
+
+                # Passe en état IDLE
+                self.state = Car.IDLE
+
+        elif self.state == Car.PROPOSITION_ACCEPTED:
+
             if self.sent_proposition.cell == self.cell:
                 self.transport = self.sent_proposition
                 self.sent_proposition = None
                 self.transport.transported_by(self)
                 self.state = Car.TRANSPORTING
 
+            # Si la personne disparaît
+            elif perception[3] is not None and perception[3] == "disappear":
+                # Oublie la personne
+                self.sent_proposition = None
+                # Rentre en état IDLE
+                self.state = Car.IDLE
+
+        elif self.state == Car.TRANSPORTING:
+
+            # Si la personne disparaît (par exemple si elle arrive à destination)
+            if perception[3] is not None and perception[3] == "disappear":
+                # Oublie la personne
+                self.transport = None
+                # Rentre en état IDLE
+                self.state = Car.IDLE
+
+            # S'il reçoit là où le passager veut aller, il y va
+            elif perception[3] is not None and perception[3][:9] == "direction":
+                # Les coordonnées de là où il veut aller
+                splitted = perception[3].split(" ")
+                pos = int(splitted[1]), int(splitted[2])
+
+                # Calcule le chemin
+                self.path = a_star(self.cell, self.model.grid.find_nearest_cell(pos), self.direction, self.model)
+                self.follow_path = True
+
         if self.follow_path:
-            return self.deliberation_with_path(perception)
+            return [self.deliberation_with_path(perception)] + actions
         else:
-            return self.deliberation_without_path(perception)
+            return [self.deliberation_without_path(perception)] + actions
 
     def deliberation_without_path(self, perception):
         """
@@ -334,9 +366,10 @@ class Car(MessageReceiver):
     def can_go(self, direction: tuple[int, int], cellInfo: CellInfo):
         return cellInfo.is_free and direction in cellInfo.directions
 
-    def do(self, direction: tuple[int, int]) -> None:
+    def do(self, deliberation: list) -> None:
         """
         """
+        direction = deliberation[0]
         if direction == (0, 0):  # S'il n'avance pas
             self.speed = 0  # Pile
         elif direction == self.direction:  # S'il va tout droit
@@ -362,6 +395,11 @@ class Car(MessageReceiver):
             # S'il a un passager, bouge le passager
             if self.transport is not None:
                 self.transport.move_to(self.cell)
+
+        # Gère les actions supplémentaires (ici l'envoi de messages)
+        for action in deliberation[1:]:
+            if isinstance(action, tuple) and isinstance(action[0], Message):
+                self.model.send_msg(action[0], self, action[1])
 
 
 class Passenger(MessageReceiver):
