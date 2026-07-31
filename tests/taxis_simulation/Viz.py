@@ -1,5 +1,6 @@
 import os
 import time
+from typing import Iterable, Sized
 
 from mesa.visualization import SpaceRenderer
 from mesa.visualization.components import AgentPortrayalStyle, PropertyLayerStyle
@@ -31,7 +32,10 @@ def agent_portrayal(agent):
         elif agent.state == Car.PROPOSITION_ACCEPTED:
             col = "orange"
         elif agent.state == Car.TRANSPORTING:
-            col = "blue"
+            if isinstance(agent.transport, Sized) and len(agent.transport) == 2:
+                col = "green"
+            else:
+                col = "blue"
         return AgentPortrayalStyle(marker=markers[tuple(agent.direction)], color=col)
     elif isinstance(agent, Passenger):
         return AgentPortrayalStyle(marker="o", color="blue", size=5)

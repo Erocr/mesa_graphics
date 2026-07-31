@@ -7,10 +7,11 @@ import json
 from Messaging import BROAD_CAST, CARS, PASSENGERS
 from Agent import Passenger, MessageReceiver
 from BasicCar import BasicCar
+from TwoPassengersCar import TwoPassengersCar
 from a_star_algorithm import cost_delta
 
 # Il suffit de changer cette ligne de code pour changer le type de voiture qu'on utilise
-Car = BasicCar
+Car = TwoPassengersCar
 
 
 def average_speed(model):

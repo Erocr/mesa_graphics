@@ -82,6 +82,11 @@ class Passenger(MessageReceiver):
             if not self.has_taxi:
                 self.send_position()
 
+        # Si le taxi lui a promis de venir mais ne vient pas, il l'oublie
+        if self.has_taxi and self.send_time > 100 and self.transporting_car is None:
+            self.send_time = 0
+            self.has_taxi = False
+
     def read_messages(self):
         for i in reversed(range(len(self.messages))):
             message, sender = self.messages[i]
@@ -115,6 +120,7 @@ class Passenger(MessageReceiver):
                                     discussion_nb=self.discussion_nb),
                             self,
                             Messaging.CARS)
+        print("sent position " + str(self.discussion_nb))
 
     def accept_taxi(self):
         """
@@ -139,7 +145,8 @@ class Passenger(MessageReceiver):
         self.taxis = []
         if self.best_taxi is not None:
             self.has_taxi = True
-        self.best_taxi = None  # Only for test
+            self.send_time = 0
+        self.best_taxi = None
 
     def disappear(self):
         self.model.send_msg(Message(Message.INFORMATIF, "disappear"), self)

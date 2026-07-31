@@ -1,3 +1,5 @@
+from typing import Iterable
+
 from Agent import MessageReceiver, Passenger, CellInfo
 from Messaging import Message
 from a_star_algorithm import a_star
@@ -158,6 +160,7 @@ class BasicCar(MessageReceiver):
         return self.direction[1], -self.direction[0]
 
     def nearest_passenger(self, perception):
+        best_passenger_goal = None
         best_passenger = None
         min_distance = 1000000
         discussion_nb = 0
@@ -174,12 +177,13 @@ class BasicCar(MessageReceiver):
                 self.route_computed = route_computed  # Mémorise la route calculée
                 self.goal = goal
                 discussion_nb = disc_nb
+                best_passenger_goal = passenger_goal
 
-        return best_passenger, discussion_nb
+        return best_passenger, best_passenger_goal, discussion_nb
 
     def basic_idle_deliberation(self, perception):
         actions = []
-        best_passenger, discussion_nb = self.nearest_passenger(perception[3])
+        best_passenger, goal, discussion_nb = self.nearest_passenger(perception[3])
 
         # S'il a reçu au moins une proposition d'un passager, lui envoie un message, et change d'état
         if best_passenger is not None:
@@ -190,6 +194,7 @@ class BasicCar(MessageReceiver):
                             best_passenger))
             self.sent_proposition = best_passenger
             self.discussion_nb = discussion_nb
+            self.goal = self.model.grid.find_nearest_cell(goal)
 
             # S'arrête, le chemin qu'il a calculé serait obsolète sinon
             self.follow_path = True
@@ -208,6 +213,7 @@ class BasicCar(MessageReceiver):
             # Va vers ce passager
             self.path = self.route_computed
             self.follow_path = True
+            self.route_computed = ""
 
             # Change son état
             self.state = BasicCar.PROPOSITION_ACCEPTED
@@ -252,16 +258,10 @@ class BasicCar(MessageReceiver):
             # Rentre en état IDLE
             self.state = BasicCar.IDLE
 
-        # S'il reçoit là où le passager veut aller, il y va
-        elif perception[6] is not None and perception[6][:9] == "direction":
-            # Les coordonnées de là où il veut aller
-            splitted = perception[6].split(" ")
-            pos = int(splitted[1]), int(splitted[2])
-
+        # S'il n'a toujours pas calculé le chemin, le calcule, et le suit
+        elif self.path == "" or not self.follow_path:
             # Calcule le chemin
-            goal = self.model.grid.find_nearest_cell(pos)
-            self.path = a_star(self.cell, goal, self.direction, self.model)
-            self.goal = goal
+            self.path = a_star(self.cell, self.goal, self.direction, self.model)
             self.follow_path = True
 
         return []
@@ -403,7 +403,11 @@ class BasicCar(MessageReceiver):
 
             # S'il a un passager, bouge le passager
             if self.transport is not None:
-                self.transport.move_to(self.cell)
+                if isinstance(self.transport, Passenger):
+                    self.transport.move_to(self.cell)
+                elif isinstance(self.transport, Iterable):
+                    for transport in self.transport:
+                        transport.move_to(self.cell)
 
         # Gère les actions supplémentaires (ici l'envoi de messages)
         for action in deliberation[1:]:

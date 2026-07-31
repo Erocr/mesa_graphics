@@ -197,3 +197,21 @@ def cost_delta(cell1, cell2, previous_direction, model, added_blocked=None):
 def dot(v1, v2):
     """ Calcul le produit scalaire entre deux vecteurs """
     return v1[0] * v2[0] + v1[1] * v2[1]
+
+
+def rotate_left(dir):
+    return -dir[1], dir[0]
+
+
+def rotate_right(dir):
+    return dir[1], -dir[0]
+
+
+def find_final_direction(starting_direction, path):
+    direction = starting_direction
+    for d in path:
+        if d == "r":
+            direction = rotate_right(direction)
+        elif d == "l":
+            direction = rotate_left(direction)
+    return direction
