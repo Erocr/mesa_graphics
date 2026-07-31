@@ -5,8 +5,12 @@ import numpy as np
 from mesa.discrete_space import PropertyLayer
 import json
 from Messaging import BROAD_CAST, CARS, PASSENGERS
-from Agent import Car, Passenger, MessageReceiver
+from Agent import Passenger, MessageReceiver
+from BasicCar import BasicCar
 from a_star_algorithm import cost_delta
+
+# Il suffit de changer cette ligne de code pour changer le type de voiture qu'on utilise
+Car = BasicCar
 
 
 def average_speed(model):

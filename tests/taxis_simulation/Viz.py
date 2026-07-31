@@ -5,7 +5,7 @@ from mesa.visualization import SpaceRenderer
 from mesa.visualization.components import AgentPortrayalStyle, PropertyLayerStyle
 
 from Agent import *
-from Model import Model
+from Model import Model, Car
 
 from mesa_graphics import MesaGraphics, make_plot_component, make_text_component
 

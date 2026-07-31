@@ -65,3 +65,19 @@ Voiture lorsque transport arrive à destination :
 
 Cet algorithme part de la base de l'algorithme d'au-dessus. On va noter ici les différences avec celui d'au-dessus.
 
+
+```
+Variables internes : 
+    transport : list[Voiture], à présent il peut transporter plusieurs voitures
+    path_if_accepted : Chemin, 
+    positions : list[Vecteur], les position par lesquelles il passe
+    epsilon : flottant, limite de tolérance
+
+Voiture lors de la récéption de "passenger posX posY goalX goalY" pas sender :
+    Si state == TRANSPORT :
+        calcul chemin minimisant coût supplémentaire pour transporter cette personne
+        si ce chemin est plus petit que longueur de path + epsilon et est plus petit que longueur de path_if_accepted:
+            path_if_accepted = ce chemin
+        
+    
+```
