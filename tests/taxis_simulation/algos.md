@@ -126,7 +126,7 @@ On lance les différents algos avec les mêmes paramètres et les mêmes seed, e
 pour ramener tous les passagers.
 
 Les scores sont un tout petit peu meilleurs en moyenne avec le deuxième algo. 
-L'amélioration est très moindre, d'environ 5%.
+L'amélioration est très moindre, d'environ 5% pour EPSILON = 5, et 10% pour EPSILON = 3.
 
 Cela dit, il y a différents bugs dans l'implémentation, et l'implémentation n'est pas terminée. 
 Ainsi, ce chiffre n'est pas réellement représentatif.

@@ -24,7 +24,7 @@ results = [[[] for _ in range(len(model_parameters))] for _ in range(len(car_typ
 nb_errors = [[0 for _ in range(len(model_parameters))] for _ in range(len(car_types))]
 for j in range(len(model_parameters)):
     model_params = model_parameters[j]
-    for k in range(20):
+    for k in range(10):
         model_params["seed"] = random()
         for i in range(len(car_types)):
             Model.Car = car_types[i]

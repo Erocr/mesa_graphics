@@ -5,7 +5,7 @@ from tests.taxis_simulation.a_star_algorithm import find_final_direction
 # Au vu de la construction de BasicCar, il n'y a que la fonction deliberate qui est à changer
 
 class TwoPassengersCar(BasicCar):
-    EPSILON = 5
+    EPSILON = 3
 
     def __init__(self, model, cell, max_speed=5):
         super().__init__(model, cell, max_speed)
