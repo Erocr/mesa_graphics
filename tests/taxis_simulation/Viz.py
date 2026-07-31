@@ -98,6 +98,14 @@ model_params = {
         "min": 1,
         "max": 50
     },
+    "time_passenger_spawn":
+    {
+        "type": "SliderInt",
+        "value": -1,
+        "label": "frequency of passenger spawn",
+        "min": -1,
+        "max": 100,
+    },
     "max_speed": {
         "type": "SliderInt",
         "value": 5,

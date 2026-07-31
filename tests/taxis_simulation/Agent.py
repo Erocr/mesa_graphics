@@ -510,7 +510,7 @@ class Passenger(MessageReceiver):
         self.send_time = 0  # Depuis quand est-ce qu'il a demandé aux taxis de venir
         self.discussion_nb = self.model.max_discussion_nb + 1
         self.model.send_msg(Message(Message.REQUEST,
-                                    f"passenger {int(self.cell.position[0])} {int(self.cell.position[1])}",
+                                    f"passenger {int(self.cell.position[0])} {int(self.cell.position[1])} {int(self.goal.position[0])} {int(self.goal.position[1])}",
                                     discussion_nb=self.discussion_nb),
                             self,
                             Messaging.CARS)

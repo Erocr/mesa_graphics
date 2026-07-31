@@ -30,7 +30,20 @@ def number_passengers(model):
 
 class Model(mesa.Model):
     def __init__(self, nb_cars=1, nb_passengers=1, width=30, max_speed=5, seed=None, file_name: str = "city",
-                 time_recompute_path=3, time_before_accept=3):
+                 time_recompute_path=3, time_before_accept=3, time_passenger_spawn=-1, custom_entities=None):
+        """
+        :param nb_cars: Le nombre de voitures
+        :param nb_passengers: Le nombre de passagers au début de la simulation
+        :param width: La largeur de la carte (n'est pas utile dans cette version)
+        :param max_speed: La vitesse maximale des agents.
+        Plus elle est élevée, plus les agents prennent du temps pour arriver à leur vitesse maximale.
+        :param seed:
+        :param file_name: Le fichier qui décrit la carte
+        :param time_recompute_path: Le temps qu'attendent les voitures avant de recalculer le chemin
+        :param time_before_accept: Le temps qu'attendent les passagers avant d'accepter une voiture
+        :param time_passenger_spawn: Le temps avant qu'un passager apparaîsse
+        :param custom_entities: Des entités qui apparaissent au début, choisies par l'utilisateur
+        """
 
         super().__init__(seed=seed)
         self.datacollector = mesa.DataCollector(model_reporters={"average speed": average_speed,
@@ -44,6 +57,8 @@ class Model(mesa.Model):
         # Change les paramètres des agents en fonction de ce qui a été entré par l'utilisateur
         Car.TIME_BEFORE_RECOMPUTING_PATH = time_recompute_path
         Passenger.TIME_WAIT_BEFORE_ACCEPT = time_before_accept
+        self.time_passenger_spawn = time_passenger_spawn
+        self.time = 0
 
         self.free_pos: list[mesa.discrete_space.Cell] = []  # Les positions où les voitures peuvent aller
         self._accepted_directions = {}  # Associe aux cellules une liste des directions acceptées, par défaut toutes
@@ -62,6 +77,13 @@ class Model(mesa.Model):
 
         for _ in range(nb_passengers):
             self.spawn_passenger()
+
+        if custom_entities is not None:
+            for entity in custom_entities:
+                if entity[0] == Car:
+                    Car.create_agents(self, 1, entity[1], max_speed=max_speed)
+                elif entity[1] == Passenger:
+                    Passenger.create_agents(self, 1, entity[1], entity[2])
 
         # Crée un layer pour pouvoir afficher les cases en bleues lorsqu'elles sont accessibles, et en rouge
         # lorsqu'elles ne le sont pas
@@ -229,6 +251,9 @@ class Model(mesa.Model):
         Passenger.create_agents(self, 1, cell1, cell2)
 
     def step(self):
+        self.time += 1
+        if self.time_passenger_spawn >= 0 and self.time % self.time_passenger_spawn == 0:
+            self.spawn_passenger()
         self.datacollector.collect(self)
         self.agents.shuffle_do("step")
 
