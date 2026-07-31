@@ -157,6 +157,115 @@ class BasicCar(MessageReceiver):
         """ La direction tournée de 90° vers la droite """
         return self.direction[1], -self.direction[0]
 
+    def nearest_passenger(self, perception):
+        best_passenger = None
+        min_distance = 1000000
+        discussion_nb = 0
+        for proposition in perception:
+            passenger, pos, passenger_goal, disc_nb = proposition
+            # Calcule la route la plus rapide jusqu'au passager
+            goal = self.model.grid.find_nearest_cell(pos)
+            route_computed = a_star(self.cell, goal, self.direction, self.model)
+
+            # Si jamais la route est plus courte que celle vers le passager le plus proche jusque-là
+            if len(route_computed) < min_distance:
+                min_distance = len(route_computed)
+                best_passenger = passenger
+                self.route_computed = route_computed  # Mémorise la route calculée
+                self.goal = goal
+                discussion_nb = disc_nb
+
+        return best_passenger, discussion_nb
+
+    def basic_idle_deliberation(self, perception):
+        actions = []
+        best_passenger, discussion_nb = self.nearest_passenger(perception[3])
+
+        # S'il a reçu au moins une proposition d'un passager, lui envoie un message, et change d'état
+        if best_passenger is not None:
+            # Demande à self.do d'envoyer un message
+            actions.append((Message(Message.INFORMATIF,
+                                    f"distance {len(self.route_computed)}",
+                                    discussion_nb),
+                            best_passenger))
+            self.sent_proposition = best_passenger
+            self.discussion_nb = discussion_nb
+
+            # S'arrête, le chemin qu'il a calculé serait obsolète sinon
+            self.follow_path = True
+            self.path = ""
+
+            # Change son état
+            self.state = BasicCar.SENT_PROPOSITION
+            self.sent_proposition_timer = 0
+        return actions
+
+    def basic_sent_proposition_deliberation(self, perception):
+        self.sent_proposition_timer += 1
+
+        # Si la personne a accepté la proposition de la voiture
+        if perception[4] is not None and perception[4]:
+            # Va vers ce passager
+            self.path = self.route_computed
+            self.follow_path = True
+
+            # Change son état
+            self.state = BasicCar.PROPOSITION_ACCEPTED
+
+        # Si la personne a refusé la proposition ou si la personne prend trop de temps pour répondre
+        elif (perception[4] is not None and not perception[4]) or \
+                self.sent_proposition_timer > Passenger.TIME_WAIT_BEFORE_ACCEPT:
+
+            #  Oublie d'avoir envoyé cette proposition
+            self.sent_proposition = None
+            self.route_computed = ""
+            self.follow_path = False
+
+            # Passe en état IDLE
+            self.state = BasicCar.IDLE
+
+        return []
+
+    def basic_proposition_accepted_deliberation(self, perception):
+        if self.sent_proposition.cell == self.cell:
+            self.transport = self.sent_proposition
+            self.sent_proposition = None
+            self.transport.transported_by(self)
+            self.state = BasicCar.TRANSPORTING
+
+        # Si la personne disparaît
+        elif self.sent_proposition in perception[5]:
+            # Oublie la personne
+            self.sent_proposition = None
+            self.follow_path = False
+            # Rentre en état IDLE
+            self.state = BasicCar.IDLE
+
+        return []
+
+    def basic_transport_deliberation(self, perception):
+        # Si la personne disparaît (par exemple si elle arrive à destination)
+        if self.transport in perception[5]:
+            # Oublie la personne
+            self.transport = None
+            self.follow_path = False
+            # Rentre en état IDLE
+            self.state = BasicCar.IDLE
+
+        # S'il reçoit là où le passager veut aller, il y va
+        elif perception[6] is not None and perception[6][:9] == "direction":
+            # Les coordonnées de là où il veut aller
+            splitted = perception[6].split(" ")
+            pos = int(splitted[1]), int(splitted[2])
+
+            # Calcule le chemin
+            goal = self.model.grid.find_nearest_cell(pos)
+            self.path = a_star(self.cell, goal, self.direction, self.model)
+            self.goal = goal
+            self.follow_path = True
+
+        return []
+
     def deliberate(self, perception: list) -> list:
         """
         Renvoie une liste d'actions.
@@ -164,110 +273,31 @@ class BasicCar(MessageReceiver):
         Ensuite, les actions peuvent être :
         - des tuples (Message, à qui l'envoyer)
 
-        :param perception: Les cases où il pourra potentiellement aller, avec plusieurs attributs associés à la case
+        :param perception:
+        C'est une liste, chaque case contient une certaine information :
+        case 0 - L'information associée à la case de gauche
+        case 1 - L'information associée à la case de devant
+        case 2 - L'information associée à la case de droite
+        case 3 - Les demandes des passagers
+        case 4 - Acceptation / Réfutation de sent_proposition (c'est le seul qui est regardé)
+        case 5 - La liste des passagers qui disparaissent
+        case 6 - Là où le passager veut aller
         :return: le vecteur de mouvement sur la grille
         """
         actions = []
 
         # S'il n'a rien à faire
         if self.state == BasicCar.IDLE:
-            best_passenger = None
-            min_distance = 1000000
-            discussion_nb = 0
-            for proposition in perception[3]:
-                passenger, pos, passenger_goal, disc_nb = proposition
-                # Calcule la route la plus rapide jusqu'au passager
-                goal = self.model.grid.find_nearest_cell(pos)
-                route_computed = a_star(self.cell, goal, self.direction, self.model)
-
-                # Si jamais la route est plus courte que celle vers le passager le plus proche jusque-là
-                if len(route_computed) < min_distance:
-                    min_distance = len(route_computed)
-                    best_passenger = passenger
-                    self.route_computed = route_computed  # Mémorise la route calculée
-                    self.goal = goal
-                    discussion_nb = disc_nb
-
-            # S'il a reçu au moins une proposition d'un passager, lui envoie un message, et change d'état
-            if best_passenger is not None:
-                # Demande à self.do d'envoyer un message
-                actions.append((Message(Message.INFORMATIF,
-                                        f"distance {len(self.route_computed)}",
-                                        discussion_nb),
-                                best_passenger))
-                self.sent_proposition = best_passenger
-                self.discussion_nb = discussion_nb
-
-                # S'arrête, le chemin qu'il a calculé serait obsolète sinon
-                self.follow_path = True
-                self.path = ""
-
-                # Change son état
-                self.state = BasicCar.SENT_PROPOSITION
-                self.sent_proposition_timer = 0
+            actions += self.basic_idle_deliberation(perception)
 
         elif self.state == BasicCar.SENT_PROPOSITION:
-
-            self.sent_proposition_timer += 1
-
-            # Si la personne a accepté la proposition de la voiture
-            if perception[4] is not None and perception[4]:
-                # Va vers ce passager
-                self.path = self.route_computed
-                self.follow_path = True
-
-                # Change son état
-                self.state = BasicCar.PROPOSITION_ACCEPTED
-
-            # Si la personne a refusé la proposition ou si la personne prend trop de temps pour répondre
-            elif (perception[4] is not None and not perception[4]) or \
-                    self.sent_proposition_timer > Passenger.TIME_WAIT_BEFORE_ACCEPT:
-
-                #  Oublie d'avoir envoyé cette proposition
-                self.sent_proposition = None
-                self.route_computed = ""
-                self.follow_path = False
-
-                # Passe en état IDLE
-                self.state = BasicCar.IDLE
+            actions += self.basic_sent_proposition_deliberation(perception)
 
         elif self.state == BasicCar.PROPOSITION_ACCEPTED:
-
-            if self.sent_proposition.cell == self.cell:
-                self.transport = self.sent_proposition
-                self.sent_proposition = None
-                self.transport.transported_by(self)
-                self.state = BasicCar.TRANSPORTING
-
-            # Si la personne disparaît
-            elif self.sent_proposition in perception[5]:
-                # Oublie la personne
-                self.sent_proposition = None
-                self.follow_path = False
-                # Rentre en état IDLE
-                self.state = BasicCar.IDLE
+            actions += self.basic_proposition_accepted_deliberation(perception)
 
         elif self.state == BasicCar.TRANSPORTING:
-
-            # Si la personne disparaît (par exemple si elle arrive à destination)
-            if self.transport in perception[5]:
-                # Oublie la personne
-                self.transport = None
-                self.follow_path = False
-                # Rentre en état IDLE
-                self.state = BasicCar.IDLE
-
-            # S'il reçoit là où le passager veut aller, il y va
-            elif perception[6] is not None and perception[6][:9] == "direction":
-                # Les coordonnées de là où il veut aller
-                splitted = perception[6].split(" ")
-                pos = int(splitted[1]), int(splitted[2])
-
-                # Calcule le chemin
-                goal = self.model.grid.find_nearest_cell(pos)
-                self.path = a_star(self.cell, goal, self.direction, self.model)
-                self.goal = goal
-                self.follow_path = True
+            actions += self.basic_transport_deliberation(perception)
 
         if not self.state == BasicCar.IDLE:
             return self.deliberation_with_path(perception) + actions
