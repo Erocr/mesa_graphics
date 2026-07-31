@@ -120,7 +120,6 @@ class Passenger(MessageReceiver):
                                     discussion_nb=self.discussion_nb),
                             self,
                             Messaging.CARS)
-        print("sent position " + str(self.discussion_nb))
 
     def accept_taxi(self):
         """

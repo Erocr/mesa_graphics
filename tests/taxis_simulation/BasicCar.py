@@ -3,6 +3,7 @@ from typing import Iterable
 from Agent import MessageReceiver, Passenger, CellInfo
 from Messaging import Message
 from a_star_algorithm import a_star
+from math import inf
 
 
 class BasicCar(MessageReceiver):
@@ -18,6 +19,14 @@ class BasicCar(MessageReceiver):
     SENT_PROPOSITION = 1
     PROPOSITION_ACCEPTED = 2
     TRANSPORTING = 3
+
+    PERCEPT_LEFT = 0
+    PERCEPT_FRONT = 1
+    PERCEPT_RIGHT = 2
+    PERCEPT_PROPOSITIONS = 3
+    PERCEPT_ACCEPTATION = 4
+    PERCEPT_DISAPPEAR = 5
+    PERCEPT_DIRECTION = 6
 
     def __init__(self, model, cell, max_speed=5):
         BasicCar.MAX_SPEED = max_speed
@@ -162,7 +171,7 @@ class BasicCar(MessageReceiver):
     def nearest_passenger(self, perception):
         best_passenger_goal = None
         best_passenger = None
-        min_distance = 1000000
+        min_distance = inf
         discussion_nb = 0
         for proposition in perception:
             passenger, pos, passenger_goal, disc_nb = proposition
@@ -183,7 +192,7 @@ class BasicCar(MessageReceiver):
 
     def basic_idle_deliberation(self, perception):
         actions = []
-        best_passenger, goal, discussion_nb = self.nearest_passenger(perception[3])
+        best_passenger, goal, discussion_nb = self.nearest_passenger(perception[self.PERCEPT_PROPOSITIONS])
 
         # S'il a reçu au moins une proposition d'un passager, lui envoie un message, et change d'état
         if best_passenger is not None:
@@ -209,7 +218,7 @@ class BasicCar(MessageReceiver):
         self.sent_proposition_timer += 1
 
         # Si la personne a accepté la proposition de la voiture
-        if perception[4] is not None and perception[4]:
+        if perception[self.PERCEPT_ACCEPTATION] is not None and perception[self.PERCEPT_ACCEPTATION]:
             # Va vers ce passager
             self.path = self.route_computed
             self.follow_path = True
@@ -219,7 +228,7 @@ class BasicCar(MessageReceiver):
             self.state = BasicCar.PROPOSITION_ACCEPTED
 
         # Si la personne a refusé la proposition ou si la personne prend trop de temps pour répondre
-        elif (perception[4] is not None and not perception[4]) or \
+        elif (perception[self.PERCEPT_ACCEPTATION] is not None and not perception[self.PERCEPT_ACCEPTATION]) or \
                 self.sent_proposition_timer > Passenger.TIME_WAIT_BEFORE_ACCEPT:
 
             #  Oublie d'avoir envoyé cette proposition
@@ -240,7 +249,7 @@ class BasicCar(MessageReceiver):
             self.state = BasicCar.TRANSPORTING
 
         # Si la personne disparaît
-        elif self.sent_proposition in perception[5]:
+        elif self.sent_proposition in perception[self.PERCEPT_DISAPPEAR]:
             # Oublie la personne
             self.sent_proposition = None
             self.follow_path = False
@@ -251,7 +260,7 @@ class BasicCar(MessageReceiver):
 
     def basic_transport_deliberation(self, perception):
         # Si la personne disparaît (par exemple si elle arrive à destination)
-        if self.transport in perception[5]:
+        if self.transport in perception[self.PERCEPT_DISAPPEAR]:
             # Oublie la personne
             self.transport = None
             self.follow_path = False
@@ -311,14 +320,14 @@ class BasicCar(MessageReceiver):
         """
         # Commence par calculer les endroits où il pourrait aller si son compteur arrive à MAX_SPEED
         direction = 0, 0
-        if self.can_go(self.direction, perception[1]):  # S'il peut aller tout droit
+        if self.can_go(self.direction, perception[self.PERCEPT_FRONT]):  # S'il peut aller tout droit
             direction = self.direction
 
         else:  # Ne peut pas aller tout droit, il peut tourner ou piler
             possible_dirs = []
-            if self.can_go(self.left_dir(), perception[0]):  # S'il peut tourner à gauche
+            if self.can_go(self.left_dir(), perception[self.PERCEPT_LEFT]):  # S'il peut tourner à gauche
                 possible_dirs.append(self.left_dir())
-            if self.can_go(self.right_dir(), perception[2]):  # S'il peut tourner à droite
+            if self.can_go(self.right_dir(), perception[self.PERCEPT_RIGHT]):  # S'il peut tourner à droite
                 possible_dirs.append(self.right_dir())
 
             if len(possible_dirs) > 0:  # S'il peut tourner à droite ou à gauche
@@ -333,15 +342,15 @@ class BasicCar(MessageReceiver):
             return [(0, 0)]
 
         # S'il doit aller à gauche, et qu'il peut aller à gauche
-        if self.path[0] == "l" and self.can_go(self.left_dir(), perception[0]):
+        if self.path[0] == "l" and self.can_go(self.left_dir(), perception[self.PERCEPT_LEFT]):
             return [self.left_dir()]
 
         # S'il doit aller tout droit, et qu'il peut aller tout droit
-        elif self.path[0] == "f" and self.can_go(self.direction, perception[1]):
+        elif self.path[0] == "f" and self.can_go(self.direction, perception[self.PERCEPT_FRONT]):
             return [self.direction]
 
         # S'il doit aller à droite, et qu'il peut aller à droite
-        elif self.path[0] == "r" and self.can_go(self.right_dir(), perception[2]):
+        elif self.path[0] == "r" and self.can_go(self.right_dir(), perception[self.PERCEPT_RIGHT]):
             return [self.right_dir()]
 
         # S'il ne peut pas aller là où il doit aller
