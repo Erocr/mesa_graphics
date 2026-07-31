@@ -24,13 +24,18 @@ def number_static_cars(model):
     return res
 
 
+def number_passengers(model):
+    return len([agent for agent in model.agents if isinstance(agent, Passenger)])
+
+
 class Model(mesa.Model):
     def __init__(self, nb_cars=1, nb_passengers=1, width=30, max_speed=5, seed=None, file_name: str = "city",
                  time_recompute_path=3, time_before_accept=3):
 
         super().__init__(seed=seed)
         self.datacollector = mesa.DataCollector(model_reporters={"average speed": average_speed,
-                                                                 "nb static cars": number_static_cars})
+                                                                 "nb static cars": number_static_cars,
+                                                                 "passengers": number_passengers})
 
         # La discussion number le plus grand trouvé dans les dicussions.
         # C'est utile pour créer des nouvelles discussions.

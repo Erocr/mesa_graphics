@@ -68,7 +68,7 @@ Car colors:
 )
 
 # Les plots
-average_speed_composant = make_plot_component("average speed", page=1)
+passengers_plot = make_plot_component("passengers", page=1)
 nb_static_cars_comp = make_plot_component("nb static cars", page=1)
 
 roads = os.listdir("roads")  # Obtient la liste des fichiers dans le dossier roads
@@ -125,5 +125,5 @@ page = MesaGraphics(
     model,
     renderer,
     model_params=model_params,
-    components=[legend, average_speed_composant, nb_static_cars_comp]
+    components=[legend, passengers_plot, nb_static_cars_comp]
 )

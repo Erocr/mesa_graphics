@@ -144,7 +144,7 @@ class Car(MessageReceiver):
             min_distance = 100000
             discussion_nb = 0
             for i in reversed(range(len(self.messages))):
-                message, sender = self.messages[i]
+                message, sender = self.messages.pop(i)
 
                 # Si le message est une proposition d'un passager
                 # Le protocole pour les passagers est d'envoyer 'passenger posX posY' aux taxis qui pourraient le
@@ -166,15 +166,12 @@ class Car(MessageReceiver):
                         self.goal = goal
                         discussion_nb = message.discussion_nb
 
-                # élimine tous les messages
-                self.messages.pop(i)
-
             return best_passenger, discussion_nb
 
         # Si jamais il a envoyé une proposition à quelqu'un, mais que personne n'a répondu encore
         elif self.state == Car.SENT_PROPOSITION:
             for i in reversed(range(len(self.messages))):
-                message, sender = self.messages[i]
+                message, sender = self.messages.pop(i)
 
                 # Si jamais le message est
                 # - est une acceptation
@@ -194,24 +191,20 @@ class Car(MessageReceiver):
 
                     return False
 
-                # Supprime tous les messages
-                self.messages.pop(i)
-
         # Si le passager a accepté sa proposition
         elif self.state == Car.PROPOSITION_ACCEPTED:
             for i in reversed(range(len(self.messages))):
-                message, sender = self.messages[i]
+                message, sender = self.messages.pop(i)
 
                 # Si jamais la personne vers qui il va disparaît
                 if message.performatif == Message.INFORMATIF and message.content == "disappear" and \
                         self.sent_proposition == sender:
 
                     return "disappear"
-                self.messages.pop(i)
 
         elif self.state == Car.TRANSPORTING:
             for i in reversed(range(len(self.messages))):
-                message, sender = self.messages[i]
+                message, sender = self.messages.pop(i)
 
                 # Si le passager envoie là où il veut aller
                 if message.performatif == Message.INFORMATIF and message.content[:9] == "direction" and \
@@ -224,8 +217,6 @@ class Car(MessageReceiver):
                         self.transport == sender:
 
                     return "disappear"
-
-                self.messages.pop(i)
 
     def left_dir(self):
         """ La direction tournée de 90° vers la gauche """
